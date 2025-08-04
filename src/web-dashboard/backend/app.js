@@ -11,6 +11,11 @@ app.use(express.json());
 
 //Middleware
 app.use('/api/auth', authRoutes);
+// app.use('/api/auth', require('./routes/auth'));
+
+
+// New mobile route
+app.use('/api/mobile', require('./routes/mobileAuth.routes'));
 
 const PORT = process.env.PORT || 5000;
 
