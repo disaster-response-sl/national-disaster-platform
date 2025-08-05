@@ -26,12 +26,18 @@ const LoginScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      await axios.post('http://10.0.2.2:5000/api/mobile/login', { //10.0.2.2  192.168.1.3
-        individualId: nic,
-        otp: otp
-      });
+//       await axios.post('http://10.0.2.2:5000/api/mobile/login', { //10.0.2.2  192.168.1.3
+//         individualId: nic,
+//         otp: otp
+//       });
+//
+//       const { token, user } = response.data;
+         const response = await axios.post('http://10.0.2.2:5000/api/mobile/login', {
+           individualId: nic,
+           otp: otp
+         });
+         const { token, user } = response.data;
 
-      const { token, user } = response.data;
 
       // TODO: Save token securely (e.g., AsyncStorage)
       Alert.alert('Login Success', `Welcome, ${user.name}`);
