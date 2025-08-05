@@ -1,7 +1,8 @@
 // services/AuthService.js
 class AuthService {
   constructor() {
-    this.baseURL = 'http://localhost:5000/api/auth';
+    this.baseURL = 'http://10.0.2.2:5000/api/mobile';
+
   }
 
   async login(individualId, otp) {
