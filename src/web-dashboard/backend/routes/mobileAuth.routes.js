@@ -5,6 +5,7 @@ const MockSLUDIService = require('../services/mock-sludi-service');
 
 const router = express.Router();
 const sludiService = new MockSLUDIService();
+const { authenticateToken } = require('../middleware/auth');
 
 // Utility function to validate NIC (simplified)
 const validateNIC = (nic) => /^[a-zA-Z0-9]{6,20}$/.test(nic);
@@ -83,6 +84,26 @@ router.post('/login', async (req, res) => {
       message: 'Internal server error'
     });
   }
+
+  // POST /api/mobile/sos
+router.post('/sos', authenticateToken, async (req, res) => {
+  try {
+    const { location } = req.body;
+    const { individualId } = req.user;
+
+    console.log(`[SOS] Received from ${individualId} at`, location);
+
+    // Here you could save to DB, notify responders, etc.
+    res.json({
+      success: true,
+      message: "SOS received",
+      data: { individualId, location }
+    });
+  } catch (error) {
+    console.error('SOS error:', error);
+    res.status(500).json({ success: false, message: "Failed to send SOS" });
+  }
+});
 });
 
 module.exports = router;
