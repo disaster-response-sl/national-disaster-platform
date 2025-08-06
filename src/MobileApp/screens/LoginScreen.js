@@ -50,9 +50,10 @@ const handleLogin = async () => {
 
     await AsyncStorage.setItem('authToken', token);
     await AsyncStorage.setItem('userId', user._id);
+    await AsyncStorage.setItem('role', user.role);  // Store user role
 
     Alert.alert('Login Success', `Welcome, ${user.name}`);
-    navigation.navigate('Sos');  // Navigate to SOS screen
+    navigation.navigate('Dashboard');  // Navigate to Dashboard instead of SOS
   } catch (err) {
     console.error('Login error:', err);
     if (err.response) {

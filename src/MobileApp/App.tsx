@@ -4,7 +4,10 @@ import { StatusBar, useColorScheme } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './screens/LoginScreen';
-import SosScreen from './screens/SosScreen'
+import DashboardScreen from './screens/DashboardScreen';
+import SosScreen from './screens/SosScreen';
+import ReportScreen from './screens/ReportScreen';
+import ChatScreen from './screens/ChatScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,8 +18,46 @@ function App(): JSX.Element {
     <NavigationContainer>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Sos" component={SosScreen} />
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Dashboard" 
+          component={DashboardScreen}
+          options={{ 
+            title: 'Disaster Platform',
+            headerShown: false
+          }}
+        />
+        <Stack.Screen 
+          name="Sos" 
+          component={SosScreen}
+          options={{ 
+            title: 'Emergency SOS',
+            headerStyle: { backgroundColor: '#ff4444' },
+            headerTintColor: 'white'
+          }}
+        />
+        <Stack.Screen 
+          name="Report" 
+          component={ReportScreen}
+          options={{ 
+            title: 'Report Incident',
+            headerStyle: { backgroundColor: '#007bff' },
+            headerTintColor: 'white'
+          }}
+        />
+        <Stack.Screen 
+          name="Chat" 
+          component={ChatScreen}
+          options={{ 
+            title: 'Support Chat',
+            headerStyle: { backgroundColor: '#007bff' },
+            headerTintColor: 'white'
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
