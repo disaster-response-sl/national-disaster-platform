@@ -9,8 +9,7 @@ import {
   Alert,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
-  Picker
+  Platform
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +18,6 @@ const LoginScreen = ({ navigation }: any) => {
   const [nic, setNic] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState('Citizen');
 
   const handleLogin = async () => {
     if (!nic || !otp) {
@@ -31,19 +29,17 @@ const LoginScreen = ({ navigation }: any) => {
     try {
       const response = await axios.post('http://10.0.2.2:5000/api/mobile/login', {
         individualId: nic,
-        otp: otp,
-        role: role // Uncomment if backend expects role
+        otp: otp
       });
 
       const { token, user } = response.data;
 
       // Store token in AsyncStorage
       await AsyncStorage.setItem('authToken', token);
-      await AsyncStorage.setItem('userId', user._id);  // Use _id from backend
-      await AsyncStorage.setItem('role', user.role);
+      await AsyncStorage.setItem('userId', user._id);  
 
       Alert.alert('Login Success', `Welcome, ${user.name}`);
-      navigation.navigate('Sos');
+      navigation.navigate('Dashboard');
 
     } catch (err: any) {
       if (err.response) {
@@ -81,15 +77,7 @@ const LoginScreen = ({ navigation }: any) => {
       />
 
       <Text style={styles.label}>Select Role:</Text>
-      <Picker
-        selectedValue={role}
-        onValueChange={setRole}
-        style={{ marginBottom: 16 }}
-      >
-        <Picker.Item label="Citizen" value="Citizen" />
-        <Picker.Item label="Responder" value="Responder" />
-        <Picker.Item label="Admin" value="Admin" />
-      </Picker>
+      {/* Removed Picker as per edit hint */}
 
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
