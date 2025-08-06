@@ -9,14 +9,17 @@ import {
   Alert,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Picker
 } from 'react-native';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }: any) => {
   const [nic, setNic] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState('Citizen');
 
   const handleLogin = async () => {
     if (!nic || !otp) {
@@ -26,22 +29,22 @@ const LoginScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-//       await axios.post('http://10.0.2.2:5000/api/mobile/login', { //10.0.2.2  192.168.1.3
-//         individualId: nic,
-//         otp: otp
-//       });
-//
-//       const { token, user } = response.data;
-         const response = await axios.post('http://10.0.2.2:5000/api/mobile/login', {
-           individualId: nic,
-           otp: otp
-         });
-         const { token, user } = response.data;
+      const response = await axios.post('http://10.0.2.2:5000/api/mobile/login', {
+        individualId: nic,
+        otp: otp,
+        role: role // Uncomment if backend expects role
+      });
 
+      const { token, user } = response.data;
 
-      // TODO: Save token securely (e.g., AsyncStorage)
+      // Store token in AsyncStorage
+      await AsyncStorage.setItem('authToken', token);
+      await AsyncStorage.setItem('userId', user._id);  // Use _id from backend
+      await AsyncStorage.setItem('role', user.role);
+
       Alert.alert('Login Success', `Welcome, ${user.name}`);
-      // navigation.navigate('Home'); // or Dashboard screen
+      navigation.navigate('Sos');
+
     } catch (err: any) {
       if (err.response) {
         Alert.alert('Login Failed', err.response.data.message);
@@ -54,7 +57,10 @@ const LoginScreen = ({ navigation }: any) => {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <Text style={styles.title}>Disaster Login</Text>
 
       <TextInput
@@ -73,6 +79,17 @@ const LoginScreen = ({ navigation }: any) => {
         keyboardType="numeric"
         secureTextEntry
       />
+
+      <Text style={styles.label}>Select Role:</Text>
+      <Picker
+        selectedValue={role}
+        onValueChange={setRole}
+        style={{ marginBottom: 16 }}
+      >
+        <Picker.Item label="Citizen" value="Citizen" />
+        <Picker.Item label="Responder" value="Responder" />
+        <Picker.Item label="Admin" value="Admin" />
+      </Picker>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
@@ -118,5 +135,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     fontWeight: '600'
+  },
+  label: {
+    fontSize: 18,
+    marginBottom: 10,
+    color: '#333'
   }
 });

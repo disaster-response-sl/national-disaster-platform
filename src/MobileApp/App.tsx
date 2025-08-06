@@ -4,6 +4,7 @@ import { StatusBar, useColorScheme } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './screens/LoginScreen';
+import SosScreen from './screens/SosScreen'
 
 const Stack = createNativeStackNavigator();
 
@@ -15,7 +16,7 @@ function App(): JSX.Element {
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <Stack.Navigator initialRouteName="Login">
         <Stack.Screen name="Login" component={LoginScreen} />
-        {/* You can add Dashboard, Map, etc. later here */}
+          <Stack.Screen name="Sos" component={SosScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
