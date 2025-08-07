@@ -90,12 +90,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const fetchWeatherData = async (lat: number, lng: number) => {
     try {
-      // Using OpenWeatherMap API (free tier)
-      // You'll need to sign up for a free API key at https://openweathermap.org/api
-      const API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with your API key
+      const API_KEY = 'ef2e48a91b8c1c679ab689747a5bc8a1'; // Real API key
+      // const response = await axios.get(
+      //   `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lng=${lng}&appid=${API_KEY}&units=metric`
+      // );
       const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lng=${lng}&appid=${API_KEY}&units=metric`
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`
       );
+      
 
       if (response.data) {
         const weatherData = response.data;
