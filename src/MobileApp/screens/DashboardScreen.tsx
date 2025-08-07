@@ -90,7 +90,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const fetchWeatherData = async (lat: number, lng: number) => {
     try {
-      const API_KEY = 'ef2e48a91b8c1c679ab689747a5bc8a1'; // Real API key
+      const API_KEY = 'enterapikey'; // Real API key
       // const response = await axios.get(
       //   `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lng=${lng}&appid=${API_KEY}&units=metric`
       // );
@@ -270,6 +270,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       case 'chat':
         navigation.navigate('Chat');
         break;
+      case 'riskmap':
+        navigation.navigate('RiskMap');
+        break;
       default:
         break;
     }
@@ -377,6 +380,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
           >
             <Text style={styles.actionButtonText}>💬 Chat</Text>
             <Text style={styles.actionButtonSubtext}>Support</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: '#ff6b35' }]}
+            onPress={() => handleQuickAction('riskmap')}
+          >
+            <Text style={styles.actionButtonText}>🗺️ Risk Map</Text>
+            <Text style={styles.actionButtonSubtext}>View Map</Text>
           </TouchableOpacity>
         </View>
       </View>
