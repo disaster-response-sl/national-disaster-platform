@@ -16,7 +16,20 @@ const ChatLogSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
-  }
+  },
+  type: {
+    type: String,
+    enum: ['user', 'assistant', 'system'],
+    default: 'assistant'
+  },
+  safetyLevel: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'low'
+  },
+  recommendations: [{
+    type: String
+  }]
 });
 
 module.exports = mongoose.model('ChatLog', ChatLogSchema, 'chat_logs'); 
