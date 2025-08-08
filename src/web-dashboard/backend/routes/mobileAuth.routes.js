@@ -129,12 +129,22 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET /api/mobile/disasters - Get active disasters
+// GET /api/mobile/disasters - Get all disasters (active and resolved)
 router.get('/disasters', authenticateToken, async (req, res) => {
   try {
-    const disasters = await Disaster.find({ status: 'active' })
+    const { status } = req.query;
+    
+    let query = {};
+    if (status) {
+      query.status = status; // Allow filtering by status if specified
+    }
+    
+    const disasters = await Disaster.find(query)
       .sort({ timestamp: -1 })
-      .limit(10);
+      .limit(50); // Increased limit to show more disasters
+    
+    console.log('Found disasters:', disasters.length);
+    console.log('Disaster data:', disasters.map(d => ({ id: d._id, type: d.type, status: d.status, location: d.location })));
     
     res.json({
       success: true,
@@ -145,6 +155,72 @@ router.get('/disasters', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching disasters"
+    });
+  }
+});
+
+// POST /api/mobile/populate-test-disasters - Populate test disaster data with proper coordinates
+router.post('/populate-test-disasters', authenticateToken, async (req, res) => {
+  try {
+    // Clear existing disasters
+    await Disaster.deleteMany({});
+    
+    // Create test disasters with proper coordinates in Sri Lanka
+    const testDisasters = [
+      {
+        type: 'flood',
+        severity: 'high',
+        description: 'Sample flood disaster in Colombo area',
+        location: { lat: 6.9271, lng: 79.8612 },
+        timestamp: new Date('2025-08-08T11:47:28.000Z'),
+        status: 'active'
+      },
+      {
+        type: 'landslide',
+        severity: 'medium',
+        description: 'Sample landslide disaster in Kandy area',
+        location: { lat: 7.2906, lng: 80.6337 },
+        timestamp: new Date('2025-08-08T10:30:00.000Z'),
+        status: 'active'
+      },
+      {
+        type: 'cyclone',
+        severity: 'low',
+        description: 'Sample cyclone disaster in Galle area',
+        location: { lat: 6.0535, lng: 80.2210 },
+        timestamp: new Date('2025-08-08T09:15:00.000Z'),
+        status: 'active'
+      },
+      {
+        type: 'flood',
+        severity: 'high',
+        description: 'Sample flood disaster in Jaffna area',
+        location: { lat: 9.6615, lng: 80.0255 },
+        timestamp: new Date('2025-08-07T14:20:00.000Z'),
+        status: 'resolved'
+      },
+      {
+        type: 'landslide',
+        severity: 'medium',
+        description: 'Sample landslide disaster in Nuwara Eliya area',
+        location: { lat: 6.9497, lng: 80.7891 },
+        timestamp: new Date('2025-08-07T12:45:00.000Z'),
+        status: 'resolved'
+      }
+    ];
+    
+    const createdDisasters = await Disaster.insertMany(testDisasters);
+    
+    res.json({
+      success: true,
+      message: 'Test disaster data populated successfully',
+      data: createdDisasters
+    });
+  } catch (error) {
+    console.error('[POPULATE TEST DISASTERS ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Error populating test disaster data"
     });
   }
 });
