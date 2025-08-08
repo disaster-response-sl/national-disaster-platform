@@ -15,17 +15,15 @@ app.use(express.json());
 // Import routes
 const authRoutes = require('./routes/auth');
 const mobileAuthRoutes = require('./routes/mobileAuth.routes');
-
 const mapRoutes = require('./routes/map.routes');
-
-
+const resourceRoutes = require('./routes/resources.routes');
 const ndxRoutes = require('./routes/ndx.routes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', mobileAuthRoutes);
 app.use('/api/map', mapRoutes);
-
+app.use('/api/resources', resourceRoutes);
 app.use('/api/ndx', ndxRoutes);
 
 const PORT = process.env.PORT || 5000;

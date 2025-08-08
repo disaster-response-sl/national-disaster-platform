@@ -8,36 +8,35 @@ const ChatLog = require('../models/ChatLog');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const MockSLUDIService = require('../services/mock-sludi-service');
+
+// Gemini AI integration
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Safety system prompt for AI responses
+const SAFETY_SYSTEM_PROMPT = `You are an AI Safety Assistant for emergency preparedness and crisis response. 
+
+CRITICAL SAFETY GUIDELINES:
+- Always prioritize user safety in your responses
+- Provide clear, step-by-step instructions for emergency situations
+- Include relevant safety warnings and precautions
+- Suggest appropriate emergency contacts when necessary (112 for emergencies in Sri Lanka, 119 for police, 110 for fire)
+- Be supportive but factual and accurate
+- If someone is in immediate danger, immediately direct them to call emergency services
+- For disaster-related queries, provide location-specific guidance when possible
+- Always include preventive measures and preparation tips
+
+RESPONSE FORMAT:
+- Start with immediate safety action if urgent
+- Provide step-by-step instructions
+- Include relevant warnings and precautions
+- End with follow-up resources or contacts`;
 
 const router = express.Router();
 const sludiService = new MockSLUDIService();
 const { authenticateToken } = require('../middleware/auth');
-
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'your-gemini-api-key');
-
-// Safety-focused system prompt for Gemini
-const SAFETY_SYSTEM_PROMPT = `You are an AI Safety Assistant for emergency preparedness and crisis response. Your role is to:
-
-1. Provide accurate, helpful safety information and emergency guidance
-2. Assess risk levels and provide appropriate safety recommendations
-3. Give clear, actionable advice for emergency situations
-4. Help users understand evacuation procedures, emergency supplies, and safety protocols
-5. Provide emotional support while maintaining focus on safety
-
-IMPORTANT SAFETY GUIDELINES:
-- Always prioritize user safety in your responses
-- Provide clear, step-by-step instructions for emergency situations
-- Include relevant safety warnings and precautions
-- Suggest appropriate emergency contacts when necessary
-- Be supportive but factual and accurate
-
-Response format:
-- Provide clear, helpful information
-- Include safety level assessment (low/medium/high)
-- Offer specific recommendations when appropriate
-- Use a supportive but professional tone`;
 
 // Utility function to validate NIC (simplified)
 const validateNIC = (nic) => /^[a-zA-Z0-9]{6,20}$/.test(nic);
@@ -327,50 +326,6 @@ router.get('/test', (req, res) => {
   });
 });
 
-// Test Gemini endpoint without authentication
-router.post('/test-gemini', async (req, res) => {
-  try {
-    const { query } = req.body;
-    
-    if (!query) {
-      return res.status(400).json({
-        success: false,
-        message: "Query is required"
-      });
-    }
-
-    console.log('Testing Gemini with query:', query);
-
-    // Initialize Gemini model - using flash for better rate limits
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // Simple test with reduced token usage
-    const result = await model.generateContent(query);
-    const response = await result.response;
-    const text = response.text();
-
-    console.log('Gemini response:', text);
-
-    res.json({
-      success: true,
-      message: "Gemini test successful",
-      data: {
-        query,
-        response: text
-      }
-    });
-  } catch (error) {
-    console.error('[GEMINI TEST ERROR]', error);
-    res.status(500).json({
-      success: false,
-      message: "Error testing Gemini API",
-      error: error.message
-    });
-  }
-});
-
-
-
 // POST /api/mobile/reports - Submit a new report
 router.post('/reports', authenticateToken, async (req, res) => {
   try {
@@ -471,16 +426,10 @@ router.post('/chat/gemini', authenticateToken, async (req, res) => {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Use simple generateContent instead of chat session to reduce token usage
-    const prompt = `You are an AI Safety Assistant for emergency preparedness and crisis response. 
-
-IMPORTANT SAFETY GUIDELINES:
-- Always prioritize user safety in your responses
-- Provide clear, step-by-step instructions for emergency situations
-- Include relevant safety warnings and precautions
-- Suggest appropriate emergency contacts when necessary
-- Be supportive but factual and accurate
+    const prompt = `${SAFETY_SYSTEM_PROMPT}
 
 User Query: ${query}
+${context ? `Context: ${context}` : ''}
 
 Please provide a helpful response with safety recommendations. Keep your response concise and actionable.`;
 
@@ -589,5 +538,51 @@ function extractRecommendations(response) {
   return recommendations.slice(0, 3); // Limit to 3 recommendations
 }
 
+// GET /api/mobile/test-gemini - Test Gemini AI integration
+router.get('/test-gemini', async (req, res) => {
+  try {
+    console.log('Testing Gemini AI integration...');
+    
+    // Check if API key is available
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "Gemini API key not configured",
+        details: "Please set GEMINI_API_KEY in environment variables"
+      });
+    }
+
+    // Initialize Gemini model
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Test prompt
+    const prompt = "Respond with exactly: 'Gemini AI is working correctly for disaster response assistance.'";
+
+    // Get response from Gemini
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    console.log('Gemini test response:', text);
+
+    res.json({
+      success: true,
+      message: "Gemini AI integration test successful",
+      data: {
+        response: text,
+        timestamp: new Date().toISOString(),
+        model: "gemini-1.5-flash"
+      }
+    });
+  } catch (error) {
+    console.error('[GEMINI TEST ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Gemini AI integration test failed",
+      error: error.message,
+      details: error.stack
+    });
+  }
+});
 
 module.exports = router;
