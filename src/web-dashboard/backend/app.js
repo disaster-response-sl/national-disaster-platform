@@ -1,8 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Initialize app FIRST
 const app = express();
@@ -17,6 +18,7 @@ const authRoutes = require('./routes/auth');
 // Middleware routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', require('./routes/mobileAuth.routes'));
+app.use('/api/map', require('./routes/map.routes'));
 
 const PORT = process.env.PORT || 5000;
 
