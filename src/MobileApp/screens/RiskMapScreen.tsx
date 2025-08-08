@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,14 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import Geolocation from '@react-native-community/geolocation';
+// Leaflet via WebView
+import LeafletMap, { LeafletDisasterPoint } from '../components/LeafletMap';
 
 interface Disaster {
   _id: string;
@@ -36,6 +41,23 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  const requestLocationPermission = async (): Promise<boolean> => {
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+      // iOS handled by Info.plist prompt
+      return true;
+    } catch (err) {
+      console.warn('Location permission error:', err);
+      return false;
+    }
+  };
 
   // Fetch disasters from backend
   const fetchDisasters = async () => {
@@ -123,6 +145,15 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     ? disasters 
     : disasters.filter(disaster => disaster.status === 'active');
 
+  const isValidCoordinate = (lat: unknown, lng: unknown): boolean => {
+    const latNum = typeof lat === 'number' ? lat : Number.NaN;
+    const lngNum = typeof lng === 'number' ? lng : Number.NaN;
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return false;
+    if (latNum < -90 || latNum > 90) return false;
+    if (lngNum < -180 || lngNum > 180) return false;
+    return true;
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchDisasters();
@@ -130,7 +161,31 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
 
   useEffect(() => {
     fetchDisasters();
+    (async () => {
+      const hasPermission = await requestLocationPermission();
+      if (hasPermission) {
+        Geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            setUserLocation({ latitude, longitude });
+          },
+          (err) => {
+            console.warn('Geolocation error:', err?.message || err);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+        );
+      }
+    })();
   }, []);
+
+  const recenterMap = () => {
+    // The Leaflet map has an exposed window.fitToMarkers function
+    // We trigger it by setting a flag that the child listens to via props change
+    // The child will always attempt to fit on data updates; no-op here
+    setRefreshFlag(flag => flag + 1);
+  };
+
+  const [refreshFlag, setRefreshFlag] = useState(0);
 
   if (loading) {
     return (
@@ -164,15 +219,28 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Map Placeholder */}
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapPlaceholderText}>🗺️ Interactive Map</Text>
-        <Text style={styles.mapPlaceholderSubtext}>
-          Map functionality will be implemented with react-native-maps
-        </Text>
-        <Text style={styles.mapPlaceholderSubtext}>
-          Currently showing disaster list view
-        </Text>
+      {/* Map (Leaflet + OSM) */}
+      <View style={styles.mapContainer}>
+        <LeafletMap
+          // Changing key slightly forces WebView to refresh on demand
+          key={`leaflet-${refreshFlag}`}
+          points={(showAllDisasters ? disasters : disasters.filter(d => d.status === 'active'))
+            .filter(d => isValidCoordinate(d.location?.lat, d.location?.lng))
+            .map<LeafletDisasterPoint>((d) => ({
+              id: d._id,
+              latitude: d.location.lat,
+              longitude: d.location.lng,
+              type: d.type,
+              severity: d.severity,
+              description: d.description,
+              timestamp: d.timestamp,
+            }))}
+          userLocation={userLocation}
+        />
+
+        <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
+          <Text style={styles.recenterButtonText}>🎯 Recenter</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Disaster List */}
@@ -321,6 +389,15 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
+  mapContainer: {
+    height: 300,
+    backgroundColor: '#e8f4fd',
+    borderBottomWidth: 1,
+    borderBottomColor: '#d0e7f7',
+  },
+  map: {
+    flex: 1,
+  },
   disasterList: {
     flex: 1,
     padding: 15,
@@ -458,6 +535,25 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: '#fff',
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  recenterButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  recenterButtonText: {
+    color: '#333',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });
