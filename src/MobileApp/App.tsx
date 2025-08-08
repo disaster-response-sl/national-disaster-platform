@@ -8,6 +8,7 @@ import DashboardScreen from './screens/DashboardScreen';
 import SosScreen from './screens/SosScreen';
 import ReportScreen from './screens/ReportScreen';
 import ChatScreen from './screens/ChatScreen';
+import RiskMapScreen from './screens/RiskMapScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -55,6 +56,15 @@ function App(): JSX.Element {
           options={{ 
             title: 'Support Chat',
             headerStyle: { backgroundColor: '#007bff' },
+            headerTintColor: 'white'
+          }}
+        />
+        <Stack.Screen 
+          name="RiskMap" 
+          component={RiskMapScreen}
+          options={{ 
+            title: 'Risk Map',
+            headerStyle: { backgroundColor: '#ff6b35' },
             headerTintColor: 'white'
           }}
         />
