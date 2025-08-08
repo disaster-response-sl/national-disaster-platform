@@ -16,23 +16,26 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 const mobileAuthRoutes = require('./routes/mobileAuth.routes');
 const mapRoutes = require('./routes/map.routes');
-// const ndxRoutes = require('./routes/ndx.routes'); // Commented out - file doesn't exist
+const ndxRoutes = require('./routes/ndx.routes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', mobileAuthRoutes);
 app.use('/api/map', mapRoutes);
-app.use('/api/ndx', ndxRoutes); 
+app.use('/api/ndx', ndxRoutes);
 
 const PORT = process.env.PORT || 5000;
 
 // Database connection
 const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/disaster-platform';
+console.log('Attempting to connect to MongoDB:', mongoUri);
+
 mongoose.connect(mongoUri)
   .then(() => console.log("MongoDB connected successfully"))
   .catch((err) => {
     console.error("MongoDB connection error:", err);
     console.log("Using MONGO_URI:", process.env.MONGO_URI ? 'Set' : 'Not set');
+    console.log("Falling back to default URI:", mongoUri);
   });
 
 // Routes
