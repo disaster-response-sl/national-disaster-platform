@@ -1,8 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Initialize app FIRST
 const app = express();
@@ -14,11 +15,17 @@ app.use(express.json());
 // Import routes
 const authRoutes = require('./routes/auth');
 const mobileAuthRoutes = require('./routes/mobileAuth.routes');
+
+const mapRoutes = require('./routes/map.routes');
+
+
 const ndxRoutes = require('./routes/ndx.routes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', mobileAuthRoutes);
+app.use('/api/map', mapRoutes);
+
 app.use('/api/ndx', ndxRoutes);
 
 const PORT = process.env.PORT || 5000;
@@ -50,7 +57,6 @@ app.get('/api/test', (req, res) => {
     }
   });
 });
-
 
 // Start server
 app.listen(PORT, () => {
