@@ -1,3 +1,4 @@
+// components/DashboardScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,11 +7,16 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  RefreshControl
+  RefreshControl,
+  StatusBar,
+  Dimensions,
+  Image
 } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+
+const { width } = Dimensions.get('window');
 
 interface Location {
   lat: number;
@@ -43,8 +49,10 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const [recentAlerts, setRecentAlerts] = useState<AlertItem[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<string>('');
+  const [userName, setUserName] = useState<string>('User');
   const [availableResources, setAvailableResources] = useState<any[]>([]);
 
+  // ... (keep all the existing functions unchanged)
   useEffect(() => {
     getUserInfo();
     getCurrentLocation();
@@ -55,21 +63,36 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const getUserInfo = async () => {
     try {
       const role = await AsyncStorage.getItem('role');
-      setUserRole(role || 'Citizen');
+      const userId = await AsyncStorage.getItem('userId');
+      setUserRole(role || 'citizen');
+      setUserName('SafeLanka User');
     } catch (error) {
       console.error('Error getting user info:', error);
     }
   };
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('authToken');
-      await AsyncStorage.removeItem('userId');
-      await AsyncStorage.removeItem('role');
-      navigation.replace('Login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('authToken');
+              await AsyncStorage.removeItem('userId');
+              await AsyncStorage.removeItem('role');
+              navigation.replace('Login');
+            } catch (error) {
+              console.error('Logout error:', error);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const getCurrentLocation = () => {
@@ -90,12 +113,11 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const fetchWeatherData = async (lat: number, lng: number) => {
     try {
-      const API_KEY = 'ef2e48a91b8c1c679ab689747a5bc8a1'; // Real API key
-      // OpenWeatherMap uses 'lon' instead of 'lng'
+      const API_KEY = 'ef2e48a91b8c1c679ab689747a5bc8a1';
       const response = await axios.get(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`
       );
-      
+
       if (response.data) {
         const weatherData = response.data;
         const weather: Weather = {
@@ -108,12 +130,11 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       }
     } catch (error) {
       console.error('Weather fetch error:', error);
-      // Fallback to mock weather data if API fails
       const mockWeather: Weather = {
-        temperature: '28°C',
-        condition: 'Partly Cloudy',
-        humidity: '75%',
-        windSpeed: '12 km/h'
+        temperature: '24°C',
+        condition: 'Clear',
+        humidity: '68%',
+        windSpeed: '6 km/h'
       };
       setWeather(mockWeather);
     }
@@ -130,21 +151,18 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
       if (response.data.success) {
         const disasters = response.data.data;
-        
-        // Calculate risk based on nearby disasters
+
         let riskLevel = 'Low';
         let highRiskCount = 0;
         let mediumRiskCount = 0;
-        
+
         disasters.forEach((disaster: any) => {
           if (disaster.location && disaster.location.lat && disaster.location.lng) {
-            // Calculate distance (simplified - in real app, use proper distance calculation)
             const distance = Math.sqrt(
-              Math.pow(disaster.location.lat - lat, 2) + 
+              Math.pow(disaster.location.lat - lat, 2) +
               Math.pow(disaster.location.lng - lng, 2)
             );
-            
-            // If disaster is within 0.1 degrees (roughly 11km)
+
             if (distance < 0.1) {
               if (disaster.severity === 'high') {
                 highRiskCount++;
@@ -154,8 +172,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             }
           }
         });
-        
-        // Determine risk level
+
         if (highRiskCount > 0) {
           riskLevel = 'High';
         } else if (mediumRiskCount > 0 || highRiskCount > 0) {
@@ -163,20 +180,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         } else {
           riskLevel = 'Low';
         }
-        
+
         setRiskStatus(riskLevel);
       } else {
-        // Fallback to random risk if API fails
-        const risks = ['Low', 'Medium', 'High'];
-        const randomRisk = risks[Math.floor(Math.random() * risks.length)];
-        setRiskStatus(randomRisk);
+        setRiskStatus('Low');
       }
     } catch (error) {
       console.error('Risk assessment error:', error);
-      // Fallback to random risk if API fails
-      const risks = ['Low', 'Medium', 'High'];
-      const randomRisk = risks[Math.floor(Math.random() * risks.length)];
-      setRiskStatus(randomRisk);
+      setRiskStatus('Low');
     }
   };
 
@@ -190,7 +201,6 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       });
 
       if (response.data.success) {
-        // Transform disaster data to match alert format
         const disasters = response.data.data.map((disaster: any) => ({
           id: disaster._id,
           type: disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1) + ' Alert',
@@ -203,31 +213,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       }
     } catch (error) {
       console.error('Alerts fetch error:', error);
-      // Fallback to mock data if API fails
-      const mockAlerts: AlertItem[] = [
-        {
-          id: 1,
-          type: 'Flood Warning',
-          location: 'Colombo District',
-          severity: 'High',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 2,
-          type: 'Landslide Alert',
-          location: 'Kandy District',
-          severity: 'Medium',
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 3,
-          type: 'Cyclone Warning',
-          location: 'Eastern Province',
-          severity: 'High',
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-      setRecentAlerts(mockAlerts);
+      setRecentAlerts([]);
     }
   };
 
@@ -281,370 +267,434 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const getRiskColor = (risk: string) => {
     switch (risk) {
       case 'High':
-        return '#ff4444';
+        return '#ef4444';
       case 'Medium':
-        return '#ffaa00';
+        return '#f59e0b';
       case 'Low':
-        return '#44ff44';
+        return '#10b981';
       default:
-        return '#44ff44';
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'High':
-        return '#ff4444';
-      case 'Medium':
-        return '#ffaa00';
-      case 'Low':
-        return '#44ff44';
-      default:
-        return '#666666';
+        return '#10b981';
     }
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.welcomeText}>Welcome back!</Text>
-        <Text style={styles.roleText}>{userRole}</Text>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Location and Weather Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Current Location & Weather</Text>
-        {location ? (
-          <View>
-            <Text style={styles.locationText}>
-              📍 {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-            </Text>
-            {weather && (
-              <View style={styles.weatherContainer}>
-                <Text style={styles.weatherText}>🌤️ {weather.temperature}</Text>
-                <Text style={styles.weatherText}>{weather.condition}</Text>
-                <Text style={styles.weatherText}>💧 {weather.humidity}</Text>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#3b82f6']}
+            tintColor="#3b82f6"
+          />
+        }
+      >
+        {/* Clean Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.userSection}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarIcon}>👤</Text>
               </View>
-            )}
+              <View style={styles.userInfo}>
+                <Text style={styles.welcomeText}>Welcome back,</Text>
+                <Text style={styles.userNameText}>{userName}</Text>
+                <Text style={styles.roleText}>{userRole}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutText}>➡️</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <Text style={styles.loadingText}>Getting location...</Text>
-        )}
-      </View>
-
-      {/* Risk Status Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Risk Assessment</Text>
-        <View style={styles.riskContainer}>
-          <View style={[styles.riskIndicator, { backgroundColor: getRiskColor(riskStatus) }]}>
-            <Text style={styles.riskText}>{riskStatus} Risk</Text>
-          </View>
-          <Text style={styles.riskDescription}>
-            Current area risk level based on weather and historical data
-          </Text>
         </View>
-      </View>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActionsContainer}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#ff4444' }]}
-            onPress={() => handleQuickAction('sos')}
-          >
-            <Text style={styles.quickActionIcon}>🚨</Text>
-            <Text style={styles.quickActionText}>SOS</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#007bff' }]}
-            onPress={() => handleQuickAction('report')}
-          >
-            <Text style={styles.quickActionIcon}>📝</Text>
-            <Text style={styles.quickActionText}>Report</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#28a745' }]}
-            onPress={() => handleQuickAction('riskmap')}
-          >
-            <Text style={styles.quickActionIcon}>🗺️</Text>
-            <Text style={styles.quickActionText}>Risk Map</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#ffc107' }]}
-            onPress={() => handleQuickAction('chat')}
-          >
-            <Text style={styles.quickActionIcon}>💬</Text>
-            <Text style={styles.quickActionText}>Chat</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#6f42c1' }]}
-            onPress={() => handleQuickAction('consent')}
-          >
-            <Text style={styles.quickActionIcon}>🔐</Text>
-            <Text style={styles.quickActionText}>Consent</Text>
-          </TouchableOpacity>
+        {/* Current Location Section */}
+        <View style={styles.locationSection}>
+          <Text style={styles.sectionTitle}>📍 Current Location</Text>
+          {location ? (
+            <View style={styles.locationContent}>
+              <View style={styles.coordinateRow}>
+                <Text style={styles.coordinateLabel}>Latitude:</Text>
+                <Text style={styles.coordinateValue}>{location.lat.toFixed(6)}</Text>
+              </View>
+              <View style={styles.coordinateRow}>
+                <Text style={styles.coordinateLabel}>Longitude:</Text>
+                <Text style={styles.coordinateValue}>{location.lng.toFixed(6)}</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.loadingText}>Getting location...</Text>
+          )}
         </View>
-      </View>
 
-      {/* Recent Alerts */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Recent Alerts</Text>
-        {recentAlerts.length > 0 ? (
-          recentAlerts.map((alert) => (
-            <View key={alert.id} style={styles.alertItem}>
-              <View style={styles.alertHeader}>
-                <Text style={styles.alertType}>{alert.type}</Text>
-                <View style={[styles.severityBadge, { backgroundColor: getSeverityColor(alert.severity) }]}>
-                  <Text style={styles.severityText}>{alert.severity}</Text>
+        {/* Weather & Risk Status Row */}
+        <View style={styles.statusRow}>
+          {/* Weather Card */}
+          <View style={styles.statusCard}>
+            <Text style={styles.statusCardTitle}>☀️ Weather</Text>
+            {weather ? (
+              <View style={styles.weatherContent}>
+                <Text style={styles.mainWeatherText}>{weather.temperature}</Text>
+                <Text style={styles.weatherCondition}>{weather.condition}</Text>
+                <View style={styles.weatherDetails}>
+                  <Text style={styles.weatherDetail}>💧 {weather.humidity}</Text>
+                  <Text style={styles.weatherDetail}>💨 {weather.windSpeed}</Text>
                 </View>
               </View>
-              <Text style={styles.alertLocation}>📍 {alert.location}</Text>
-              <Text style={styles.alertTime}>
-                {new Date(alert.timestamp).toLocaleString()}
-              </Text>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.noAlertsText}>No recent alerts</Text>
-        )}
-      </View>
+            ) : (
+              <Text style={styles.loadingText}>Loading...</Text>
+            )}
+          </View>
 
-      {/* Available Resources */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Available Resources</Text>
-        {availableResources.length > 0 ? (
-          availableResources.map((resource) => (
-            <View key={resource._id} style={styles.resourceItem}>
-              <View style={styles.resourceHeader}>
-                <Text style={styles.resourceType}>{resource.type}</Text>
-                <Text style={styles.resourceQuantity}>Qty: {resource.quantity}</Text>
+          {/* Risk Status Card */}
+          <View style={styles.statusCard}>
+            <Text style={styles.statusCardTitle}>🛡️ Risk Status</Text>
+            <View style={styles.riskContent}>
+              <View style={[styles.riskBadge, { backgroundColor: getRiskColor(riskStatus) }]}>
+                <Text style={styles.riskText}>{riskStatus}</Text>
               </View>
-              <Text style={styles.resourceLocation}>
-                📍 {resource.location?.lat?.toFixed(2)}, {resource.location?.lng?.toFixed(2)}
-              </Text>
+              <Text style={styles.riskDescription}>Current area risk level</Text>
             </View>
-          ))
-        ) : (
-          <Text style={styles.noAlertsText}>No available resources</Text>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
+              onPress={() => handleQuickAction('sos')}
+            >
+              <Text style={styles.actionIcon}>🚨</Text>
+              <Text style={styles.actionText}>Emergency SOS</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#3b82f6' }]}
+              onPress={() => handleQuickAction('report')}
+            >
+              <Text style={styles.actionIcon}>📝</Text>
+              <Text style={styles.actionText}>Report Incident</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#10b981' }]}
+              onPress={() => handleQuickAction('riskmap')}
+            >
+              <Text style={styles.actionIcon}>🗺️</Text>
+              <Text style={styles.actionText}>View Map</Text>
+            </TouchableOpacity>
+
+             <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#f59e0b' }]}
+                  onPress={() => handleQuickAction('chat')}
+                >
+                  <Text style={styles.actionIcon}>💬</Text>
+                  <Text style={styles.actionText}>Emergency Chat</Text>
+                </TouchableOpacity>
+
+                {/* Added Consent/Privacy Action */}
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#8b5cf6' }]}
+                  onPress={() => handleQuickAction('consent')}
+                >
+                  <Text style={styles.actionIcon}>🔐</Text>
+                  <Text style={styles.actionText}>Privacy Settings</Text>
+                </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Recent Alerts */}
+        {recentAlerts.length > 0 && (
+          <View style={styles.alertsSection}>
+            <Text style={styles.sectionTitle}>🚨 Recent Alerts</Text>
+            <View style={styles.alertsList}>
+              {recentAlerts.slice(0, 2).map((alert) => (
+                <View key={alert.id} style={styles.alertItem}>
+                  <View style={styles.alertContent}>
+                    <Text style={styles.alertType}>{alert.type}</Text>
+                    <Text style={styles.alertLocation}>{alert.location}</Text>
+                  </View>
+                  <View style={styles.alertSeverity}>
+                    <Text style={[styles.severityText, { color: getRiskColor(alert.severity) }]}>
+                      {alert.severity}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
         )}
-      </View>
-    </ScrollView>
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   header: {
-    backgroundColor: '#007bff',
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: '#2563eb',
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatarContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarIcon: {
+    fontSize: 24,
+    color: '#ffffff',
+  },
+  userInfo: {
+    flex: 1,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 14,
+    color: '#bfdbfe',
+    marginBottom: 2,
+  },
+  userNameText: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 5,
+    color: '#ffffff',
+    marginBottom: 2,
   },
   roleText: {
-    fontSize: 16,
-    color: 'white',
-    opacity: 0.9,
+    fontSize: 12,
+    color: '#bfdbfe',
+    textTransform: 'capitalize',
   },
   logoutButton: {
-    backgroundColor: '#dc3545',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignSelf: 'flex-end',
-    marginTop: 10,
-  },
-  logoutButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  card: {
-    backgroundColor: 'white',
-    margin: 15,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
-  locationText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 10,
-  },
-  weatherContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  weatherText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#999',
-    fontStyle: 'italic',
-  },
-  riskContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  riskIndicator: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginBottom: 10,
+  logoutText: {
+    fontSize: 20,
+    color: '#ffffff',
   },
-  riskText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  riskDescription: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  quickActionsContainer: {
-    margin: 15,
-    padding: 20,
+  locationSection: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 12,
     borderRadius: 12,
-    backgroundColor: 'white',
+    padding: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
+    color: '#1f2937',
+    marginBottom: 12,
   },
-  quickActionsGrid: {
+  locationContent: {
+    gap: 8,
+  },
+  coordinateRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-  },
-  quickActionButton: {
-    width: '45%', // Adjust as needed for grid layout
-    padding: 15,
-    borderRadius: 10,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 10,
+    backgroundColor: '#f9fafb',
+    padding: 10,
+    borderRadius: 8,
   },
-  quickActionIcon: {
-    fontSize: 24,
-    marginBottom: 5,
+  coordinateLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
   },
-  quickActionText: {
-    color: 'white',
+  coordinateValue: {
+    fontSize: 14,
+    color: '#1f2937',
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 12,
+  },
+  statusCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusCardTitle: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  weatherContent: {
+    alignItems: 'center',
+  },
+  mainWeatherText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    marginBottom: 4,
+  },
+  weatherCondition: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  weatherDetails: {
+    gap: 2,
+  },
+  weatherDetail: {
+    fontSize: 11,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  riskContent: {
+    alignItems: 'center',
+  },
+  riskBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  riskText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  riskDescription: {
+    fontSize: 11,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  quickActionsSection: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionsGrid: {
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  actionIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  actionText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    flex: 1,
+  },
+  alertsSection: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  alertsList: {
+    gap: 12,
   },
   alertItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingVertical: 15,
-  },
-  alertHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+  },
+  alertContent: {
+    flex: 1,
   },
   alertType: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
-  },
-  severityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  severityText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 2,
   },
   alertLocation: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  alertTime: {
     fontSize: 12,
-    color: '#999',
+    color: '#6b7280',
   },
-  noAlertsText: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-    fontStyle: 'italic',
+  alertSeverity: {
+    marginLeft: 12,
   },
-  resourceItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingVertical: 15,
-  },
-  resourceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  resourceType: {
-    fontSize: 16,
+  severityText: {
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#333',
+    textTransform: 'uppercase',
   },
-  resourceQuantity: {
+  loadingText: {
     fontSize: 14,
-    color: '#666',
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
-  resourceLocation: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 5,
+  bottomPadding: {
+    height: 24,
   },
 });
 
-export default DashboardScreen; 
+export default DashboardScreen;
