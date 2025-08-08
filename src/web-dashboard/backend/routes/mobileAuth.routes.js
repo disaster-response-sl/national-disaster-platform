@@ -8,10 +8,36 @@ const ChatLog = require('../models/ChatLog');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const MockSLUDIService = require('../services/mock-sludi-service');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const router = express.Router();
 const sludiService = new MockSLUDIService();
 const { authenticateToken } = require('../middleware/auth');
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'your-gemini-api-key');
+
+// Safety-focused system prompt for Gemini
+const SAFETY_SYSTEM_PROMPT = `You are an AI Safety Assistant for emergency preparedness and crisis response. Your role is to:
+
+1. Provide accurate, helpful safety information and emergency guidance
+2. Assess risk levels and provide appropriate safety recommendations
+3. Give clear, actionable advice for emergency situations
+4. Help users understand evacuation procedures, emergency supplies, and safety protocols
+5. Provide emotional support while maintaining focus on safety
+
+IMPORTANT SAFETY GUIDELINES:
+- Always prioritize user safety in your responses
+- Provide clear, step-by-step instructions for emergency situations
+- Include relevant safety warnings and precautions
+- Suggest appropriate emergency contacts when necessary
+- Be supportive but factual and accurate
+
+Response format:
+- Provide clear, helpful information
+- Include safety level assessment (low/medium/high)
+- Offer specific recommendations when appropriate
+- Use a supportive but professional tone`;
 
 // Utility function to validate NIC (simplified)
 const validateNIC = (nic) => /^[a-zA-Z0-9]{6,20}$/.test(nic);
@@ -301,6 +327,48 @@ router.get('/test', (req, res) => {
   });
 });
 
+// Test Gemini endpoint without authentication
+router.post('/test-gemini', async (req, res) => {
+  try {
+    const { query } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Query is required"
+      });
+    }
+
+    console.log('Testing Gemini with query:', query);
+
+    // Initialize Gemini model - using flash for better rate limits
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Simple test with reduced token usage
+    const result = await model.generateContent(query);
+    const response = await result.response;
+    const text = response.text();
+
+    console.log('Gemini response:', text);
+
+    res.json({
+      success: true,
+      message: "Gemini test successful",
+      data: {
+        query,
+        response: text
+      }
+    });
+  } catch (error) {
+    console.error('[GEMINI TEST ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Error testing Gemini API",
+      error: error.message
+    });
+  }
+});
+
 
 
 // POST /api/mobile/reports - Submit a new report
@@ -383,6 +451,143 @@ router.post('/chat', authenticateToken, async (req, res) => {
     });
   }
 });
+
+// POST /api/mobile/chat/gemini - AI Safety Assistant with Gemini
+router.post('/chat/gemini', authenticateToken, async (req, res) => {
+  try {
+    const { query, context } = req.body;
+    const userId = req.user._id || req.user.user_id || req.user.individualId;
+    
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Query is required"
+      });
+    }
+
+    console.log('Gemini chat request:', { query, userId });
+
+    // Initialize Gemini model - using flash for better rate limits
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Use simple generateContent instead of chat session to reduce token usage
+    const prompt = `You are an AI Safety Assistant for emergency preparedness and crisis response. 
+
+IMPORTANT SAFETY GUIDELINES:
+- Always prioritize user safety in your responses
+- Provide clear, step-by-step instructions for emergency situations
+- Include relevant safety warnings and precautions
+- Suggest appropriate emergency contacts when necessary
+- Be supportive but factual and accurate
+
+User Query: ${query}
+
+Please provide a helpful response with safety recommendations. Keep your response concise and actionable.`;
+
+    // Get response from Gemini with reduced token usage
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // Analyze response for safety level and extract recommendations
+    const safetyAnalysis = analyzeSafetyLevel(query, text);
+    
+    // Extract recommendations from the response
+    const recommendations = extractRecommendations(text);
+
+    const chatLog = new ChatLog({
+      user_id: userId,
+      query,
+      response: text,
+      type: 'assistant',
+      safetyLevel: safetyAnalysis.level,
+      recommendations: recommendations
+    });
+
+    await chatLog.save();
+
+    res.json({
+      success: true,
+      message: "AI Safety Assistant response generated",
+      data: {
+        query,
+        response: text,
+        timestamp: chatLog.timestamp,
+        safetyLevel: safetyAnalysis.level,
+        recommendations: recommendations
+      }
+    });
+  } catch (error) {
+    console.error('[GEMINI CHAT ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Error processing AI Safety Assistant request",
+      error: error.message,
+      details: error.stack
+    });
+  }
+});
+
+// Helper function to analyze safety level
+function analyzeSafetyLevel(query, response) {
+  const emergencyKeywords = ['emergency', 'urgent', 'danger', 'fire', 'flood', 'earthquake', 'hurricane', 'tornado', 'tsunami', 'evacuate', 'immediate', 'critical'];
+  const safetyKeywords = ['safe', 'preparation', 'plan', 'supplies', 'checklist', 'guidance', 'information'];
+  
+  const queryLower = query.toLowerCase();
+  const responseLower = response.toLowerCase();
+  
+  let emergencyCount = 0;
+  let safetyCount = 0;
+  
+  emergencyKeywords.forEach(keyword => {
+    if (queryLower.includes(keyword) || responseLower.includes(keyword)) {
+      emergencyCount++;
+    }
+  });
+  
+  safetyKeywords.forEach(keyword => {
+    if (queryLower.includes(keyword) || responseLower.includes(keyword)) {
+      safetyCount++;
+    }
+  });
+  
+  if (emergencyCount > 2) {
+    return { level: 'high', reason: 'Emergency situation detected' };
+  } else if (emergencyCount > 0 || safetyCount > 2) {
+    return { level: 'medium', reason: 'Safety concern identified' };
+  } else {
+    return { level: 'low', reason: 'General information request' };
+  }
+}
+
+// Helper function to extract recommendations from response
+function extractRecommendations(response) {
+  const recommendations = [];
+  const lines = response.split('\n');
+  
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+      recommendations.push(trimmed.substring(1).trim());
+    } else if (trimmed.includes('recommend') || trimmed.includes('suggest') || trimmed.includes('should')) {
+      recommendations.push(trimmed);
+    }
+  });
+  
+  // If no structured recommendations found, create general ones
+  if (recommendations.length === 0) {
+    if (response.toLowerCase().includes('emergency')) {
+      recommendations.push('Contact emergency services if immediate danger');
+      recommendations.push('Follow evacuation procedures if instructed');
+    }
+    if (response.toLowerCase().includes('preparation')) {
+      recommendations.push('Create an emergency preparedness kit');
+      recommendations.push('Develop a family emergency plan');
+    }
+  }
+  
+  return recommendations.slice(0, 3); // Limit to 3 recommendations
+}
 
 
 module.exports = router;
