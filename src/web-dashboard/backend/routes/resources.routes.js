@@ -1,8 +1,8 @@
 const express = require('express');
 const Resource = require('../models/Resource');
 const AIResourceOptimizer = require('../services/ai-resource-optimizer');
-// TEMPORARILY COMMENTED OUT FOR TESTING - REMOVE THIS COMMENT WHEN PUTTING AUTH BACK
-// const { authenticateToken, requireAdmin, requireResponder } = require('../middleware/auth');
+// AUTHENTICATION RESTORED FOR PRODUCTION
+const { authenticateToken, requireAdmin, requireResponder } = require('../middleware/auth');
 
 const router = express.Router();
 const aiOptimizer = new AIResourceOptimizer();
@@ -48,7 +48,7 @@ class AIAllocationService {
 }
 
 // GET /api/resources - Get all resources with filtering and pagination
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const {
       type,
@@ -122,7 +122,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/resources/:id - Get specific resource
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
     
@@ -148,19 +148,14 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/resources - Create new resource (Admin/Responder only)
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, requireResponder, async (req, res) => {
   try {
-    console.log('POST /api/resources - Starting resource creation');
-    console.log('req.user:', req.user);
-    
     const resourceData = {
       ...req.body,
-      // TEMPORARILY SET DEFAULT VALUES FOR TESTING - RESTORE WHEN AUTH IS BACK
-      created_by: req.user ? req.user.individualId : 'test_user',
-      updated_by: req.user ? req.user.individualId : 'test_user'
+      // AUTHENTICATION RESTORED - USING REAL USER DATA
+      created_by: req.user.individualId,
+      updated_by: req.user.individualId
     };
-
-    console.log('resourceData created:', resourceData);
 
     // Validate required fields
     const requiredFields = ['name', 'type', 'category', 'quantity', 'location'];
@@ -173,11 +168,8 @@ router.post('/', async (req, res) => {
       }
     }
 
-    console.log('Validation passed, creating Resource instance');
     const resource = new Resource(resourceData);
-    console.log('Resource instance created, saving...');
     await resource.save();
-    console.log('Resource saved successfully');
 
     res.status(201).json({
       success: true,
@@ -195,11 +187,11 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/resources/:id - Update resource (Admin/Responder only)
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, requireResponder, async (req, res) => {
   try {
     const updateData = {
       ...req.body,
-      updated_by: req.user ? req.user.individualId : 'test_user',
+      updated_by: req.user.individualId,
       updated_at: new Date()
     };
 
@@ -232,7 +224,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/resources/:id - Delete resource (Admin only)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const resource = await Resource.findByIdAndDelete(req.params.id);
 
@@ -258,11 +250,9 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST /api/resources/:id/allocate - Allocate resource to disaster
-router.post('/:id/allocate', async (req, res) => {
+router.post('/:id/allocate', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { quantity, disaster_id, location, estimated_duration } = req.body;
-
-    console.log('Allocation request:', { quantity, disaster_id, location, estimated_duration });
 
     if (!quantity || !disaster_id || !location) {
       return res.status(400).json({
@@ -288,12 +278,6 @@ router.post('/:id/allocate', async (req, res) => {
       });
     }
 
-    console.log('Resource before allocation:', {
-      current: resource.quantity.current,
-      allocated: resource.quantity.allocated,
-      reserved: resource.quantity.reserved
-    });
-
     // Check if enough quantity is available
     const available = resource.quantity.current - resource.quantity.allocated - resource.quantity.reserved;
     if (allocateQuantity > available) {
@@ -313,7 +297,7 @@ router.post('/:id/allocate', async (req, res) => {
         location
       },
       quantity_deployed: allocateQuantity,
-      deployed_by: req.user ? req.user.individualId : 'test_user',
+      deployed_by: req.user.individualId,
       estimated_duration
     });
 
@@ -346,7 +330,7 @@ router.post('/:id/allocate', async (req, res) => {
 });
 
 // POST /api/resources/:id/reserve - Reserve resource
-router.post('/:id/reserve', async (req, res) => {
+router.post('/:id/reserve', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { quantity, reason, reserved_until } = req.body;
 
@@ -398,7 +382,7 @@ router.post('/:id/reserve', async (req, res) => {
 });
 
 // GET /api/resources/inventory/summary - Get inventory summary
-router.get('/inventory/summary', async (req, res) => {
+router.get('/inventory/summary', authenticateToken, async (req, res) => {
   try {
     const summary = await Resource.aggregate([
       {
@@ -468,7 +452,7 @@ router.get('/inventory/summary', async (req, res) => {
 });
 
 // GET /api/resources/analytics/allocation - Get AI allocation recommendations
-router.get('/analytics/allocation', async (req, res) => {
+router.get('/analytics/allocation', authenticateToken, async (req, res) => {
   try {
     const { disaster_id, location, demand_type } = req.query;
 
@@ -529,7 +513,7 @@ router.get('/analytics/allocation', async (req, res) => {
 });
 
 // GET /api/resources/supply-chain/status - Get supply chain status
-router.get('/supply-chain/status', async (req, res) => {
+router.get('/supply-chain/status', authenticateToken, async (req, res) => {
   try {
     const { status, vendor_id } = req.query;
 
@@ -572,7 +556,7 @@ router.get('/supply-chain/status', async (req, res) => {
 });
 
 // GET /api/resources/deployment/tracking - Get deployment tracking
-router.get('/deployment/tracking', async (req, res) => {
+router.get('/deployment/tracking', authenticateToken, async (req, res) => {
   try {
     const { disaster_id, status, start_date, end_date } = req.query;
 
@@ -632,7 +616,7 @@ router.get('/deployment/tracking', async (req, res) => {
 });
 
 // POST /api/resources/bulk/update-status - Bulk update resource status
-router.post('/bulk/update-status', async (req, res) => {
+router.post('/bulk/update-status', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { resource_ids, new_status, reason } = req.body;
 
@@ -648,7 +632,7 @@ router.post('/bulk/update-status', async (req, res) => {
       {
         $set: {
           status: new_status,
-          updated_by: req.user ? req.user.individualId : 'test_user',
+          updated_by: req.user.individualId,
           updated_at: new Date()
         }
       }
@@ -674,7 +658,7 @@ router.post('/bulk/update-status', async (req, res) => {
 });
 
 // POST /api/resources/ai/optimize-allocation - AI-powered allocation optimization
-router.post('/ai/optimize-allocation', async (req, res) => {
+router.post('/ai/optimize-allocation', authenticateToken, async (req, res) => {
   try {
     const { location, radius } = req.body;
 
@@ -710,7 +694,7 @@ router.post('/ai/optimize-allocation', async (req, res) => {
 });
 
 // GET /api/resources/ai/supply-chain-optimization - AI supply chain optimization
-router.get('/ai/supply-chain-optimization', async (req, res) => {
+router.get('/ai/supply-chain-optimization', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { timeframe = 30 } = req.query;
 
@@ -731,7 +715,7 @@ router.get('/ai/supply-chain-optimization', async (req, res) => {
 });
 
 // GET /api/resources/dashboard/metrics - Dashboard metrics for resource management
-router.get('/dashboard/metrics', async (req, res) => {
+router.get('/dashboard/metrics', authenticateToken, async (req, res) => {
   try {
     const { timeframe = 7 } = req.query;
     const cutoffDate = new Date(Date.now() - timeframe * 24 * 60 * 60 * 1000);
@@ -812,7 +796,7 @@ router.get('/dashboard/metrics', async (req, res) => {
 });
 
 // POST /api/resources/:id/complete-deployment - Mark deployment as completed
-router.post('/:id/complete-deployment', async (req, res) => {
+router.post('/:id/complete-deployment', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { deployment_id, actual_duration, notes } = req.body;
 
