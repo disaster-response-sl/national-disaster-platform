@@ -16,11 +16,13 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 const mobileAuthRoutes = require('./routes/mobileAuth.routes');
 const mapRoutes = require('./routes/map.routes');
+// const ndxRoutes = require('./routes/ndx.routes'); // Commented out - file doesn't exist
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', mobileAuthRoutes);
 app.use('/api/map', mapRoutes);
+app.use('/api/ndx', ndxRoutes); 
 
 const PORT = process.env.PORT || 5000;
 
@@ -50,9 +52,6 @@ app.get('/api/test', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
