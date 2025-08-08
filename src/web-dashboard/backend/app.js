@@ -19,12 +19,21 @@ const mapRoutes = require('./routes/map.routes');
 const resourceRoutes = require('./routes/resources.routes');
 const ndxRoutes = require('./routes/ndx.routes');
 
+// Import admin routes
+const adminSosRoutes = require('./routes/admin/sos.routes');
+
+// Import services
+const SosEscalationService = require('./services/sos-escalation.service');
+
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', mobileAuthRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/ndx', ndxRoutes);
+
+// Use admin routes
+app.use('/api/admin/sos', adminSosRoutes);
 
 const PORT = process.env.PORT || 5000;
 
@@ -33,7 +42,13 @@ const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/disaster-pl
 console.log('Attempting to connect to MongoDB:', mongoUri);
 
 mongoose.connect(mongoUri)
-  .then(() => console.log("MongoDB connected successfully"))
+  .then(() => {
+    console.log("MongoDB connected successfully");
+    
+    // Start SOS escalation service after DB connection
+    const escalationService = new SosEscalationService();
+    escalationService.startScheduler(5); // Check every 5 minutes
+  })
   .catch((err) => {
     console.error("MongoDB connection error:", err);
     console.log("Using MONGO_URI:", process.env.MONGO_URI ? 'Set' : 'Not set');
