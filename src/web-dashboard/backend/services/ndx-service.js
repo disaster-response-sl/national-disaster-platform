@@ -135,12 +135,31 @@ class MockNDXService {
           case 'disasters':
             return [
               {
-                id: 'disaster_001',
+                _id: '68959322a3a58f7e8e93a61e',
                 type: 'flood',
                 severity: 'high',
+                description: 'Severe flooding in Ratnapura district after continuous rainfall',
+                location: { lat: 6.6847, lng: 80.4025 },
+                timestamp: new Date('2025-08-08T16:28:52.933Z').toISOString(),
+                status: 'active'
+              },
+              {
+                _id: '68959322a3a58f7e8e93a617',
+                type: 'landslide',
+                severity: 'high',
+                description: 'Landslide disaster in Nuwara Eliya district, Sri Lanka',
+                location: { lat: 6.9497, lng: 80.7718 },
+                timestamp: new Date('2025-08-08T11:04:27.670Z').toISOString(),
+                status: 'active'
+              },
+              {
+                _id: '68959322a3a58f7e8e93a61d',
+                type: 'flood',
+                severity: 'medium',
+                description: 'Urban flooding in Colombo due to heavy monsoon rains',
                 location: { lat: 6.9271, lng: 79.8612 },
-                status: 'active',
-                timestamp: new Date().toISOString()
+                timestamp: new Date('2025-08-08T00:15:04.537Z').toISOString(),
+                status: 'resolved'
               }
             ];
           case 'resources':

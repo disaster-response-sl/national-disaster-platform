@@ -57,22 +57,22 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ points, userLocation }) => {
           markersLayer.clearLayers();
           const latlngs = [];
 
-          if (Array.isArray(points)) {
-            points.forEach(p => {
-              if (!p) return;
-              const lat = Number(p.latitude);
-              const lng = Number(p.longitude);
-              if (!isFiniteNum(lat) || !isFiniteNum(lng)) return;
-              const color = COLORS[p.severity] || '#666666';
-              const marker = L.circleMarker([lat, lng], { radius: 8, color, weight: 2, fillColor: color, fillOpacity: 0.6 });
-              const title = (p.type || 'Disaster').toString();
-              const time = new Date(p.timestamp || Date.now()).toLocaleString();
-              const desc = (p.description || '').toString();
-              marker.bindPopup('<b>' + title + '</b> (' + p.severity + ')<br/>' + time + '<br/>' + desc);
-              marker.addTo(markersLayer);
-              latlngs.push([lat, lng]);
-            });
-          }
+                     if (Array.isArray(points)) {
+             points.forEach((p, index) => {
+               if (!p) return;
+               const lat = Number(p.latitude);
+               const lng = Number(p.longitude);
+               if (!isFiniteNum(lat) || !isFiniteNum(lng)) return;
+               const color = COLORS[p.severity] || '#666666';
+               const marker = L.circleMarker([lat, lng], { radius: 8, color, weight: 2, fillColor: color, fillOpacity: 0.6 });
+               const title = (p.type || 'Disaster').toString();
+               const time = new Date(p.timestamp || Date.now()).toLocaleString();
+               const desc = (p.description || '').toString();
+               marker.bindPopup('<b>' + title + '</b> (' + p.severity + ')<br/>' + time + '<br/>' + desc);
+               marker.addTo(markersLayer);
+               latlngs.push([lat, lng]);
+             });
+           }
 
           // Optional user location highlight
           if (userLocation && isFiniteNum(userLocation.latitude) && isFiniteNum(userLocation.longitude)) {

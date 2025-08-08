@@ -38,7 +38,7 @@ interface RiskMapScreenProps {
 
 const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   const [disasters, setDisasters] = useState<Disaster[]>([]);
-  const [showAllDisasters, setShowAllDisasters] = useState(true); // Changed to true by default
+  const [showAllDisasters, setShowAllDisasters] = useState(true); 
   const [loading, setLoading] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,14 +100,10 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log('API Response status:', response.status);
-      console.log('API Response data:', response.data);
-      
-      const fetchedDisasters = response.data?.data || [];
-      console.log('Fetched disasters from API:', fetchedDisasters);
-      console.log('Number of disasters:', fetchedDisasters.length);
-      console.log('Disaster statuses:', fetchedDisasters.map((d: any) => ({ id: d._id, status: d.status, type: d.type })));
-      console.log('Disaster locations:', fetchedDisasters.map((d: any) => ({ id: d._id, location: d.location, hasLocation: !!d.location })));
+             console.log('API Response status:', response.status);
+       console.log('API Response data:', response.data);
+       
+       const fetchedDisasters = response.data?.data || [];
       
       setDisasters(fetchedDisasters);
       
@@ -195,21 +191,9 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     ? disasters 
     : disasters.filter(disaster => disaster.status === 'active');
 
-  // Debug logging for disasters
-  useEffect(() => {
-    console.log('Disasters state updated:', disasters);
-    console.log('Filtered disasters:', filteredDisasters);
-    console.log('Show all disasters:', showAllDisasters);
-  }, [disasters, filteredDisasters, showAllDisasters]);
 
-  const isValidCoordinate = (lat: unknown, lng: unknown): boolean => {
-    const latNum = typeof lat === 'number' ? lat : Number.NaN;
-    const lngNum = typeof lng === 'number' ? lng : Number.NaN;
-    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return false;
-    if (latNum < -90 || latNum > 90) return false;
-    if (lngNum < -180 || lngNum > 180) return false;
-    return true;
-  };
+
+  
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -284,33 +268,38 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
 
       {/* Map (Leaflet + OSM) */}
       <View style={styles.mapContainer}>
-        <LeafletMap
+                <LeafletMap
           // Changing key slightly forces WebView to refresh on demand
           key={`leaflet-${refreshFlag}`}
-          points={(showAllDisasters ? disasters : disasters.filter(d => d.status === 'active'))
-            .filter(d => {
-              // Temporarily disable coordinate validation to see if that's the issue
-              const hasLocation = d.location && typeof d.location === 'object';
-              if (!hasLocation) {
-                console.log('Filtering out disaster without location:', d._id, d.location);
-                return false;
-              }
-              
-              const isValid = isValidCoordinate(d.location?.lat, d.location?.lng);
-              if (!isValid) {
-                console.log('Filtering out invalid coordinates:', d._id, d.location);
-              }
-              return isValid;
-            })
-            .map<LeafletDisasterPoint>((d) => ({
-              id: d._id,
-              latitude: d.location.lat,
-              longitude: d.location.lng,
-              type: d.type,
-              severity: d.severity,
-              description: d.description,
-              timestamp: d.timestamp,
-            }))}
+          points={disasters
+                         .filter(d => {
+               // Simple location check
+               const hasLocation = d.location && typeof d.location === 'object';
+               return hasLocation;
+             })
+                         .map<LeafletDisasterPoint | null>((d) => {
+               const lat = d.location?.lat;
+               const lng = d.location?.lng;
+               
+               // Simple coordinate conversion
+               const latNum = Number(lat);
+               const lngNum = Number(lng);
+               
+               if (isNaN(latNum) || isNaN(lngNum)) {
+                 return null;
+               }
+               
+               return {
+                 id: d._id,
+                 latitude: latNum,
+                 longitude: lngNum,
+                 type: d.type,
+                 severity: d.severity,
+                 description: d.description,
+                 timestamp: d.timestamp,
+               };
+             })
+            .filter((point): point is LeafletDisasterPoint => point !== null)}
           userLocation={userLocation}
         />
 
@@ -326,23 +315,9 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.sectionTitle}>
-          {showAllDisasters ? 'All Disasters' : 'Active Disasters'} ({filteredDisasters.length})
-        </Text>
-        
-        {/* Temporary Debug Section */}
-        <View style={styles.debugSection}>
-          <Text style={styles.debugTitle}>Debug Info:</Text>
-          <Text style={styles.debugText}>Total disasters: {disasters.length}</Text>
-          <Text style={styles.debugText}>Filtered disasters: {filteredDisasters.length}</Text>
-          <Text style={styles.debugText}>Show all disasters: {showAllDisasters ? 'true' : 'false'}</Text>
-          <Text style={styles.debugText}>Raw disaster data:</Text>
-          {disasters.slice(0, 3).map((d, index) => (
-            <Text key={`debug-${index}`} style={styles.debugText}>
-              {index + 1}. ID: {d._id}, Type: {d.type}, Status: {d.status}, Location: {JSON.stringify(d.location)}
-            </Text>
-          ))}
-        </View>
+                 <Text style={styles.sectionTitle}>
+           {showAllDisasters ? 'All Disasters' : 'Active Disasters'} ({filteredDisasters.length})
+         </Text>
         
         {filteredDisasters.length > 0 ? (
           filteredDisasters.map((disaster) => (
@@ -653,23 +628,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  debugSection: {
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-  },
-  debugTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  debugText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
+  
 });
 
 export default RiskMapScreen;
