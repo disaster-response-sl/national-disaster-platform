@@ -3,56 +3,8 @@ const router = express.Router();
 const Disaster = require('../../models/Disaster');
 const { authenticateToken, requireAdmin } = require('../../middleware/auth');
 
-// PATCH /api/admin/disasters/bulk-status - Bulk status updates
-router.patch('/bulk-status', async (req, res) => {
-  try {
-    const { disaster_ids, status, response_status } = req.body;
-
-    if (!disaster_ids || !Array.isArray(disaster_ids) || disaster_ids.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'disaster_ids array is required'
-      });
-    }
-
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Status is required'
-      });
-    }
-
-    const updateData = { 
-      status,
-      updated_by: req.user._id || req.user.individualId
-    };
-
-    if (response_status) updateData.response_status = response_status;
-
-    const result = await Disaster.updateMany(
-      { _id: { $in: disaster_ids } },
-      updateData
-    );
-
-    res.json({
-      success: true,
-      data: {
-        matched: result.matchedCount,
-        modified: result.modifiedCount
-      },
-      message: `${result.modifiedCount} disasters updated to ${status}`
-    });
-  } catch (error) {
-    console.error('Bulk status update error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// GET /api/admin/disasters/statistics - Dashboard statistics
-router.get('/statistics', async (req, res) => {
+// GET /api/admin/analytics/statistics - Dashboard statistics
+router.get('/statistics', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
@@ -183,7 +135,7 @@ router.get('/statistics', async (req, res) => {
 });
 
 // GET /api/admin/disasters/timeline - Timeline view of disasters
-router.get('/timeline', async (req, res) => {
+router.get('/timeline', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { startDate, endDate, status, type, limit = 50 } = req.query;
 
@@ -230,7 +182,7 @@ router.get('/timeline', async (req, res) => {
 });
 
 // GET /api/admin/disasters/zones-overlap - Check for overlapping zones
-router.get('/zones-overlap', async (req, res) => {
+router.get('/zones-overlap', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const disasters = await Disaster.find({ 
       status: { $in: ['active', 'monitoring'] },
@@ -293,7 +245,7 @@ router.get('/zones-overlap', async (req, res) => {
 });
 
 // GET /api/admin/disasters/resource-summary - Resource requirements summary
-router.get('/resource-summary', async (req, res) => {
+router.get('/resource-summary', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { status = 'active,monitoring' } = req.query;
 

@@ -4,7 +4,7 @@ const Disaster = require('../../models/Disaster');
 const { authenticateToken, requireAdmin } = require('../../middleware/auth');
 
 // POST /api/admin/disasters/:id/zones - Add zone to disaster
-router.post('/:id/zones', async (req, res) => {
+router.post('/:id/zones', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { zone_name, boundary_coordinates, estimated_population, area_km2, risk_level } = req.body;
 
@@ -92,7 +92,7 @@ router.post('/:id/zones', async (req, res) => {
 });
 
 // PUT /api/admin/disasters/:id/zones/:zoneId - Update specific zone
-router.put('/:id/zones/:zoneId', async (req, res) => {
+router.put('/:id/zones/:zoneId', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { zone_name, boundary_coordinates, estimated_population, area_km2, risk_level } = req.body;
 
@@ -187,7 +187,7 @@ router.put('/:id/zones/:zoneId', async (req, res) => {
 });
 
 // DELETE /api/admin/disasters/:id/zones/:zoneId - Remove zone
-router.delete('/:id/zones/:zoneId', async (req, res) => {
+router.delete('/:id/zones/:zoneId', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const disaster = await Disaster.findById(req.params.id);
     
@@ -234,7 +234,7 @@ router.delete('/:id/zones/:zoneId', async (req, res) => {
 });
 
 // GET /api/admin/disasters/:id/zones - Get all zones for a disaster
-router.get('/:id/zones', async (req, res) => {
+router.get('/:id/zones', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const disaster = await Disaster.findById(req.params.id).select('zones disaster_code title');
     
@@ -280,7 +280,7 @@ router.get('/:id/zones', async (req, res) => {
 });
 
 // GET /api/admin/disasters/:id/zones/:zoneId - Get specific zone
-router.get('/:id/zones/:zoneId', async (req, res) => {
+router.get('/:id/zones/:zoneId', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const disaster = await Disaster.findById(req.params.id).select('zones disaster_code title');
     

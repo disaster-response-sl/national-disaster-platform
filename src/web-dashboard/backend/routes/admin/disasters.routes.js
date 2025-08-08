@@ -63,7 +63,7 @@ const validateZoneOverlap = (zones) => {
 };
 
 // POST /api/admin/disasters - Create new disaster
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const {
       type, severity, title, description, location,
@@ -103,8 +103,8 @@ router.post('/', async (req, res) => {
       alert_message, evacuation_required: evacuation_required || false,
       evacuation_zones, assigned_teams, estimated_duration,
       disaster_code: disaster_code,
-      status: 'active'
-      // Remove created_by for now during testing
+      status: 'active',
+      created_by: req.user.id
     });
 
     await disaster.save();
@@ -133,7 +133,8 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/admin/disasters - List all disasters with advanced filtering
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
+  console.log('🎯 ADMIN DISASTERS GET ROUTE CALLED');
   try {
     const {
       status, type, severity, priority_level,
@@ -214,7 +215,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/admin/disasters/:id - Get specific disaster
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const disaster = await Disaster.findById(req.params.id)
       .populate('created_by', 'name role email')
@@ -248,13 +249,13 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /api/admin/disasters/:id - Update disaster
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const updateData = { ...req.body };
     delete updateData._id; // Remove _id from update data
     
-    // Add updated_by field (mock for testing)
-    // updateData.updated_by = 'test-admin-user'; // Temporarily commented out
+    // Add updated_by field
+    updateData.updated_by = req.user.id;
 
     // If zones are updated, validate overlaps
     if (updateData.zones) {
@@ -299,7 +300,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // PATCH /api/admin/disasters/:id/status - Update status only
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { status, response_status, actual_duration } = req.body;
 
@@ -354,7 +355,7 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 // DELETE /api/admin/disasters/:id - Delete disaster (soft delete to archived)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { permanent = false } = req.query;
 
@@ -398,6 +399,54 @@ router.delete('/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('Delete disaster error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// PATCH /api/admin/disasters/bulk-status - Bulk status updates
+router.patch('/bulk-status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { disaster_ids, status, response_status } = req.body;
+
+    if (!disaster_ids || !Array.isArray(disaster_ids) || disaster_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'disaster_ids array is required'
+      });
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required'
+      });
+    }
+
+    const updateData = { 
+      status,
+      updated_by: req.user._id || req.user.individualId
+    };
+
+    if (response_status) updateData.response_status = response_status;
+
+    const result = await Disaster.updateMany(
+      { _id: { $in: disaster_ids } },
+      updateData
+    );
+
+    res.json({
+      success: true,
+      data: {
+        matched: result.matchedCount,
+        modified: result.modifiedCount
+      },
+      message: `${result.modifiedCount} disasters updated to ${status}`
+    });
+  } catch (error) {
+    console.error('Bulk status update error:', error);
     res.status(500).json({
       success: false,
       message: error.message

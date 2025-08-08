@@ -33,11 +33,11 @@ app.use('/api/mobile', mobileAuthRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/ndx', ndxRoutes);
 
-// Use admin routes
-app.use('/api/admin/disasters', adminDisastersRoutes);
-app.use('/api/admin/disasters', adminAnalyticsRoutes);
-app.use('/api/admin/disasters', adminZonesRoutes);
-app.use('/api/admin/disasters', adminImportExportRoutes);
+// Use admin routes with proper path separation to avoid conflicts
+app.use('/api/admin/disasters', adminDisastersRoutes);           // Main CRUD: /, /:id, /bulk-status
+app.use('/api/admin/analytics', adminAnalyticsRoutes);           // /statistics, /timeline, etc.
+app.use('/api/admin/disasters', adminZonesRoutes);               // /:id/zones routes
+app.use('/api/admin/import-export', adminImportExportRoutes);    // /import, /export, /template
 
 // Use test routes (NO AUTH - for easy Postman testing)
 app.use('/api/test', testCrudRoutes);

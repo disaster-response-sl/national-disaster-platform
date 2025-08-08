@@ -6,7 +6,7 @@ const csv = require('csv-parser');
 const { Readable } = require('stream');
 
 // POST /api/admin/disasters/import - Import disasters from CSV/JSON
-router.post('/import', async (req, res) => {
+router.post('/import', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { data, format = 'json', overwrite = false } = req.body;
 
@@ -99,7 +99,7 @@ router.post('/import', async (req, res) => {
 });
 
 // GET /api/admin/disasters/export - Export disasters to JSON/CSV
-router.get('/export', async (req, res) => {
+router.get('/export', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { 
       format = 'json',
@@ -165,7 +165,7 @@ router.get('/export', async (req, res) => {
 });
 
 // GET /api/admin/disasters/template - Download import template
-router.get('/template', async (req, res) => {
+router.get('/template', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { format = 'csv' } = req.query;
 
