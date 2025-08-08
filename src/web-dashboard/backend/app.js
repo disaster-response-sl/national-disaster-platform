@@ -15,18 +15,32 @@ app.use(express.json());
 // Import routes
 const authRoutes = require('./routes/auth');
 const mobileAuthRoutes = require('./routes/mobileAuth.routes');
-
 const mapRoutes = require('./routes/map.routes');
-
-
 const ndxRoutes = require('./routes/ndx.routes');
+
+// Import admin routes
+const adminDisastersRoutes = require('./routes/admin/disasters.routes');
+const adminAnalyticsRoutes = require('./routes/admin/analytics.routes');
+const adminZonesRoutes = require('./routes/admin/zones.routes');
+const adminImportExportRoutes = require('./routes/admin/import-export.routes');
+
+// Import test routes (NO AUTH - for Postman testing)
+const testCrudRoutes = require('./routes/test-crud.routes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', mobileAuthRoutes);
 app.use('/api/map', mapRoutes);
-
 app.use('/api/ndx', ndxRoutes);
+
+// Use admin routes
+app.use('/api/admin/disasters', adminDisastersRoutes);
+app.use('/api/admin/disasters', adminAnalyticsRoutes);
+app.use('/api/admin/disasters', adminZonesRoutes);
+app.use('/api/admin/disasters', adminImportExportRoutes);
+
+// Use test routes (NO AUTH - for easy Postman testing)
+app.use('/api/test', testCrudRoutes);
 
 const PORT = process.env.PORT || 5000;
 
