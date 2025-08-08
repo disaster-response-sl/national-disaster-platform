@@ -51,7 +51,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
             Alert.alert('Error', response.data.message || 'Failed to submit report');
           }
         } catch (err) {
-          console.error(err);
+          console.error('Report submission error:', err);
           Alert.alert('Error', 'Failed to submit report');
         } finally {
           setLoading(false);

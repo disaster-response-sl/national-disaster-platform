@@ -56,6 +56,7 @@ router.post('/login', async (req, res) => {
         role: userData ? userData.role : 'Citizen'
       };
       
+      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
       const appToken = jwt.sign(
         {
           _id: user._id,
@@ -64,7 +65,7 @@ router.post('/login', async (req, res) => {
           name: user.name,
           sludiToken: authResponse.response.authToken
         },
-        process.env.JWT_SECRET,
+        jwtSecret,
         { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
       );
       
@@ -306,10 +307,19 @@ router.get('/chat-logs', authenticateToken, async (req, res) => {
   }
 });
 
+// Test endpoint for debugging
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Mobile API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // POST /api/mobile/reports - Submit a new report
 router.post('/reports', authenticateToken, async (req, res) => {
   try {
-    const { type, description, disaster_id, image_url } = req.body;
+    const { type, description, disaster_id, image_url, location } = req.body;
     const userId = req.user._id || req.user.user_id || req.user.individualId;
     
     if (!type || !description) {
@@ -325,6 +335,7 @@ router.post('/reports', authenticateToken, async (req, res) => {
       type,
       description,
       image_url: image_url || null,
+      location: location || null,
       status: 'pending'
     });
 
