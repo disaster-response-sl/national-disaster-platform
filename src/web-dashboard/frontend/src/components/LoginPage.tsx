@@ -125,11 +125,49 @@ const LoginPage: React.FC = () => {
 
           {/* Demo Credentials */}
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Demo Credentials:</h3>
-            <div className="text-xs text-gray-600 space-y-1">
-              <div><strong>Responder:</strong> responder001 / password123</div>
-              <div><strong>Admin:</strong> admin001 / admin123</div>
-              <div><strong>Citizen:</strong> citizen001 / citizen123</div>
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Demo Credentials (Click to use):</h3>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('responder001');
+                  setPassword('123456');
+                }}
+                className="w-full text-left p-2 text-xs bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors"
+                disabled={isLoading}
+              >
+                <div className="font-medium text-blue-800">👨‍🚒 Responder Account</div>
+                <div className="text-blue-600">responder001 / 123456</div>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('admin001');
+                  setPassword('123456');
+                }}
+                className="w-full text-left p-2 text-xs bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors"
+                disabled={isLoading}
+              >
+                <div className="font-medium text-red-800">👑 Admin Account</div>
+                <div className="text-red-600">admin001 / 123456</div>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername('citizen001');
+                  setPassword('123456');
+                }}
+                className="w-full text-left p-2 text-xs bg-green-50 hover:bg-green-100 rounded border border-green-200 transition-colors"
+                disabled={isLoading}
+              >
+                <div className="font-medium text-green-800">👤 Citizen Account</div>
+                <div className="text-green-600">citizen001 / 123456</div>
+              </button>
+            </div>
+            <div className="mt-3 text-xs text-gray-500">
+              Click any credential above to auto-fill the form
             </div>
           </div>
         </div>
