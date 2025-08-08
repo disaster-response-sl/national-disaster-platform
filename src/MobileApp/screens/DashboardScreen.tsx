@@ -91,21 +91,18 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const fetchWeatherData = async (lat: number, lng: number) => {
     try {
       const API_KEY = 'ef2e48a91b8c1c679ab689747a5bc8a1'; // Real API key
-      // const response = await axios.get(
-      //   `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lng=${lng}&appid=${API_KEY}&units=metric`
-      // );
+      // OpenWeatherMap uses 'lon' instead of 'lng'
       const response = await axios.get(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`
       );
       
-
       if (response.data) {
         const weatherData = response.data;
         const weather: Weather = {
           temperature: `${Math.round(weatherData.main.temp)}°C`,
           condition: weatherData.weather[0].main,
           humidity: `${weatherData.main.humidity}%`,
-          windSpeed: `${Math.round(weatherData.wind.speed * 3.6)} km/h` // Convert m/s to km/h
+          windSpeed: `${Math.round(weatherData.wind.speed * 3.6)} km/h`
         };
         setWeather(weather);
       }
@@ -270,6 +267,12 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       case 'chat':
         navigation.navigate('Chat');
         break;
+      case 'riskmap':
+        navigation.navigate('RiskMap');
+        break;
+      case 'consent':
+        navigation.navigate('ConsentManagement');
+        break;
       default:
         break;
     }
@@ -352,31 +355,47 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       </View>
 
       {/* Quick Actions */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Quick Actions</Text>
-        <View style={styles.quickActionsContainer}>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#ff4444' }]}
+      <View style={styles.quickActionsContainer}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity
+            style={[styles.quickActionButton, { backgroundColor: '#ff4444' }]}
             onPress={() => handleQuickAction('sos')}
           >
-            <Text style={styles.actionButtonText}>🚨 SOS</Text>
-            <Text style={styles.actionButtonSubtext}>Emergency</Text>
+            <Text style={styles.quickActionIcon}>🚨</Text>
+            <Text style={styles.quickActionText}>SOS</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#007bff' }]}
+          
+          <TouchableOpacity
+            style={[styles.quickActionButton, { backgroundColor: '#007bff' }]}
             onPress={() => handleQuickAction('report')}
           >
-            <Text style={styles.actionButtonText}>📝 Report</Text>
-            <Text style={styles.actionButtonSubtext}>Incident</Text>
+            <Text style={styles.quickActionIcon}>📝</Text>
+            <Text style={styles.quickActionText}>Report</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#28a745' }]}
+          
+          <TouchableOpacity
+            style={[styles.quickActionButton, { backgroundColor: '#28a745' }]}
+            onPress={() => handleQuickAction('riskmap')}
+          >
+            <Text style={styles.quickActionIcon}>🗺️</Text>
+            <Text style={styles.quickActionText}>Risk Map</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.quickActionButton, { backgroundColor: '#ffc107' }]}
             onPress={() => handleQuickAction('chat')}
           >
-            <Text style={styles.actionButtonText}>💬 Chat</Text>
-            <Text style={styles.actionButtonSubtext}>Support</Text>
+            <Text style={styles.quickActionIcon}>💬</Text>
+            <Text style={styles.quickActionText}>Chat</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickActionButton, { backgroundColor: '#6f42c1' }]}
+            onPress={() => handleQuickAction('consent')}
+          >
+            <Text style={styles.quickActionIcon}>🔐</Text>
+            <Text style={styles.quickActionText}>Consent</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -520,26 +539,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   quickActionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    margin: 15,
+    padding: 20,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  actionButton: {
-    flex: 1,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+  },
+  quickActionButton: {
+    width: '45%', // Adjust as needed for grid layout
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginHorizontal: 5,
+    marginVertical: 10,
   },
-  actionButtonText: {
+  quickActionIcon: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+  quickActionText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-  },
-  actionButtonSubtext: {
-    color: 'white',
-    fontSize: 12,
-    opacity: 0.9,
-    marginTop: 2,
   },
   alertItem: {
     borderBottomWidth: 1,

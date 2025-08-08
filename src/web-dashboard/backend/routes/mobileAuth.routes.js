@@ -56,6 +56,7 @@ router.post('/login', async (req, res) => {
         role: userData ? userData.role : 'Citizen'
       };
       
+      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
       const appToken = jwt.sign(
         {
           _id: user._id,
@@ -64,7 +65,7 @@ router.post('/login', async (req, res) => {
           name: user.name,
           sludiToken: authResponse.response.authToken
         },
-        process.env.JWT_SECRET,
+        jwtSecret,
         { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
       );
       
@@ -129,22 +130,83 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET /api/mobile/disasters - Get active disasters
+// GET /api/mobile/disasters - Get all disasters (active and resolved)
 router.get('/disasters', authenticateToken, async (req, res) => {
   try {
-    const disasters = await Disaster.find({ status: 'active' })
-      .sort({ timestamp: -1 })
-      .limit(10);
+    const { status } = req.query;
     
-    res.json({
-      success: true,
-      data: disasters
-    });
+    let query = {};
+    if (status) {
+      query.status = status; // Allow filtering by status if specified
+    }
+    
+         const disasters = await Disaster.find(query)
+       .sort({ timestamp: -1 })
+       .limit(50); // Increased limit to show more disasters
+     
+     console.log('Found disasters:', disasters.length);
+     
+     const response = {
+       success: true,
+       data: disasters
+     };
+    
+    res.json(response);
   } catch (error) {
     console.error('[DISASTERS ERROR]', error);
     res.status(500).json({
       success: false,
       message: "Error fetching disasters"
+    });
+  }
+});
+
+// POST /api/mobile/populate-test-disasters - Populate test disaster data with proper coordinates
+router.post('/populate-test-disasters', authenticateToken, async (req, res) => {
+  try {
+    // Clear existing disasters
+    await Disaster.deleteMany({});
+    
+         // Create test disasters matching the actual database structure
+     const testDisasters = [
+       {
+         type: 'flood',
+         severity: 'high',
+         description: 'Severe flooding in Ratnapura district after continuous rainfall',
+         location: { lat: 6.6847, lng: 80.4025 },
+         timestamp: new Date('2025-08-08T16:28:52.933Z'),
+         status: 'active'
+       },
+       {
+         type: 'landslide',
+         severity: 'high',
+         description: 'Landslide disaster in Nuwara Eliya district, Sri Lanka',
+         location: { lat: 6.9497, lng: 80.7718 },
+         timestamp: new Date('2025-08-08T11:04:27.670Z'),
+         status: 'active'
+       },
+       {
+         type: 'flood',
+         severity: 'medium',
+         description: 'Urban flooding in Colombo due to heavy monsoon rains',
+         location: { lat: 6.9271, lng: 79.8612 },
+         timestamp: new Date('2025-08-08T00:15:04.537Z'),
+         status: 'resolved'
+       }
+     ];
+    
+    const createdDisasters = await Disaster.insertMany(testDisasters);
+    
+    res.json({
+      success: true,
+      message: 'Test disaster data populated successfully',
+      data: createdDisasters
+    });
+  } catch (error) {
+    console.error('[POPULATE TEST DISASTERS ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Error populating test disaster data"
     });
   }
 });
@@ -230,10 +292,21 @@ router.get('/chat-logs', authenticateToken, async (req, res) => {
   }
 });
 
+// Test endpoint for debugging
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Mobile API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+
+
 // POST /api/mobile/reports - Submit a new report
 router.post('/reports', authenticateToken, async (req, res) => {
   try {
-    const { type, description, disaster_id, image_url } = req.body;
+    const { type, description, disaster_id, image_url, location } = req.body;
     const userId = req.user._id || req.user.user_id || req.user.individualId;
     
     if (!type || !description) {
@@ -249,6 +322,7 @@ router.post('/reports', authenticateToken, async (req, res) => {
       type,
       description,
       image_url: image_url || null,
+      location: location || null,
       status: 'pending'
     });
 

@@ -7,7 +7,7 @@ const ReportSchema = new mongoose.Schema({
   },
   disaster_id: {
     type: String, // Use String for now, or mongoose.Schema.Types.ObjectId if referencing disasters
-    required: true
+    required: false
   },
   type: {
     type: String,
@@ -19,6 +19,10 @@ const ReportSchema = new mongoose.Schema({
     required: true
   },
   image_url: String,
+  location: {
+    lat: Number,
+    lng: Number
+  },
   status: {
     type: String,
     enum: ['pending', 'addressed', 'in_progress'],

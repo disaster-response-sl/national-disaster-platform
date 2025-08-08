@@ -15,7 +15,8 @@ const authenticateToken = (req, res, next) => {
   }
 
   // Verify token
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
+  jwt.verify(token, jwtSecret, (err, user) => {
     if (err) {
       return res.status(403).json({
         success: false,
