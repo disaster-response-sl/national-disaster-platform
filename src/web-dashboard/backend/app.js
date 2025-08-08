@@ -12,18 +12,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Import routes after app is initialized
+// Import routes
 const authRoutes = require('./routes/auth');
+const mobileAuthRoutes = require('./routes/mobileAuth.routes');
+const mapRoutes = require('./routes/map.routes');
 
-// Middleware routes
+// Use routes
 app.use('/api/auth', authRoutes);
-app.use('/api/mobile', require('./routes/mobileAuth.routes'));
-app.use('/api/map', require('./routes/map.routes'));
+app.use('/api/mobile', mobileAuthRoutes);
+app.use('/api/map', mapRoutes);
 
 const PORT = process.env.PORT || 5000;
 
 // Database connection
-mongoose.connect(process.env.MONGO_URI)
+const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/disaster-platform';
+mongoose.connect(mongoUri)
   .then(() => console.log("MongoDB connected successfully"))
   .catch((err) => {
     console.error("MongoDB connection error:", err);
@@ -46,8 +49,10 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-
 // Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
