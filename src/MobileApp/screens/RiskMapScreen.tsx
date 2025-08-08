@@ -17,6 +17,7 @@ import axios from 'axios';
 import Geolocation from '@react-native-community/geolocation';
 // Leaflet via WebView
 import LeafletMap, { LeafletDisasterPoint } from '../components/LeafletMap';
+import NDXService from '../services/NDXService';
 
 interface Disaster {
   _id: string;
@@ -63,6 +64,30 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   const fetchDisasters = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
+      
+      // Try to get user location for NDX request
+      let userLocationForNDX = null;
+      if (userLocation) {
+        userLocationForNDX = { lat: userLocation.latitude, lng: userLocation.longitude };
+      } else {
+        // Fallback to Colombo coordinates
+        userLocationForNDX = { lat: 6.9271, lng: 79.8612 };
+      }
+
+      // First try NDX for disaster data (with consent management)
+      try {
+        const ndxResult = await NDXService.getDisasterInfo(userLocationForNDX);
+        if (ndxResult.success && ndxResult.data) {
+          console.log('NDX disaster data retrieved:', ndxResult.data);
+          setDisasters(ndxResult.data);
+          setOfflineMode(false);
+          return;
+        }
+      } catch (ndxError) {
+        console.log('NDX not available, falling back to direct API:', ndxError);
+      }
+
+      // Fallback to direct API call
       const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
         headers: { Authorization: `Bearer ${token}` }
       });
