@@ -19,12 +19,30 @@ const mapRoutes = require('./routes/map.routes');
 const resourceRoutes = require('./routes/resources.routes');
 const ndxRoutes = require('./routes/ndx.routes');
 
+// Import admin routes
+const adminDisastersRoutes = require('./routes/admin/disasters.routes');
+const adminAnalyticsRoutes = require('./routes/admin/analytics.routes');
+const adminZonesRoutes = require('./routes/admin/zones.routes');
+const adminImportExportRoutes = require('./routes/admin/import-export.routes');
+
+// Import test routes (NO AUTH - for Postman testing)
+const testCrudRoutes = require('./routes/test-crud.routes');
+
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mobile', mobileAuthRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/ndx', ndxRoutes);
+
+// Use admin routes with proper path separation to avoid conflicts
+app.use('/api/admin/disasters', adminDisastersRoutes);           // Main CRUD: /, /:id, /bulk-status
+app.use('/api/admin/analytics', adminAnalyticsRoutes);           // /statistics, /timeline, etc.
+app.use('/api/admin/disasters', adminZonesRoutes);               // /:id/zones routes
+app.use('/api/admin/import-export', adminImportExportRoutes);    // /import, /export, /template
+
+// Use test routes (NO AUTH - for easy Postman testing)
+app.use('/api/test', testCrudRoutes);
 
 const PORT = process.env.PORT || 5000;
 
