@@ -90,22 +90,19 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const fetchWeatherData = async (lat: number, lng: number) => {
     try {
-      const API_KEY = 'enterapikey'; // Real API key
-      // const response = await axios.get(
-      //   `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lng=${lng}&appid=${API_KEY}&units=metric`
-      // );
+      const API_KEY = 'ef2e48a91b8c1c679ab689747a5bc8a1'; // Real API key
+      // OpenWeatherMap uses 'lon' instead of 'lng'
       const response = await axios.get(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`
       );
       
-
       if (response.data) {
         const weatherData = response.data;
         const weather: Weather = {
           temperature: `${Math.round(weatherData.main.temp)}°C`,
           condition: weatherData.weather[0].main,
           humidity: `${weatherData.main.humidity}%`,
-          windSpeed: `${Math.round(weatherData.wind.speed * 3.6)} km/h` // Convert m/s to km/h
+          windSpeed: `${Math.round(weatherData.wind.speed * 3.6)} km/h`
         };
         setWeather(weather);
       }

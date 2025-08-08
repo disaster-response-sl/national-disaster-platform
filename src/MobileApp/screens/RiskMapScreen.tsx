@@ -40,12 +40,12 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   // Fetch disasters from backend
   const fetchDisasters = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/mobile/disasters', {
+      const token = await AsyncStorage.getItem('authToken');
+      const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      const fetchedDisasters = response.data;
+      const fetchedDisasters = response.data?.data || [];
       setDisasters(fetchedDisasters);
       
       // Cache the data for offline use
@@ -53,8 +53,8 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
       await AsyncStorage.setItem('disastersCacheTime', new Date().toISOString());
       
       setOfflineMode(false);
-    } catch (error) {
-      console.error('Error fetching disasters:', error);
+    } catch (error: any) {
+      console.error('Error fetching disasters:', error?.response?.data || error?.message || error);
       // Try to load cached data
       await loadCachedDisasters();
     } finally {
