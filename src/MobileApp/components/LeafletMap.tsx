@@ -85,8 +85,8 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ points, userLocation }) => {
             const bounds = L.latLngBounds(latlngs);
             map.fitBounds(bounds.pad(0.2));
           } else if (!map._loaded) {
-            // Initial fallback
-            map.setView([20, 78], 4);
+            // Initial fallback - center on Sri Lanka
+            map.setView([7.8731, 80.7718], 8);
           }
         } catch (e) {
           // eslint-disable-next-line
@@ -105,7 +105,8 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ points, userLocation }) => {
 
       // Initial view
       map.whenReady(function() {
-        map.setView([20, 78], 4);
+        // Center on Sri Lanka with appropriate zoom level
+        map.setView([7.8731, 80.7718], 8); // Sri Lanka center coordinates with zoom level 8
       });
     </script>
   </body>

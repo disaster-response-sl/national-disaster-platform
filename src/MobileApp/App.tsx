@@ -9,6 +9,7 @@ import SosScreen from './screens/SosScreen';
 import ReportScreen from './screens/ReportScreen';
 import ChatScreen from './screens/ChatScreen';
 import RiskMapScreen from './screens/RiskMapScreen';
+import ConsentManagementScreen from './screens/ConsentManagementScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -64,7 +65,16 @@ function App(): JSX.Element {
           component={RiskMapScreen}
           options={{ 
             title: 'Risk Map',
-            headerStyle: { backgroundColor: '#ff6b35' },
+            headerStyle: { backgroundColor: '#28a745' },
+            headerTintColor: 'white'
+          }}
+        />
+        <Stack.Screen 
+          name="ConsentManagement" 
+          component={ConsentManagementScreen}
+          options={{ 
+            title: 'Data Sharing Consent',
+            headerStyle: { backgroundColor: '#6f42c1' },
             headerTintColor: 'white'
           }}
         />

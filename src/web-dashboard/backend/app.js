@@ -11,12 +11,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Import routes after app is initialized
+// Import routes
 const authRoutes = require('./routes/auth');
+const mobileAuthRoutes = require('./routes/mobileAuth.routes');
+const ndxRoutes = require('./routes/ndx.routes');
 
-// Middleware routes
+// Use routes
 app.use('/api/auth', authRoutes);
-app.use('/api/mobile', require('./routes/mobileAuth.routes'));
+app.use('/api/mobile', mobileAuthRoutes);
+app.use('/api/ndx', ndxRoutes);
 
 const PORT = process.env.PORT || 5000;
 
