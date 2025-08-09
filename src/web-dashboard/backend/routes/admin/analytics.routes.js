@@ -1,7 +1,250 @@
 const express = require('express');
 const router = express.Router();
 const Disaster = require('../../models/Disaster');
+const Report = require('../../models/Report');
+const SosSignal = require('../../models/SosSignal');
 const { authenticateToken, requireAdmin } = require('../../middleware/auth');
+
+// GET /api/admin/analytics/reports - Reports analytics
+router.get('/reports', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { timeframe = 30 } = req.query;
+    const cutoffDate = new Date(Date.now() - timeframe * 24 * 60 * 60 * 1000);
+
+    const [reportStats, typeDistribution, priorityDistribution] = await Promise.all([
+      Report.aggregate([
+        { $match: { timestamp: { $gte: cutoffDate } } },
+        {
+          $group: {
+            _id: null,
+            total_reports: { $sum: 1 },
+            pending_reports: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            addressed_reports: { $sum: { $cond: [{ $eq: ['$status', 'addressed'] }, 1, 0] } },
+            average_affected: { $avg: '$affected_people' }
+          }
+        }
+      ]),
+      Report.aggregate([
+        { $match: { timestamp: { $gte: cutoffDate } } },
+        { $group: { _id: '$type', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      Report.aggregate([
+        { $match: { timestamp: { $gte: cutoffDate } } },
+        { $group: { _id: '$priority', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        overview: reportStats[0] || {
+          total_reports: 0,
+          pending_reports: 0,
+          addressed_reports: 0,
+          average_affected: 0
+        },
+        type_distribution: typeDistribution,
+        priority_distribution: priorityDistribution,
+        timeframe_days: timeframe
+      }
+    });
+  } catch (error) {
+    console.error('Reports analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// GET /api/admin/analytics/heatmap - Report heatmap data
+router.get('/heatmap', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { timeframe = 30, type } = req.query;
+    const cutoffDate = new Date(Date.now() - timeframe * 24 * 60 * 60 * 1000);
+
+    let query = { timestamp: { $gte: cutoffDate } };
+    if (type) {
+      query.type = type;
+    }
+
+    const heatmapData = await Report.find(query)
+      .select('location.lat location.lng type priority affected_people timestamp')
+      .lean();
+
+    // Group by location clusters
+    const clusters = {};
+    const clusterRadius = 0.01; // ~1km
+
+    heatmapData.forEach(report => {
+      if (!report.location || !report.location.lat || !report.location.lng) return;
+
+      const lat = Math.round(report.location.lat / clusterRadius) * clusterRadius;
+      const lng = Math.round(report.location.lng / clusterRadius) * clusterRadius;
+      const key = `${lat},${lng}`;
+
+      if (!clusters[key]) {
+        clusters[key] = {
+          lat: lat,
+          lng: lng,
+          reports: [],
+          intensity: 0,
+          types: {},
+          total_affected: 0
+        };
+      }
+
+      clusters[key].reports.push(report);
+      clusters[key].intensity += 1;
+      clusters[key].total_affected += report.affected_people || 0;
+      clusters[key].types[report.type] = (clusters[key].types[report.type] || 0) + 1;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        clusters: Object.values(clusters),
+        total_reports: heatmapData.length,
+        timeframe_days: timeframe
+      }
+    });
+  } catch (error) {
+    console.error('Heatmap error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// GET /api/admin/analytics/dashboard - Dashboard overview
+router.get('/dashboard', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const now = new Date();
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [disasters, reports, sosSignals] = await Promise.all([
+      Disaster.aggregate([
+        {
+          $facet: {
+            active: [
+              { $match: { status: 'active' } },
+              { $count: 'count' }
+            ],
+            recent: [
+              { $match: { createdAt: { $gte: last24h } } },
+              { $count: 'count' }
+            ],
+            total: [
+              { $count: 'count' }
+            ]
+          }
+        }
+      ]),
+      Report.aggregate([
+        {
+          $facet: {
+            pending: [
+              { $match: { status: 'pending' } },
+              { $count: 'count' }
+            ],
+            recent: [
+              { $match: { timestamp: { $gte: last24h } } },
+              { $count: 'count' }
+            ]
+          }
+        }
+      ]),
+      SosSignal.aggregate([
+        {
+          $facet: {
+            active: [
+              { $match: { status: { $in: ['pending', 'acknowledged', 'responding'] } } },
+              { $count: 'count' }
+            ],
+            recent: [
+              { $match: { created_at: { $gte: last24h } } },
+              { $count: 'count' }
+            ]
+          }
+        }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        disasters: {
+          active: disasters[0].active[0]?.count || 0,
+          recent_24h: disasters[0].recent[0]?.count || 0,
+          total: disasters[0].total[0]?.count || 0
+        },
+        reports: {
+          pending: reports[0].pending[0]?.count || 0,
+          recent_24h: reports[0].recent[0]?.count || 0
+        },
+        sos_signals: {
+          active: sosSignals[0].active[0]?.count || 0,
+          recent_24h: sosSignals[0].recent[0]?.count || 0
+        },
+        last_updated: now
+      }
+    });
+  } catch (error) {
+    console.error('Dashboard analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// GET /api/admin/analytics/predictions - Prediction models
+router.get('/predictions', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    // Mock prediction data - in real implementation this would use ML models
+    const predictions = {
+      disaster_likelihood: {
+        next_7_days: {
+          flood: { probability: 0.15, confidence: 0.7 },
+          landslide: { probability: 0.08, confidence: 0.6 },
+          cyclone: { probability: 0.05, confidence: 0.8 }
+        },
+        next_30_days: {
+          flood: { probability: 0.35, confidence: 0.6 },
+          landslide: { probability: 0.20, confidence: 0.5 },
+          cyclone: { probability: 0.15, confidence: 0.7 }
+        }
+      },
+      resource_demand: {
+        medical_supplies: { predicted_need: 850, confidence: 0.75 },
+        food: { predicted_need: 2500, confidence: 0.80 },
+        water: { predicted_need: 5000, confidence: 0.85 }
+      },
+      high_risk_areas: [
+        { area: 'Colombo District', risk_score: 0.8, primary_threat: 'flood' },
+        { area: 'Kandy District', risk_score: 0.6, primary_threat: 'landslide' },
+        { area: 'Galle District', risk_score: 0.5, primary_threat: 'cyclone' }
+      ]
+    };
+
+    res.json({
+      success: true,
+      data: predictions,
+      generated_at: new Date(),
+      note: 'Prediction models running in mock mode'
+    });
+  } catch (error) {
+    console.error('Predictions error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
 
 // GET /api/admin/analytics/statistics - Dashboard statistics
 router.get('/statistics', authenticateToken, requireAdmin, async (req, res) => {

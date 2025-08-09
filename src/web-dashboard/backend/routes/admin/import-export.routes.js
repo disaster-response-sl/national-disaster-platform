@@ -133,7 +133,6 @@ router.get('/export', authenticateToken, requireAdmin, async (req, res) => {
 
     const disasters = await Disaster.find(query)
       .select(selectFields)
-      .populate('created_by updated_by', 'name role')
       .sort({ createdAt: -1 });
 
     if (format === 'csv') {

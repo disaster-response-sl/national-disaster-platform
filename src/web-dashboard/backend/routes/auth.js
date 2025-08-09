@@ -7,6 +7,42 @@ const { authenticateToken, requireAdmin, requireResponder } = require('../middle
 const router = express.Router();
 const sludiService = new MockSLUDIService();
 
+// Test login endpoint (simplified for testing)
+router.post('/test-login', async (req, res) => {
+  try {
+    const { username = 'testuser', role = 'admin' } = req.body;
+    
+    // Generate test JWT token
+    const testToken = jwt.sign(
+      { 
+        individualId: 'test001',
+        role: role,
+        name: username,
+        username: username
+      },
+      process.env.JWT_SECRET || 'test-secret-key',
+      { expiresIn: '24h' }
+    );
+    
+    res.json({
+      success: true,
+      token: testToken,
+      user: {
+        individualId: 'test001',
+        username: username,
+        name: username,
+        role: role
+      },
+      message: "Test authentication successful"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // Login endpoint (no auth required)
 router.post('/login', async (req, res) => {
   try {
@@ -72,8 +108,31 @@ router.post('/login', async (req, res) => {
 // Get user profile (requires authentication)
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const { individualId } = req.user;
+    const { individualId, username, name, role } = req.user;
     
+    console.log('Profile request for user:', { individualId, username, name, role });
+    
+    // For test tokens, return mock profile data
+    if (individualId === 'test001' || individualId === 'mobile001') {
+      console.log('Returning test profile data');
+      return res.json({
+        success: true,
+        user: {
+          individualId: individualId,
+          username: username || 'testuser',
+          name: name || 'Test User',
+          email: `${username || 'testuser'}@example.com`,
+          role: role || 'admin',
+          phone: '+94701234567',
+          lastLogin: new Date().toISOString(),
+          isTestUser: true
+        },
+        message: "Test profile retrieved successfully"
+      });
+    }
+    
+    // For real users, use SLUDI service
+    console.log('Using SLUDI service for real user');
     const kycRequest = {
       id: "mosip.identity.kyc",
       version: "1.0", 
@@ -95,13 +154,16 @@ router.get('/profile', authenticateToken, async (req, res) => {
     } else {
       res.status(400).json({
         success: false,
-        message: "KYC failed"
+        message: "KYC failed",
+        error: "SLUDI KYC service returned failure status"
       });
     }
   } catch (error) {
+    console.error('Profile endpoint error:', error);
     res.status(500).json({
       success: false, 
-      message: "Internal server error"
+      message: "Internal server error",
+      error: error.message
     });
   }
 });

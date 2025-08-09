@@ -3,6 +3,12 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
+import ResourceManagement from './components/ResourceManagement';
+import SosManagement from './components/SosManagement';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import RealTimeMap from './components/RealTimeMap';
+import AdminSettings from './components/AdminSettings';
+import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -16,7 +22,59 @@ function App() {
               path="/dashboard" 
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/resources" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ResourceManagement />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/sos" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SosManagement />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/analytics" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AnalyticsDashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/map" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RealTimeMap />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AdminSettings />
+                  </Layout>
                 </ProtectedRoute>
               } 
             />

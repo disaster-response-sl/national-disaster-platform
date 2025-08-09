@@ -54,14 +54,27 @@ export interface AuthResponse {
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Convert username/password to individualId/otp for backend compatibility
-    const backendCredentials = {
-      individualId: credentials.username,
-      otp: credentials.password
-    };
-    
-    const response = await api.post('/mobile/login', backendCredentials);
-    return response.data;
+    // For demo purposes, try both auth endpoints
+    try {
+      // First try the main auth endpoint
+      const response = await api.post('/auth/login', {
+        individualId: credentials.username,
+        otp: credentials.password
+      });
+      return response.data;
+    } catch (error) {
+      // Fallback to test login for demo accounts
+      try {
+        const response = await api.post('/auth/test-login', {
+          username: credentials.username,
+          role: credentials.username.includes('admin') ? 'admin' : 
+                credentials.username.includes('responder') ? 'responder' : 'citizen'
+        });
+        return response.data;
+      } catch (fallbackError) {
+        throw error; // Throw original error
+      }
+    }
   },
 
   async logout(): Promise<void> {

@@ -58,9 +58,12 @@ const GeographicOverview: React.FC<GeographicOverviewProps> = ({ disasters, isLo
     
     useEffect(() => {
       if (disasters.length > 0) {
-        const bounds = disasters.map(disaster => [disaster.location.lat, disaster.location.lng] as [number, number]);
+        const validDisasters = disasters.filter(disaster => disaster.location && disaster.location.lat && disaster.location.lng);
+        const bounds = validDisasters.map(disaster => [disaster.location.lat, disaster.location.lng] as [number, number]);
         if (bounds.length > 0) {
           map.fitBounds(bounds, { padding: [20, 20] });
+        } else {
+          map.fitBounds(SRI_LANKA_BOUNDS);
         }
       } else {
         map.fitBounds(SRI_LANKA_BOUNDS);
@@ -109,7 +112,9 @@ const GeographicOverview: React.FC<GeographicOverviewProps> = ({ disasters, isLo
           <FitBounds />
           
           {/* Disaster Markers */}
-          {disasters.map((disaster) => (
+          {disasters
+            .filter(disaster => disaster.location && disaster.location.lat && disaster.location.lng)
+            .map((disaster) => (
             <CircleMarker
               key={disaster._id}
               center={[disaster.location.lat, disaster.location.lng]}

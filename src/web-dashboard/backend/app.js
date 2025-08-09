@@ -41,6 +41,7 @@ app.use('/api/ndx', ndxRoutes);
 
 // Use admin routes
 app.use('/api/admin/sos', adminSosRoutes);
+app.use('/api/admin', adminSosRoutes); // Mount for emergency-broadcast route
 app.use('/api/admin/disasters', adminDisastersRoutes);            // Main CRUD
 app.use('/api/admin/analytics', adminAnalyticsRoutes);            // Statistics, Timeline, etc.
 app.use('/api/admin/zones', adminZonesRoutes);                    // Avoided conflict by changing path

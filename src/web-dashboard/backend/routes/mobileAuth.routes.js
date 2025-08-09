@@ -38,6 +38,84 @@ const router = express.Router();
 const sludiService = new MockSLUDIService();
 const { authenticateToken } = require('../middleware/auth');
 
+// Public test endpoints (no auth required)
+router.get('/emergency-contacts', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: [
+        { name: 'Emergency Services', number: '112', type: 'emergency' },
+        { name: 'Police', number: '119', type: 'police' },
+        { name: 'Fire Department', number: '110', type: 'fire' },
+        { name: 'Ambulance', number: '1990', type: 'medical' },
+        { name: 'Disaster Management', number: '117', type: 'disaster' }
+      ]
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/safe-zones', async (req, res) => {
+  try {
+    const { lat, lng, radius = 10 } = req.query;
+    res.json({
+      success: true,
+      data: [
+        {
+          id: 'sz001',
+          name: 'Colombo Municipal School',
+          location: { lat: 6.9270, lng: 79.8612, address: 'Colombo 01' },
+          capacity: 500,
+          available: 350,
+          facilities: ['shelter', 'water', 'medical', 'food']
+        },
+        {
+          id: 'sz002', 
+          name: 'Kandy Community Center',
+          location: { lat: 7.2906, lng: 80.6337, address: 'Kandy' },
+          capacity: 300,
+          available: 280,
+          facilities: ['shelter', 'water', 'food']
+        }
+      ]
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/test-login', async (req, res) => {
+  try {
+    const { username = 'testmobile', role = 'citizen' } = req.body;
+    
+    const testToken = jwt.sign(
+      { 
+        individualId: 'mobile001',
+        role: role,
+        name: username,
+        username: username
+      },
+      process.env.JWT_SECRET || 'test-secret-key',
+      { expiresIn: '24h' }
+    );
+    
+    res.json({
+      success: true,
+      token: testToken,
+      user: {
+        individualId: 'mobile001',
+        username: username,
+        name: username,
+        role: role
+      },
+      message: "Mobile test authentication successful"
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Utility function to validate NIC (simplified)
 const validateNIC = (nic) => /^[a-zA-Z0-9]{6,20}$/.test(nic);
 
@@ -118,39 +196,62 @@ router.post('/login', async (req, res) => {
   // POST /api/mobile/sos
   router.post('/sos', authenticateToken, async (req, res) => {
   try {
-    const { location, message, priority } = req.body;
+    const { location, message, description, priority, type } = req.body;
     const userId = req.user._id || req.user.user_id || req.user.individualId;
     
-    console.log('SOS request received:', { location, message, priority, userId });
+    console.log('SOS request received:', { location, message, description, priority, type, userId });
 
-    if (!location || !message) {
+    if (!location) {
       return res.status(400).json({
         success: false,
-        message: "Location and message are required"
+        message: "Location is required",
+        expected_format: "{ lat: number, lng: number, address?: string }"
       });
     }
+
+    if (!location.lat || !location.lng) {
+      return res.status(400).json({
+        success: false,
+        message: "Location must include lat and lng coordinates",
+        received_location: location
+      });
+    }
+
+    // Use either message or description field
+    const sosMessage = message || description || 'Emergency situation';
 
     const sos = new SosSignal({
       user_id: userId,
       location,
-      message,
-      priority: priority || 'medium'
+      message: sosMessage,
+      priority: priority || 'medium',
+      emergency_type: type || 'other'
     });
 
     console.log('Saving SOS signal:', sos);
     await sos.save();
     console.log('SOS signal saved successfully to sos_signals collection');
 
-    res.json({
+    res.status(201).json({
       success: true,
-      message: "SOS signal sent",
-      data: sos
+      message: "SOS signal sent successfully",
+      data: {
+        _id: sos._id,
+        user_id: sos.user_id,
+        location: sos.location,
+        message: sos.message,
+        priority: sos.priority,
+        emergency_type: sos.emergency_type,
+        status: sos.status,
+        created_at: sos.created_at
+      }
     });
   } catch (error) {
     console.error('[SOS ERROR]', error);
     res.status(500).json({
       success: false,
-      message: "Server error sending SOS"
+      message: "Server error sending SOS",
+      error_details: error.message
     });
   }
 });
@@ -329,29 +430,59 @@ router.get('/test', (req, res) => {
 // POST /api/mobile/reports - Submit a new report
 router.post('/reports', authenticateToken, async (req, res) => {
   try {
-    const { type, description, disaster_id, image_url, location } = req.body;
+    const { title, type, description, disaster_id, image_url, location, severity } = req.body;
     const userId = req.user._id || req.user.user_id || req.user.individualId;
+    
+    console.log('Report submission data:', { title, type, description, location, userId });
     
     if (!type || !description) {
       return res.status(400).json({
         success: false,
-        message: "Type and description are required"
+        message: "Type and description are required",
+        received_fields: Object.keys(req.body)
       });
     }
 
-    const report = new Report({
+    // Validate location if provided
+    if (location && (!location.lat || !location.lng)) {
+      return res.status(400).json({
+        success: false,
+        message: "Location must include lat and lng coordinates",
+        received_location: location
+      });
+    }
+
+    // Map severity to priority if provided
+    const priority = severity || 'medium';
+
+    const reportData = {
       user_id: userId,
       disaster_id: disaster_id || null,
       type,
       description,
       image_url: image_url || null,
-      location: location || null,
-      status: 'pending'
-    });
+      status: 'pending',
+      priority
+    };
 
+    // Only add location if it's valid
+    if (location && location.lat && location.lng) {
+      reportData.location = {
+        lat: location.lat,
+        lng: location.lng,
+        address: location.address || '',
+        city: location.city || '',
+        state: location.state || '',
+        country: 'Sri Lanka'
+      };
+    }
+
+    const report = new Report(reportData);
     await report.save();
 
-    res.json({
+    console.log('Report saved successfully:', report._id);
+
+    res.status(201).json({
       success: true,
       message: "Report submitted successfully",
       data: report
@@ -360,7 +491,9 @@ router.post('/reports', authenticateToken, async (req, res) => {
     console.error('[REPORT SUBMISSION ERROR]', error);
     res.status(500).json({
       success: false,
-      message: "Error submitting report"
+      message: "Error submitting report",
+      error: error.message,
+      validation_errors: error.errors ? Object.keys(error.errors) : undefined
     });
   }
 });
@@ -368,32 +501,39 @@ router.post('/reports', authenticateToken, async (req, res) => {
 // POST /api/mobile/chat - Submit a chat message
 router.post('/chat', authenticateToken, async (req, res) => {
   try {
-    const { query } = req.body;
+    const { query, message, location } = req.body;
     const userId = req.user._id || req.user.user_id || req.user.individualId;
     
-    if (!query) {
+    // Accept either 'query' or 'message' field for backwards compatibility
+    const chatMessage = query || message;
+    
+    if (!chatMessage) {
       return res.status(400).json({
         success: false,
-        message: "Query is required"
+        message: "Query or message is required",
+        received_fields: Object.keys(req.body)
       });
     }
+
+    console.log('Chat message received:', { userId, message: chatMessage, location });
 
     // Mock response - in real app, this would be AI/chatbot response
     const response = "Thank you for your message. Our support team will get back to you shortly.";
 
     const chatLog = new ChatLog({
       user_id: userId,
-      query,
-      response
+      query: chatMessage,
+      response,
+      location: location || null
     });
 
     await chatLog.save();
 
-    res.json({
+    res.status(201).json({
       success: true,
-      message: "Chat message sent",
+      message: "Chat message sent successfully",
       data: {
-        query,
+        query: chatMessage,
         response,
         timestamp: chatLog.timestamp
       }

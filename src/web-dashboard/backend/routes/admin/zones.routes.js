@@ -3,6 +3,246 @@ const router = express.Router();
 const Disaster = require('../../models/Disaster');
 const { authenticateToken, requireAdmin } = require('../../middleware/auth');
 
+// Safe Zones Management
+const safeZones = []; // In-memory storage for demo - use database in production
+
+// GET /api/admin/zones/safe-zones - Get all safe zones
+router.get('/safe-zones', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { status, capacity_min } = req.query;
+    
+    let filteredZones = [...safeZones];
+    
+    if (status) {
+      filteredZones = filteredZones.filter(zone => zone.status === status);
+    }
+    
+    if (capacity_min) {
+      filteredZones = filteredZones.filter(zone => zone.capacity >= parseInt(capacity_min));
+    }
+
+    // Add some default safe zones if empty
+    if (safeZones.length === 0) {
+      const defaultZones = [
+        {
+          id: 'sz001',
+          name: 'Colombo Community Center',
+          location: {
+            lat: 6.9271,
+            lng: 79.8612,
+            address: 'Colombo Community Center, Colombo 01'
+          },
+          capacity: 500,
+          current_occupancy: 0,
+          facilities: ['shelter', 'water', 'food', 'medical'],
+          status: 'active',
+          contact: {
+            phone: '+94112345678',
+            email: 'colombo.center@safezones.lk'
+          },
+          created_at: new Date()
+        },
+        {
+          id: 'sz002',
+          name: 'Kandy Sports Complex',
+          location: {
+            lat: 7.2906,
+            lng: 80.6337,
+            address: 'Kandy Sports Complex, Kandy'
+          },
+          capacity: 300,
+          current_occupancy: 45,
+          facilities: ['shelter', 'water', 'medical'],
+          status: 'active',
+          contact: {
+            phone: '+94812345678',
+            email: 'kandy.complex@safezones.lk'
+          },
+          created_at: new Date()
+        }
+      ];
+      safeZones.push(...defaultZones);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        safe_zones: filteredZones,
+        total: filteredZones.length,
+        summary: {
+          active: filteredZones.filter(z => z.status === 'active').length,
+          total_capacity: filteredZones.reduce((sum, z) => sum + z.capacity, 0),
+          total_occupancy: filteredZones.reduce((sum, z) => sum + (z.current_occupancy || 0), 0)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get safe zones error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// POST /api/admin/zones/safe-zones - Create new safe zone
+router.post('/safe-zones', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { name, location, capacity, facilities, status, contact } = req.body;
+
+    if (!name || !location || !capacity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, location, and capacity are required'
+      });
+    }
+
+    if (!location.lat || !location.lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'Location must include latitude and longitude'
+      });
+    }
+
+    const newSafeZone = {
+      id: `sz${String(safeZones.length + 1).padStart(3, '0')}`,
+      name,
+      location: {
+        lat: parseFloat(location.lat),
+        lng: parseFloat(location.lng),
+        address: location.address || `${location.lat}, ${location.lng}`
+      },
+      capacity: parseInt(capacity),
+      current_occupancy: 0,
+      facilities: facilities || ['shelter'],
+      status: status || 'active',
+      contact: contact || {},
+      created_at: new Date(),
+      created_by: req.user._id || req.user.individualId
+    };
+
+    safeZones.push(newSafeZone);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        safe_zone: newSafeZone,
+        total_zones: safeZones.length
+      },
+      message: 'Safe zone created successfully'
+    });
+  } catch (error) {
+    console.error('Create safe zone error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// GET /api/admin/zones/safe-zones/:id - Get specific safe zone
+router.get('/safe-zones/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const safeZone = safeZones.find(zone => zone.id === req.params.id);
+    
+    if (!safeZone) {
+      return res.status(404).json({
+        success: false,
+        message: 'Safe zone not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        safe_zone: safeZone,
+        utilization_rate: safeZone.capacity > 0 ? 
+          ((safeZone.current_occupancy || 0) / safeZone.capacity * 100).toFixed(1) : 0
+      }
+    });
+  } catch (error) {
+    console.error('Get safe zone error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// PUT /api/admin/zones/safe-zones/:id - Update safe zone
+router.put('/safe-zones/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const zoneIndex = safeZones.findIndex(zone => zone.id === req.params.id);
+    
+    if (zoneIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Safe zone not found'
+      });
+    }
+
+    const updates = req.body;
+    const currentZone = safeZones[zoneIndex];
+
+    // Update only provided fields
+    Object.keys(updates).forEach(key => {
+      if (key !== 'id' && key !== 'created_at') {
+        currentZone[key] = updates[key];
+      }
+    });
+
+    currentZone.updated_at = new Date();
+    currentZone.updated_by = req.user._id || req.user.individualId;
+
+    res.json({
+      success: true,
+      data: {
+        safe_zone: currentZone
+      },
+      message: 'Safe zone updated successfully'
+    });
+  } catch (error) {
+    console.error('Update safe zone error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// DELETE /api/admin/zones/safe-zones/:id - Delete safe zone
+router.delete('/safe-zones/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const zoneIndex = safeZones.findIndex(zone => zone.id === req.params.id);
+    
+    if (zoneIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Safe zone not found'
+      });
+    }
+
+    const removedZone = safeZones.splice(zoneIndex, 1)[0];
+
+    res.json({
+      success: true,
+      data: {
+        removed_zone: removedZone,
+        remaining_zones: safeZones.length
+      },
+      message: 'Safe zone deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete safe zone error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Existing disaster zones routes below...
+
 // POST /api/admin/disasters/:id/zones - Add zone to disaster
 router.post('/:id/zones', authenticateToken, requireAdmin, async (req, res) => {
   try {

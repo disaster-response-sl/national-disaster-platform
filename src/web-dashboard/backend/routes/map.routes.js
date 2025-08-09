@@ -2,6 +2,272 @@ const express = require('express');
 const router = express.Router();
 const Report = require('../models/Report');
 const Disaster = require('../models/Disaster');
+const SosSignal = require('../models/SosSignal');
+const Resource = require('../models/Resource');
+
+// Get all SOS signals with geographic data for map visualization
+router.get('/sos', async (req, res) => {
+  try {
+    const { 
+      status, 
+      priority, 
+      startDate, 
+      endDate,
+      bounds, // { north, south, east, west }
+      limit = 1000 
+    } = req.query;
+
+    let query = {};
+
+    // Filter by status
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter by priority
+    if (priority) {
+      query.priority = priority;
+    }
+
+    // Filter by date range
+    if (startDate || endDate) {
+      query.created_at = {};
+      if (startDate) query.created_at.$gte = new Date(startDate);
+      if (endDate) query.created_at.$lte = new Date(endDate);
+    }
+
+    // Filter by geographic bounds
+    if (bounds) {
+      const [south, west, north, east] = bounds.split(',').map(parseFloat);
+      query['location.lat'] = { $gte: south, $lte: north };
+      query['location.lng'] = { $gte: west, $lte: east };
+    }
+
+    const sosSignals = await SosSignal.find(query)
+      .select('location status priority message created_at user_info')
+      .limit(parseInt(limit))
+      .sort({ created_at: -1 });
+
+    res.json({
+      success: true,
+      data: sosSignals,
+      count: sosSignals.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching SOS signals for map:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching SOS signals for map visualization',
+      error: error.message
+    });
+  }
+});
+
+// Get safe zones for map visualization
+router.get('/safe-zones', async (req, res) => {
+  try {
+    const { 
+      status, 
+      capacity_min,
+      bounds
+    } = req.query;
+
+    // Mock safe zones data - in production, you'd fetch from database
+    let safeZones = [
+      {
+        id: 'sz001',
+        name: 'Colombo Community Center',
+        location: {
+          lat: 6.9271,
+          lng: 79.8612,
+          address: 'Colombo Community Center, Colombo 01'
+        },
+        capacity: 500,
+        current_occupancy: 45,
+        status: 'active',
+        facilities: ['shelter', 'water', 'food', 'medical'],
+        contact: '+94112345678'
+      },
+      {
+        id: 'sz002',
+        name: 'Kandy Sports Complex',
+        location: {
+          lat: 7.2906,
+          lng: 80.6337,
+          address: 'Kandy Sports Complex, Kandy'
+        },
+        capacity: 300,
+        current_occupancy: 120,
+        status: 'active',
+        facilities: ['shelter', 'water', 'medical'],
+        contact: '+94812345678'
+      },
+      {
+        id: 'sz003',
+        name: 'Galle Emergency Center',
+        location: {
+          lat: 6.0535,
+          lng: 80.2210,
+          address: 'Galle Emergency Center, Galle'
+        },
+        capacity: 200,
+        current_occupancy: 0,
+        status: 'maintenance',
+        facilities: ['shelter', 'water'],
+        contact: '+94912345678'
+      },
+      {
+        id: 'sz004',
+        name: 'Jaffna Relief Station',
+        location: {
+          lat: 9.6615,
+          lng: 80.0255,
+          address: 'Jaffna Relief Station, Jaffna'
+        },
+        capacity: 400,
+        current_occupancy: 30,
+        status: 'active',
+        facilities: ['shelter', 'water', 'food'],
+        contact: '+94212345678'
+      }
+    ];
+
+    // Apply filters
+    if (status) {
+      safeZones = safeZones.filter(zone => zone.status === status);
+    }
+
+    if (capacity_min) {
+      safeZones = safeZones.filter(zone => zone.capacity >= parseInt(capacity_min));
+    }
+
+    if (bounds) {
+      const [south, west, north, east] = bounds.split(',').map(parseFloat);
+      safeZones = safeZones.filter(zone => 
+        zone.location.lat >= south && zone.location.lat <= north &&
+        zone.location.lng >= west && zone.location.lng <= east
+      );
+    }
+
+    res.json({
+      success: true,
+      data: safeZones,
+      count: safeZones.length,
+      summary: {
+        total_capacity: safeZones.reduce((sum, zone) => sum + zone.capacity, 0),
+        total_occupancy: safeZones.reduce((sum, zone) => sum + zone.current_occupancy, 0),
+        available_spaces: safeZones.reduce((sum, zone) => sum + (zone.capacity - zone.current_occupancy), 0)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching safe zones for map:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching safe zones for map visualization',
+      error: error.message
+    });
+  }
+});
+
+// Get resources with geographic data for map visualization
+router.get('/resources', async (req, res) => {
+  try {
+    const { 
+      type, 
+      status, 
+      availability,
+      bounds,
+      limit = 1000 
+    } = req.query;
+
+    let query = {};
+
+    // Filter by resource type
+    if (type) {
+      query.type = type;
+    }
+
+    // Filter by status
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter by availability
+    if (availability) {
+      if (availability === 'available') {
+        query.quantity = { $gt: 0 };
+      } else if (availability === 'depleted') {
+        query.quantity = 0;
+      }
+    }
+
+    // Filter by geographic bounds
+    if (bounds) {
+      const [south, west, north, east] = bounds.split(',').map(parseFloat);
+      query['location.lat'] = { $gte: south, $lte: north };
+      query['location.lng'] = { $gte: west, $lte: east };
+    }
+
+    const resources = await Resource.find(query)
+      .select('name type quantity location status supplier priority expiry_date created_at')
+      .limit(parseInt(limit))
+      .sort({ priority: -1, created_at: -1 });
+
+    // Group resources by location for better map visualization
+    const locationGroups = {};
+    resources.forEach(resource => {
+      if (resource.location && resource.location.lat && resource.location.lng) {
+        const key = `${resource.location.lat.toFixed(4)},${resource.location.lng.toFixed(4)}`;
+        if (!locationGroups[key]) {
+          locationGroups[key] = {
+            location: resource.location,
+            resources: [],
+            total_items: 0,
+            types: new Set(),
+            priorities: new Set()
+          };
+        }
+        locationGroups[key].resources.push(resource);
+        locationGroups[key].total_items += resource.quantity || 0;
+        locationGroups[key].types.add(resource.type);
+        locationGroups[key].priorities.add(resource.priority);
+      }
+    });
+
+    // Convert sets to arrays for JSON response
+    const locationData = Object.values(locationGroups).map(group => ({
+      ...group,
+      types: Array.from(group.types),
+      priorities: Array.from(group.priorities),
+      resource_count: group.resources.length
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        individual_resources: resources,
+        location_groups: locationData
+      },
+      count: resources.length,
+      summary: {
+        total_resources: resources.length,
+        total_quantity: resources.reduce((sum, r) => sum + (r.quantity || 0), 0),
+        locations: locationData.length,
+        available_items: resources.filter(r => r.quantity > 0).length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching resources for map:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching resources for map visualization',
+      error: error.message
+    });
+  }
+});
 
 // Get all reports with geographic data for map visualization
 router.get('/reports', async (req, res) => {

@@ -9,6 +9,61 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(requireAdmin);
 
+// GET /api/admin/sos - List all SOS signals with filtering
+router.get('/', async (req, res) => {
+  try {
+    const {
+      status = 'all',
+      priority = 'all',
+      limit = 20,
+      page = 1,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    let query = {};
+    
+    if (status !== 'all') {
+      query.status = status;
+    }
+    
+    if (priority !== 'all') {
+      query.priority = priority;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sortConfig = {};
+    sortConfig[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const sosSignals = await SosSignal.find(query)
+      .sort(sortConfig)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    const totalCount = await SosSignal.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: sosSignals,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        totalCount,
+        limit: parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('[SOS LIST ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching SOS signals",
+      error: error.message
+    });
+  }
+});
+
 // Utility function to calculate distance between two coordinates (in km)
 function calculateDistance(lat1, lng1, lat2, lng2) {
   const R = 6371; // Earth's radius in kilometers
@@ -625,6 +680,66 @@ router.get('/analytics', async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error generating SOS analytics",
+      error: error.message
+    });
+  }
+});
+
+// POST /api/admin/emergency-broadcast - Broadcast emergency message
+router.post('/emergency-broadcast', async (req, res) => {
+  try {
+    const { message, priority = 'medium', target_zones = [], disaster_id } = req.body;
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message content is required'
+      });
+    }
+
+    if (message.length > 500) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message too long. Maximum 500 characters allowed'
+      });
+    }
+
+    // Create broadcast record
+    const broadcast = {
+      id: new mongoose.Types.ObjectId(),
+      message: message.trim(),
+      priority,
+      target_zones,
+      disaster_id,
+      broadcast_time: new Date(),
+      broadcast_by: req.user.individualId || req.user._id,
+      status: 'sent'
+    };
+
+    // In a real implementation, this would:
+    // 1. Send push notifications to mobile apps
+    // 2. Send SMS to registered phone numbers in target zones
+    // 3. Update public alert systems
+    // 4. Log the broadcast in the system
+
+    // For now, we'll simulate successful broadcast
+    console.log(`🚨 EMERGENCY BROADCAST: ${message} (Priority: ${priority})`);
+    
+    // Simulate broadcast delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    res.json({
+      success: true,
+      data: broadcast,
+      message: 'Emergency message broadcast successfully',
+      simulation_note: 'This is a simulation - in production this would send real notifications'
+    });
+
+  } catch (error) {
+    console.error('[EMERGENCY BROADCAST ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error broadcasting emergency message',
       error: error.message
     });
   }

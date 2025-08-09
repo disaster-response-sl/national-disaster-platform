@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Shield, Radio, AlertTriangle, Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { dashboardService } from '../services/dashboardService';
 
@@ -8,6 +9,7 @@ interface QuickActionsProps {
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({ onRefresh }) => {
+  const navigate = useNavigate();
   const [isCreatingAlert, setIsCreatingAlert] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -109,7 +111,10 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onRefresh }) => {
         </button>
 
         {/* View All SOS Signals */}
-        <button className="flex items-center justify-center p-4 border-2 border-dashed border-orange-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors group">
+        <button 
+          onClick={() => navigate('/sos')}
+          className="flex items-center justify-center p-4 border-2 border-dashed border-orange-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors group"
+        >
           <div className="text-center">
             <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 bg-orange-100 rounded-full group-hover:bg-orange-200">
               <Shield className="w-6 h-6 text-orange-600" />
