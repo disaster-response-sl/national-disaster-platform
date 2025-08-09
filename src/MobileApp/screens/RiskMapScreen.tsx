@@ -1,3 +1,4 @@
+// components/RiskMapScreen.js
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -11,6 +12,9 @@ import {
   RefreshControl,
   Platform,
   PermissionsAndroid,
+  StatusBar,
+  Dimensions,
+  Animated
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -18,6 +22,8 @@ import Geolocation from '@react-native-community/geolocation';
 // Leaflet via WebView
 import LeafletMap, { LeafletDisasterPoint } from '../components/LeafletMap';
 import NDXService from '../services/NDXService';
+
+const { width, height } = Dimensions.get('window');
 
 interface Disaster {
   _id: string;
@@ -38,11 +44,23 @@ interface RiskMapScreenProps {
 
 const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   const [disasters, setDisasters] = useState<Disaster[]>([]);
-  const [showAllDisasters, setShowAllDisasters] = useState(true); 
+  const [showAllDisasters, setShowAllDisasters] = useState(true);
   const [loading, setLoading] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [refreshFlag, setRefreshFlag] = useState(0);
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    // Fade in animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const requestLocationPermission = async (): Promise<boolean> => {
     try {
@@ -52,7 +70,6 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         );
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       }
-      // iOS handled by Info.plist prompt
       return true;
     } catch (err) {
       console.warn('Location permission error:', err);
@@ -60,28 +77,24 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Fetch disasters from backend
   const fetchDisasters = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       console.log('Auth token:', token ? 'Present' : 'Missing');
-      
+
       if (!token) {
         console.error('No auth token found');
         Alert.alert('Authentication Error', 'Please log in again');
         return;
       }
-      
-      // Try to get user location for NDX request
+
       let userLocationForNDX = null;
       if (userLocation) {
         userLocationForNDX = { lat: userLocation.latitude, lng: userLocation.longitude };
       } else {
-        // Fallback to Colombo coordinates
         userLocationForNDX = { lat: 6.9271, lng: 79.8612 };
       }
 
-      // First try NDX for disaster data (with consent management)
       try {
         const ndxResult = await NDXService.getDisasterInfo(userLocationForNDX);
         if (ndxResult.success && ndxResult.data) {
@@ -94,36 +107,33 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         console.log('NDX not available, falling back to direct API:', ndxError);
       }
 
-      // Fallback to direct API call
       console.log('Making API call to:', 'http://10.0.2.2:5000/api/mobile/disasters');
       const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-             console.log('API Response status:', response.status);
-       console.log('API Response data:', response.data);
-       
-       const fetchedDisasters = response.data?.data || [];
-      
+
+      console.log('API Response status:', response.status);
+      console.log('API Response data:', response.data);
+
+      const fetchedDisasters = response.data?.data || [];
+
       setDisasters(fetchedDisasters);
-      
-      // Cache the data for offline use
+
       await AsyncStorage.setItem('cachedDisasters', JSON.stringify(fetchedDisasters));
       await AsyncStorage.setItem('disastersCacheTime', new Date().toISOString());
-      
+
       setOfflineMode(false);
     } catch (error: any) {
       console.error('Error fetching disasters:', error);
       console.error('Error response:', error?.response?.data);
       console.error('Error status:', error?.response?.status);
-      
+
       if (error?.response?.status === 401) {
         Alert.alert('Authentication Error', 'Please log in again');
       } else {
         Alert.alert('Network Error', 'Failed to fetch disaster data. Please check your connection.');
       }
-      
-      // Try to load cached data
+
       await loadCachedDisasters();
     } finally {
       setLoading(false);
@@ -131,17 +141,16 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Load cached disasters for offline mode
   const loadCachedDisasters = async () => {
     try {
       const cachedData = await AsyncStorage.getItem('cachedDisasters');
       const cacheTime = await AsyncStorage.getItem('disastersCacheTime');
-      
+
       if (cachedData && cacheTime) {
         const parsedDisasters = JSON.parse(cachedData);
         const cacheAge = new Date().getTime() - new Date(cacheTime).getTime();
         const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
-        
+
         if (cacheAge < maxCacheAge) {
           setDisasters(parsedDisasters);
           setOfflineMode(true);
@@ -158,7 +167,6 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Get disaster icon based on type
   const getDisasterIcon = (type: string) => {
     switch (type) {
       case 'flood':
@@ -172,28 +180,58 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Get risk color based on severity
   const getRiskColor = (severity: string) => {
     switch (severity) {
       case 'high':
-        return '#ff4444';
+        return '#ef4444';
       case 'medium':
-        return '#ffaa00';
+        return '#f59e0b';
       case 'low':
-        return '#44ff44';
+        return '#10b981';
       default:
-        return '#666666';
+        return '#6b7280';
     }
   };
 
-  // Filter disasters based on showAllDisasters toggle
-  const filteredDisasters = showAllDisasters 
-    ? disasters 
-    : disasters.filter(disaster => disaster.status === 'active');
+  const getFilteredDisasters = () => {
+    let filtered = disasters;
 
+    if (!showAllDisasters) {
+      filtered = filtered.filter(disaster => disaster.status === 'active');
+    }
 
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(disaster => disaster.severity === selectedFilter);
+    }
 
-  
+    return filtered;
+  };
+
+  const getTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffMs = now.getTime() - time.getTime();
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHrs < 1) {
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      return `${diffMins}m ago`;
+    } else if (diffHrs < 24) {
+      return `${diffHrs}h ago`;
+    } else {
+      const diffDays = Math.floor(diffHrs / 24);
+      return `${diffDays}d ago`;
+    }
+  };
+
+  const getDisasterStats = () => {
+    const active = disasters.filter(d => d.status === 'active').length;
+    const high = disasters.filter(d => d.severity === 'high').length;
+    const medium = disasters.filter(d => d.severity === 'medium').length;
+    const low = disasters.filter(d => d.severity === 'low').length;
+
+    return { active, high, medium, low, total: disasters.length };
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -220,278 +258,556 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   }, []);
 
   const recenterMap = () => {
-    // The Leaflet map has an exposed window.fitToMarkers function
-    // We trigger it by setting a flag that the child listens to via props change
-    // The child will always attempt to fit on data updates; no-op here
     setRefreshFlag(flag => flag + 1);
   };
 
-  const [refreshFlag, setRefreshFlag] = useState(0);
+  const filteredDisasters = getFilteredDisasters();
+  const stats = getDisasterStats();
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading Risk Map...</Text>
-      </View>
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text style={styles.loadingTitle}>Loading Risk Map</Text>
+            <Text style={styles.loadingText}>Fetching disaster data and location...</Text>
+          </View>
+        </View>
+      </>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Risk Map</Text>
-        <View style={styles.controls}>
-          <View style={styles.toggleContainer}>
-            <Text style={styles.toggleLabel}>Show All Disasters</Text>
-            <Switch
-              value={showAllDisasters}
-              onValueChange={setShowAllDisasters}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={showAllDisasters ? '#007AFF' : '#f4f3f4'}
-            />
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
+      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+        {/* Header */}
+        {/* Updated Compact Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+
+          <View style={styles.headerContent}>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerIcon}>🗺️</Text>
+              <View style={styles.headerTextContainer}>
+                <Text style={styles.title}>Risk Map</Text>
+                <Text style={styles.subtitle}>Real-time monitoring</Text>
+              </View>
+            </View>
+
+            {offlineMode && (
+              <View style={styles.offlineIndicator}>
+                <Text style={styles.offlineText}>📶 Offline</Text>
+              </View>
+            )}
           </View>
-          {offlineMode && (
-            <View style={styles.offlineIndicator}>
-              <Text style={styles.offlineText}>📱 Offline</Text>
-            </View>
-          )}
         </View>
-        <Text style={styles.infoText}>
-          {showAllDisasters 
-            ? 'Showing all disasters (active and resolved)' 
-            : 'Showing only active disasters'
-          }
-        </Text>
-      </View>
 
-      {/* Map (Leaflet + OSM) */}
-      <View style={styles.mapContainer}>
-                <LeafletMap
-          // Changing key slightly forces WebView to refresh on demand
-          key={`leaflet-${refreshFlag}`}
-          points={disasters
-                         .filter(d => {
-               // Simple location check
-               const hasLocation = d.location && typeof d.location === 'object';
-               return hasLocation;
-             })
-                         .map<LeafletDisasterPoint | null>((d) => {
-               const lat = d.location?.lat;
-               const lng = d.location?.lng;
-               
-               // Simple coordinate conversion
-               const latNum = Number(lat);
-               const lngNum = Number(lng);
-               
-               if (isNaN(latNum) || isNaN(lngNum)) {
-                 return null;
-               }
-               
-               return {
-                 id: d._id,
-                 latitude: latNum,
-                 longitude: lngNum,
-                 type: d.type,
-                 severity: d.severity,
-                 description: d.description,
-                 timestamp: d.timestamp,
-               };
-             })
-            .filter((point): point is LeafletDisasterPoint => point !== null)}
-          userLocation={userLocation}
-        />
 
-        <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
-          <Text style={styles.recenterButtonText}>🎯 Recenter</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Statistics Cards */}
+        <View style={styles.statsContainer}>
+          <View style={[styles.statCard, { borderColor: '#ef4444' }]}>
+            <Text style={styles.statNumber}>{stats.high}</Text>
+            <Text style={styles.statLabel}>High Risk</Text>
+          </View>
+          <View style={[styles.statCard, { borderColor: '#f59e0b' }]}>
+            <Text style={styles.statNumber}>{stats.medium}</Text>
+            <Text style={styles.statLabel}>Medium Risk</Text>
+          </View>
+          <View style={[styles.statCard, { borderColor: '#10b981' }]}>
+            <Text style={styles.statNumber}>{stats.low}</Text>
+            <Text style={styles.statLabel}>Low Risk</Text>
+          </View>
+          <View style={[styles.statCard, { borderColor: '#3b82f6' }]}>
+            <Text style={styles.statNumber}>{stats.active}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+        </View>
 
-      {/* Disaster List */}
-      <ScrollView 
-        style={styles.disasterList}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-                 <Text style={styles.sectionTitle}>
-           {showAllDisasters ? 'All Disasters' : 'Active Disasters'} ({filteredDisasters.length})
-         </Text>
-        
-        {filteredDisasters.length > 0 ? (
-          filteredDisasters.map((disaster) => (
-            <View key={disaster._id} style={styles.disasterItem}>
-              <View style={styles.disasterHeader}>
-                <Text style={styles.disasterIcon}>{getDisasterIcon(disaster.type)}</Text>
-                <View style={styles.disasterInfo}>
-                  <Text style={styles.disasterType}>
-                    {disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1)}
-                  </Text>
-                  <Text style={styles.disasterDescription}>{disaster.description}</Text>
-                </View>
-                <View style={[styles.severityBadge, { backgroundColor: getRiskColor(disaster.severity) }]}>
-                  <Text style={styles.severityText}>{disaster.severity}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.disasterDetails}>
-                <Text style={styles.locationText}>
-                  📍 {disaster.location.lat.toFixed(4)}, {disaster.location.lng.toFixed(4)}
-                </Text>
-                <Text style={styles.timeText}>
-                  ⏰ {new Date(disaster.timestamp).toLocaleString()}
-                </Text>
-                <Text style={styles.statusText}>
-                  Status: {disaster.status}
-                </Text>
-              </View>
+        {/* Controls */}
+        <View style={styles.controlsSection}>
+          <View style={styles.controlsRow}>
+            <View style={styles.toggleContainer}>
+              <Text style={styles.toggleLabel}>Show All Disasters</Text>
+              <Switch
+                value={showAllDisasters}
+                onValueChange={setShowAllDisasters}
+                trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
+                thumbColor={showAllDisasters ? '#3b82f6' : '#f3f4f6'}
+                ios_backgroundColor="#d1d5db"
+              />
             </View>
-          ))
-        ) : (
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>No disasters found</Text>
-            <Text style={styles.noDataSubtext}>
-              {showAllDisasters ? 'No disasters in the system' : 'No active disasters'}
+          </View>
+
+          {/* Filter Buttons */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+          >
+            <TouchableOpacity
+              style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
+              onPress={() => setSelectedFilter('all')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>
+                All Levels
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedFilter === 'high' && styles.filterButtonActive, { borderColor: '#ef4444' }]}
+              onPress={() => setSelectedFilter('high')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'high' && styles.filterTextActive]}>
+                🔴 High Risk
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedFilter === 'medium' && styles.filterButtonActive, { borderColor: '#f59e0b' }]}
+              onPress={() => setSelectedFilter('medium')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'medium' && styles.filterTextActive]}>
+                🟡 Medium Risk
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterButton, selectedFilter === 'low' && styles.filterButtonActive, { borderColor: '#10b981' }]}
+              onPress={() => setSelectedFilter('low')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'low' && styles.filterTextActive]}>
+                🟢 Low Risk
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* Map Container */}
+        <View style={styles.mapContainer}>
+          <LeafletMap
+            key={`leaflet-${refreshFlag}`}
+            points={disasters
+              .filter(d => {
+                const hasLocation = d.location && typeof d.location === 'object';
+                return hasLocation;
+              })
+              .map<LeafletDisasterPoint | null>((d) => {
+                const lat = d.location?.lat;
+                const lng = d.location?.lng;
+
+                const latNum = Number(lat);
+                const lngNum = Number(lng);
+
+                if (isNaN(latNum) || isNaN(lngNum)) {
+                  return null;
+                }
+
+                return {
+                  id: d._id,
+                  latitude: latNum,
+                  longitude: lngNum,
+                  type: d.type,
+                  severity: d.severity,
+                  description: d.description,
+                  timestamp: d.timestamp,
+                };
+              })
+              .filter((point): point is LeafletDisasterPoint => point !== null)}
+            userLocation={userLocation}
+          />
+
+          {/* Map Controls */}
+          <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
+            <Text style={styles.recenterIcon}>🎯</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.refreshMapButton} onPress={fetchDisasters}>
+            <Text style={styles.refreshMapIcon}>🔄</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Disaster List */}
+        <View style={styles.listContainer}>
+          <View style={styles.listHeader}>
+            <Text style={styles.listTitle}>
+              {showAllDisasters ? 'All Disasters' : 'Active Disasters'}
             </Text>
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>{filteredDisasters.length}</Text>
+            </View>
           </View>
-        )}
-      </ScrollView>
 
-      {/* Legend */}
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Risk Levels</Text>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#ff4444' }]} />
-          <Text style={styles.legendText}>High Risk</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#ffaa00' }]} />
-          <Text style={styles.legendText}>Medium Risk</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#44ff44' }]} />
-          <Text style={styles.legendText}>Low Risk</Text>
-        </View>
-      </View>
+          <ScrollView
+            style={styles.disasterList}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#3b82f6']}
+                tintColor="#3b82f6"
+              />
+            }
+          >
+            {filteredDisasters.length > 0 ? (
+              filteredDisasters.map((disaster, index) => (
+                <View key={disaster._id} style={[styles.disasterItem, index === filteredDisasters.length - 1 && styles.lastDisasterItem]}>
+                  <View style={styles.disasterHeader}>
+                    <View style={styles.disasterLeft}>
+                      <View style={[styles.disasterIconContainer, { backgroundColor: getRiskColor(disaster.severity) }]}>
+                        <Text style={styles.disasterIcon}>{getDisasterIcon(disaster.type)}</Text>
+                      </View>
+                      <View style={styles.disasterInfo}>
+                        <Text style={styles.disasterType}>
+                          {disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1)} Alert
+                        </Text>
+                        <Text style={styles.disasterDescription} numberOfLines={2}>
+                          {disaster.description}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.disasterRight}>
+                      <View style={[styles.severityBadge, { backgroundColor: getRiskColor(disaster.severity) }]}>
+                        <Text style={styles.severityText}>{disaster.severity.toUpperCase()}</Text>
+                      </View>
+                      <Text style={styles.timeText}>{getTimeAgo(disaster.timestamp)}</Text>
+                    </View>
+                  </View>
 
-      {/* Refresh button */}
-      <TouchableOpacity style={styles.refreshButton} onPress={fetchDisasters}>
-        <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
-      </TouchableOpacity>
-    </View>
+                  <View style={styles.disasterDetails}>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailIcon}>📍</Text>
+                      <Text style={styles.locationText}>
+                        {disaster.location.lat.toFixed(4)}, {disaster.location.lng.toFixed(4)}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailIcon}>🔄</Text>
+                      <Text style={[styles.statusText, { color: disaster.status === 'active' ? '#ef4444' : '#10b981' }]}>
+                        {disaster.status.charAt(0).toUpperCase() + disaster.status.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.noDataContainer}>
+                <Text style={styles.noDataIcon}>🗺️</Text>
+                <Text style={styles.noDataText}>No disasters found</Text>
+                <Text style={styles.noDataSubtext}>
+                  {showAllDisasters ? 'No disasters match your current filters' : 'No active disasters in your area'}
+                </Text>
+                <TouchableOpacity style={styles.refreshButton} onPress={fetchDisasters}>
+                  <Text style={styles.refreshButtonText}>🔄 Refresh Data</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Animated.View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
+  },
+  loadingContent: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginTop: 16,
+    marginBottom: 8,
   },
   loadingText: {
-    marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: '#6b7280',
+    textAlign: 'center',
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#1f2937',
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  backIcon: {
+    fontSize: 20,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  headerContent: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  headerTextContainer: {
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    color: '#ffffff',
+    marginBottom: 4,
   },
-  controls: {
+  subtitle: {
+    fontSize: 16,
+    color: '#d1d5db',
+  },
+  offlineIndicator: {
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 8,
+  },
+  offlineText: {
+    fontSize: 12,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginTop: -20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderTopWidth: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  controlsSection: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  controlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
   toggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   toggleLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 10,
+    fontSize: 16,
+    color: '#1f2937',
+    marginRight: 12,
+    fontWeight: '500',
   },
-  offlineIndicator: {
-    backgroundColor: '#ff9500',
+  filterScroll: {
+    marginTop: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  mapContainer: {
+    height: 280,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recenterButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recenterIcon: {
+    fontSize: 18,
+  },
+  refreshMapButton: {
+    position: 'absolute',
+    top: 12,
+    right: 60,
+    width: 40,
+    height: 40,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  refreshMapIcon: {
+    fontSize: 18,
+  },
+  listContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  listTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  countBadge: {
+    backgroundColor: '#3b82f6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  offlineText: {
+  countText: {
     fontSize: 12,
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: 'bold',
-  },
-  mapPlaceholder: {
-    backgroundColor: '#e8f4fd',
-    padding: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#d0e7f7',
-  },
-  mapPlaceholderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 5,
-  },
-  mapPlaceholderSubtext: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  mapContainer: {
-    height: 300,
-    backgroundColor: '#e8f4fd',
-    borderBottomWidth: 1,
-    borderBottomColor: '#d0e7f7',
-  },
-  map: {
-    flex: 1,
   },
   disasterList: {
     flex: 1,
-    padding: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    maxHeight: 300,
   },
   disasterItem: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  lastDisasterItem: {
+    borderBottomWidth: 0,
   },
   disasterHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  disasterLeft: {
+    flexDirection: 'row',
+    flex: 1,
+    marginRight: 12,
+  },
+  disasterIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginRight: 12,
   },
   disasterIcon: {
-    fontSize: 24,
-    marginRight: 10,
+    fontSize: 20,
   },
   disasterInfo: {
     flex: 1,
@@ -499,136 +815,88 @@ const styles = StyleSheet.create({
   disasterType: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1f2937',
+    marginBottom: 2,
   },
   disasterDescription: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+    color: '#6b7280',
+    lineHeight: 18,
+  },
+  disasterRight: {
+    alignItems: 'flex-end',
   },
   severityBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    marginBottom: 4,
   },
   severityText: {
-    fontSize: 12,
-    color: '#fff',
+    fontSize: 10,
+    color: '#ffffff',
     fontWeight: 'bold',
-  },
-  disasterDetails: {
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 10,
-  },
-  locationText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
   },
   timeText: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
+    color: '#9ca3af',
+  },
+  disasterDetails: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    gap: 6,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailIcon: {
+    fontSize: 14,
+    marginRight: 8,
+    width: 20,
+  },
+  locationText: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontFamily: 'monospace',
   },
   statusText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontWeight: '600',
   },
   noDataContainer: {
     alignItems: 'center',
     padding: 40,
   },
+  noDataIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
   noDataText: {
     fontSize: 18,
-    color: '#666',
-    marginBottom: 5,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
   },
   noDataSubtext: {
     fontSize: 14,
-    color: '#999',
-  },
-  legend: {
-    position: 'absolute',
-    bottom: 80,
-    right: 15,
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  legendTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#333',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 3,
-  },
-  legendColor: {
-    width: 15,
-    height: 15,
-    borderRadius: 2,
-    marginRight: 5,
-  },
-  legendText: {
-    fontSize: 10,
-    color: '#666',
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
   },
   refreshButton: {
-    position: 'absolute',
-    bottom: 15,
-    left: 15,
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
   },
   refreshButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
   },
-  infoText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 10,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  recenterButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  recenterButtonText: {
-    color: '#333',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  
 });
 
 export default RiskMapScreen;
