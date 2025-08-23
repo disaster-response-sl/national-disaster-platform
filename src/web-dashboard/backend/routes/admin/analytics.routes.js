@@ -157,7 +157,10 @@ router.get('/timeline', authenticateToken, requireAdmin, async (req, res) => {
 
     // Group by date for better visualization
     const groupedTimeline = timeline.reduce((acc, disaster) => {
-      const date = disaster.createdAt.toDateString();
+      let date = 'Unknown';
+      if (disaster.createdAt && !isNaN(new Date(disaster.createdAt))) {
+        date = new Date(disaster.createdAt).toDateString();
+      }
       if (!acc[date]) {
         acc[date] = [];
       }
