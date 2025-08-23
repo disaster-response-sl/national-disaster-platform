@@ -40,14 +40,33 @@ router.post('/login', async (req, res) => {
     if (authResponse.response.authStatus) {
       // Get user data for JWT payload
       const userData = sludiService.mockUsers.find(u => u.individualId === individualId);
-      
+
+      // Try to get real MongoDB _id for admin_seed
+      let mongoId = undefined;
+      if (individualId === 'admin_seed') {
+        try {
+          const mongoose = require('mongoose');
+          const path = require('path');
+          require('dotenv').config({ path: path.join(__dirname, '../.env') });
+          const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({ individualId: String }), 'users');
+          // Only connect if not already connected
+          if (mongoose.connection.readyState === 0) {
+            await mongoose.connect(process.env.MONGO_URI);
+          }
+          const dbUser = await User.findOne({ individualId: 'admin_seed' });
+          if (dbUser) mongoId = dbUser._id.toString();
+          // Do NOT disconnect here to avoid breaking main app connection
+        } catch (e) { mongoId = undefined; }
+      }
+
       // Generate JWT token with user info
       const appToken = jwt.sign(
         { 
           individualId: individualId,
           role: userData.role,
           name: userData.name,
-          sludiToken: authResponse.response.authToken
+          sludiToken: authResponse.response.authToken,
+          _id: mongoId
         },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
@@ -59,7 +78,8 @@ router.post('/login', async (req, res) => {
         user: {
           individualId: userData.individualId,
           name: userData.name,
-          role: userData.role
+          role: userData.role,
+          _id: mongoId
         },
         message: "Authentication successful"
       });

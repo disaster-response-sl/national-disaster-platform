@@ -39,12 +39,20 @@ router.post('/import', authenticateToken, requireAdmin, async (req, res) => {
       warnings: []
     };
 
-    const userId = req.user._id || req.user.individualId;
+    const userId = req.user._id;
+
+    // Only allow import if userId is a valid ObjectId
+    const isValidObjectId = userId && typeof userId === 'string' && userId.match(/^[a-fA-F0-9]{24}$/);
+    if (!isValidObjectId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Authenticated user does not have a valid MongoDB ObjectId. Import not allowed.'
+      });
+    }
 
     for (let i = 0; i < disasters.length; i++) {
       try {
         const disasterData = disasters[i];
-        
         // Add metadata
         disasterData.created_by = userId;
         

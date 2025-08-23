@@ -25,6 +25,14 @@ class MockSLUDIService {
         phone: "0771111111",
         role: "admin",
         location: { lat: 6.9271, lng: 79.8612 }
+      },
+      {
+        individualId: "admin_seed",
+        name: "Seed Admin",
+        email: "admin_seed@example.com",
+        phone: "0772222222",
+        role: "admin",
+        location: { lat: 6.9271, lng: 79.8612 }
       }
     ];
   }
