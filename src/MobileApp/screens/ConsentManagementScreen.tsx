@@ -48,12 +48,28 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
         setProviders(providersResult.providers);
       }
 
-      // Load stored consents
-      const storedConsents = await NDXService.getStoredConsents();
-      setConsents(storedConsents);
+      // Load consents from backend and sync with local storage
+      const backendConsentsResult = await NDXService.getUserConsents();
+      if (backendConsentsResult.success && backendConsentsResult.consents) {
+        // Store all backend consents locally
+        const consentMap: Record<string, NDXConsent> = {};
+        for (const consent of backendConsentsResult.consents) {
+          consentMap[consent.consentId] = consent;
+          await NDXService.storeConsentLocally(consent);
+        }
+        setConsents(consentMap);
+      } else {
+        // Fallback to stored consents if backend fails
+        const storedConsents = await NDXService.getStoredConsents();
+        setConsents(storedConsents);
+      }
     } catch (error) {
       console.error('Error loading consent data:', error);
       Alert.alert('Connection Error', 'Unable to load consent data. Please check your connection and try again.');
+      
+      // Fallback to stored consents
+      const storedConsents = await NDXService.getStoredConsents();
+      setConsents(storedConsents);
     } finally {
       setLoading(false);
     }
@@ -77,6 +93,14 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
       const result = await NDXService.requestConsent(request);
 
       if (result.success && result.consentId) {
+        // Fetch the created consent from backend to get full details
+        const consentResult = await NDXService.getConsentStatus(result.consentId);
+        
+        if (consentResult.success && consentResult.consent) {
+          // Store the pending consent locally
+          await NDXService.storeConsentLocally(consentResult.consent);
+        }
+
         Alert.alert(
           '🔐 Consent Request',
           `Request consent for ${provider.name} to access ${dataType} data for emergency response purposes?`,
@@ -103,10 +127,21 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
       const result = await NDXService.approveConsent(consentId);
 
       if (result.success) {
-        Alert.alert('✅ Consent Approved', 'Your data sharing consent has been approved successfully.');
-        // Refresh consents
-        const storedConsents = await NDXService.getStoredConsents();
-        setConsents(storedConsents);
+        // Fetch the updated consent from backend
+        const consentResult = await NDXService.getConsentStatus(consentId);
+        
+        if (consentResult.success && consentResult.consent) {
+          // Store the consent locally
+          await NDXService.storeConsentLocally(consentResult.consent);
+          
+          Alert.alert('✅ Consent Approved', 'Your data sharing consent has been approved successfully.');
+          
+          // Refresh consents from local storage
+          const storedConsents = await NDXService.getStoredConsents();
+          setConsents(storedConsents);
+        } else {
+          Alert.alert('✅ Consent Approved', 'Your consent has been approved but could not be retrieved for local storage.');
+        }
       } else {
         Alert.alert('Approval Failed', result.message || 'Unable to approve consent. Please try again.');
       }
@@ -888,4 +923,3 @@ const styles = StyleSheet.create({
 });
 
 export default ConsentManagementScreen;
-nm

@@ -159,6 +159,21 @@ class NDXService {
     }
   }
 
+  // Get all user consents from backend
+  async getUserConsents(): Promise<{ success: boolean; consents?: NDXConsent[]; message?: string }> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await axios.get(`${this.baseURL}/consents`, { headers });
+      return response.data;
+    } catch (error: any) {
+      console.error('NDX getUserConsents error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to get user consents'
+      };
+    }
+  }
+
   // Store consent locally for offline access
   async storeConsentLocally(consent: NDXConsent): Promise<void> {
     try {
