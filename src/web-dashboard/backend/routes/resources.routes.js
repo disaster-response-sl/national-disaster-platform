@@ -828,8 +828,12 @@ router.post('/:id/complete-deployment', authenticateToken, requireResponder, asy
     deployment.actual_duration = actual_duration;
     if (notes) deployment.notes = notes;
 
-    // Free up allocated quantity
+
+    // Free up allocated quantity, but do not allow negative values
     resource.quantity.allocated -= deployment.quantity_deployed;
+    if (resource.quantity.allocated < 0) {
+      resource.quantity.allocated = 0;
+    }
 
     // Update overall status if needed
     if (resource.quantity.allocated <= 0 && resource.status === 'dispatched') {
