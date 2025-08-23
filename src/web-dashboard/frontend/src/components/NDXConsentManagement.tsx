@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ndxService } from '../services/ndxService';
-import { Shield, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Clock, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConsentRequestForm from './ConsentRequestForm';
 
@@ -19,6 +19,8 @@ interface ConsentStatus {
   dataType?: string;
   approvedAt?: string;
   message?: string;
+  exchangedData?: any[];
+  lastExchangeAt?: string;
 }
 
 const NDXConsentManagement: React.FC = () => {
@@ -278,6 +280,56 @@ const NDXConsentManagement: React.FC = () => {
         errorMessage = error.message;
       }
       
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [consentId]: false }));
+    }
+  };
+
+  const handleExchangeData = async (consentId: string) => {
+    // Validate that consent exists and is in approved state
+    const consentToExchange = consentRequests.find(c => c.consentId === consentId);
+    if (!consentToExchange) {
+      toast.error('Consent not found');
+      return;
+    }
+
+    if (consentToExchange.status !== 'APPROVED') {
+      toast.error(`Cannot exchange data with consent status: ${consentToExchange.status}`);
+      return;
+    }
+
+    setActionLoading(prev => ({ ...prev, [consentId]: true }));
+    try {
+      const response = await ndxService.exchangeData({
+        consentId,
+        dataProvider: 'disaster-management',
+        dataType: 'disasters',
+        purpose: 'exchange-test',
+        location: { lat: 6.9271, lng: 79.8612 }
+      });
+      
+      if (response.success) {
+        toast.success(`Data exchange successful! Retrieved ${response.data?.length || 0} records`);
+        
+        // Update consent with exchange info
+        setConsentRequests(prev => 
+          prev.map(consent => 
+            consent.consentId === consentId 
+              ? { 
+                  ...consent, 
+                  exchangedData: response.data,
+                  lastExchangeAt: new Date().toISOString(),
+                  message: `Data exchanged successfully - ${response.data?.length || 0} records retrieved`
+                }
+              : consent
+          )
+        );
+      } else {
+        toast.error(response.message || 'Failed to exchange data');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Error exchanging data';
       toast.error(errorMessage);
     } finally {
       setActionLoading(prev => ({ ...prev, [consentId]: false }));
@@ -624,26 +676,102 @@ const NDXConsentManagement: React.FC = () => {
                     </button>
                   )}
                   {consent.status === 'APPROVED' && (
-                    <button
-                      onClick={() => handleRevokeConsent(consent.consentId)}
-                      disabled={actionLoading[consent.consentId]}
-                      title={getActionButtonTitle(consent, 'revoke')}
-                      className="flex items-center gap-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                    >
-                      {actionLoading[consent.consentId] ? (
-                        <>
-                          <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                          Revoking...
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-3 h-3" />
-                          Revoke
-                        </>
-                      )}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleExchangeData(consent.consentId)}
+                        disabled={actionLoading[consent.consentId]}
+                        title="Exchange data using this approved consent"
+                        className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                      >
+                        {actionLoading[consent.consentId] ? (
+                          <>
+                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                            Exchanging...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowRightLeft className="w-3 h-3" />
+                            Exchange Data
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleRevokeConsent(consent.consentId)}
+                        disabled={actionLoading[consent.consentId]}
+                        title={getActionButtonTitle(consent, 'revoke')}
+                        className="flex items-center gap-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                      >
+                        {actionLoading[consent.consentId] ? (
+                          <>
+                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                            Revoking...
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-3 h-3" />
+                            Revoke
+                          </>
+                        )}
+                      </button>
+                    </>
                   )}
                 </div>
+
+                {/* Exchanged Data Display */}
+                {consent.exchangedData && consent.exchangedData.length > 0 && (
+                  <div className="mt-4 border-t border-gray-200 pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ArrowRightLeft className="w-4 h-4 text-blue-600" />
+                      <h4 className="text-sm font-semibold text-gray-800">Exchanged Data</h4>
+                      <span className="text-xs text-gray-500">
+                        ({consent.exchangedData.length} records)
+                      </span>
+                      {consent.lastExchangeAt && (
+                        <span className="text-xs text-gray-500 ml-auto">
+                          Last exchange: {new Date(consent.lastExchangeAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-3 max-h-60 overflow-y-auto">
+                      <div className="space-y-2">
+                        {consent.exchangedData.map((item: any, index: number) => (
+                          <div key={item._id || index} className="bg-white rounded border p-3 text-sm">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                item.severity === 'high' ? 'bg-red-100 text-red-800' :
+                                item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {item.severity?.toUpperCase() || 'UNKNOWN'}
+                              </span>
+                              <span className="font-medium text-gray-800 capitalize">
+                                {item.type || 'Unknown Type'}
+                              </span>
+                            </div>
+                            
+                            {item.description && (
+                              <p className="text-gray-600 mb-2">{item.description}</p>
+                            )}
+                            
+                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                              {item.location && (
+                                <span>
+                                  📍 {item.location.lat?.toFixed(4)}, {item.location.lng?.toFixed(4)}
+                                </span>
+                              )}
+                              {item.timestamp && (
+                                <span>
+                                  🕒 {new Date(item.timestamp).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
