@@ -162,7 +162,6 @@ DisasterSchema.index({ "location": "2dsphere" });
 DisasterSchema.index({ status: 1, priority_level: 1 });
 DisasterSchema.index({ type: 1, severity: 1 });
 DisasterSchema.index({ timestamp: -1 });
-DisasterSchema.index({ disaster_code: 1 }, { unique: true });
 DisasterSchema.index({ created_by: 1 });
 
 // Pre-save middleware to generate disaster code
