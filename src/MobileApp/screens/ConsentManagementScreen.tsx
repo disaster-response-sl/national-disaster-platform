@@ -888,3 +888,4 @@ const styles = StyleSheet.create({
 });
 
 export default ConsentManagementScreen;
+nm
