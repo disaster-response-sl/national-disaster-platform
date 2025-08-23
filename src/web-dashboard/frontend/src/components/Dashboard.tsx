@@ -2,14 +2,19 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Shield, Users, AlertTriangle, Activity } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      toast.error('Logout failed');
+    }
   };
 
   const getRoleColor = (role: string) => {
@@ -53,7 +58,7 @@ const Dashboard: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <div className="text-sm font-medium text-gray-900">
-                    {user?.firstName || user?.username}
+                    {user?.name || user?.individualId}
                   </div>
                   <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
                     {getRoleIcon(user?.role || '')}
@@ -93,23 +98,29 @@ const Dashboard: React.FC = () => {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Your Account</h3>
                 <div className="space-y-3 text-left">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Username:</span>
-                    <span className="font-medium">{user?.username}</span>
+                    <span className="text-gray-500">Individual ID:</span>
+                    <span className="font-medium">{user?.individualId || 'Not available'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Name:</span>
+                    <span className="font-medium">{user?.name || 'Not provided'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Email:</span>
                     <span className="font-medium">{user?.email || 'Not provided'}</span>
                   </div>
+                  {user?.phone && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Phone:</span>
+                      <span className="font-medium">{user.phone}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-500">Role:</span>
                     <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
                       {getRoleIcon(user?.role || '')}
                       {user?.role?.toUpperCase()}
                     </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">User ID:</span>
-                    <span className="font-medium text-xs">{user?.id}</span>
                   </div>
                 </div>
               </div>
