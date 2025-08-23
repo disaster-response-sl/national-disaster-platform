@@ -214,6 +214,7 @@ class MockNDXService {
         consentId: consent.consentId,
         dataProvider: consent.dataProvider,
         dataType: consent.dataType,
+        purpose: consent.purpose,
         status: consent.status,
         createdAt: consent.createdAt,
         expiresAt: consent.expiresAt
@@ -238,6 +239,30 @@ class MockNDXService {
     return {
       success: true,
       message: 'Consent revoked successfully'
+    };
+  }
+
+  // Get all consents for a user
+  async getUserConsents(individualId) {
+    const userConsents = [];
+    
+    for (const [consentId, consent] of this.dataConsents.entries()) {
+      if (consent.individualId === individualId) {
+        userConsents.push({
+          consentId: consent.consentId,
+          dataProvider: consent.dataProvider,
+          dataType: consent.dataType,
+          purpose: consent.purpose,
+          status: consent.status,
+          createdAt: consent.createdAt,
+          expiresAt: consent.expiresAt
+        });
+      }
+    }
+
+    return {
+      success: true,
+      consents: userConsents
     };
   }
 

@@ -101,6 +101,22 @@ router.get('/consent/:consentId', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/ndx/consents - Get all user consents
+router.get('/consents', authenticateToken, async (req, res) => {
+  try {
+    const { individualId } = req.user;
+
+    const result = await ndxService.getUserConsents(individualId);
+    res.json(result);
+  } catch (error) {
+    console.error('NDX user consents error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get user consents'
+    });
+  }
+});
+
 // POST /api/ndx/consent/revoke - Revoke consent
 router.post('/consent/revoke', authenticateToken, async (req, res) => {
   try {
