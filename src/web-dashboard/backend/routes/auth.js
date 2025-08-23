@@ -1,13 +1,22 @@
 // routes/auth.js
 const express = require('express');
+// TODO: When real eSignet (SLUDI) endpoints are available, replace MockSLUDIService with actual integration
 const MockSLUDIService = require('../services/mock-sludi-service');
+// Example: const RealSLUDIService = require('../services/real-sludi-service');
+
+// Config flag to switch between mock and real SLUDI/eSignet integration
+const USE_MOCK_SLUDI = process.env.USE_MOCK_SLUDI === 'true';
 const jwt = require('jsonwebtoken');
 const { authenticateToken, requireAdmin, requireResponder } = require('../middleware/auth');
 
 const router = express.Router();
-const sludiService = new MockSLUDIService();
+// Use mock or real SLUDI/eSignet service based on config
+const sludiService = USE_MOCK_SLUDI
+  ? new MockSLUDIService()
+  : null; // TODO: Replace null with new RealSLUDIService() when available
 
 // Login endpoint (no auth required)
+// TODO: Update this endpoint to use real eSignet API when available
 router.post('/login', async (req, res) => {
   try {
     const { individualId, otp } = req.body;
@@ -70,6 +79,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Get user profile (requires authentication)
+// TODO: Update this endpoint to use real eSignet KYC API when available
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const { individualId } = req.user;
@@ -107,6 +117,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 });
 
 // Admin-only route example
+// Admin-only route example (no SLUDI integration needed)
 router.get('/admin/users', authenticateToken, requireAdmin, async (req, res) => {
   res.json({
     success: true,
@@ -116,6 +127,7 @@ router.get('/admin/users', authenticateToken, requireAdmin, async (req, res) => 
 });
 
 // Responder route example  
+// TODO: If responder dashboard needs SLUDI/eSignet data, update here when integrating real API
 router.get('/responder/dashboard', authenticateToken, requireResponder, async (req, res) => {
   res.json({
     success: true,
@@ -125,8 +137,8 @@ router.get('/responder/dashboard', authenticateToken, requireResponder, async (r
 });
 
 // Logout endpoint
+// TODO: In a real implementation, you might blacklist the token or revoke it via eSignet if supported
 router.post('/logout', authenticateToken, async (req, res) => {
-  // In a real implementation, you might blacklist the token
   res.json({
     success: true,
     message: "Logged out successfully"
