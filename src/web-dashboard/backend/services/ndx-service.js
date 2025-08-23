@@ -204,12 +204,15 @@ class MockNDXService {
     if (!consent || consent.individualId !== individualId) {
       return {
         success: false,
-        error: 'CONSENT_NOT_FOUND'
+        error: 'CONSENT_NOT_FOUND',
+        message: 'Consent not found or access denied'
       };
     }
 
     return {
       success: true,
+      status: consent.status,
+      consentId: consent.consentId,
       consent: {
         consentId: consent.consentId,
         dataProvider: consent.dataProvider,

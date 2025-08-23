@@ -19,7 +19,11 @@ const sludiService = USE_MOCK_SLUDI
 // TODO: Update this endpoint to use real eSignet API when available
 router.post('/login', async (req, res) => {
   try {
+    console.log('Login attempt started for:', req.body.individualId);
     const { individualId, otp } = req.body;
+    
+    console.log('Using mock SLUDI:', USE_MOCK_SLUDI);
+    console.log('SLUDI service initialized:', !!sludiService);
     
     const authRequest = {
       id: "mosip.identity.auth",
@@ -35,7 +39,9 @@ router.post('/login', async (req, res) => {
       consentObtained: true
     };
 
+    console.log('Calling sludiService.authenticate...');
     const authResponse = await sludiService.authenticate(authRequest);
+    console.log('Auth response received:', authResponse);
     
     if (authResponse.response.authStatus) {
       // Get user data for JWT payload
@@ -71,9 +77,12 @@ router.post('/login', async (req, res) => {
       });
     }
   } catch (error) {
+    console.error('Login error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
+      error: error.message
     });
   }
 });

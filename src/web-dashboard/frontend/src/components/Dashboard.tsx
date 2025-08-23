@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Shield, Users, AlertTriangle, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
+import NDXDashboard from './NDXDashboard';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -126,9 +127,7 @@ const Dashboard: React.FC = () => {
               </div>
 
               <div className="mt-8">
-                <p className="text-sm text-gray-500">
-                  Dashboard features coming soon...
-                </p>
+                <NDXDashboard />
               </div>
             </div>
           </div>
