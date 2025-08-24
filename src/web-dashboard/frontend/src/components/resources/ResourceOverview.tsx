@@ -5,6 +5,8 @@ import { DashboardMetricsResponse } from '../../types/resource';
 import { canCreateResources, canAllocateResources } from '../../utils/permissions';
 import { Package, Users, TrendingUp, Activity, AlertCircle, Plus, Truck, BarChart3 } from 'lucide-react';
 import ResourceModal from './ResourceModal';
+import QuickAllocationModal from './QuickAllocationModal';
+import GenerateReportModal from './GenerateReportModal';
 import toast from 'react-hot-toast';
 
 const ResourceOverview: React.FC = () => {
@@ -13,6 +15,8 @@ const ResourceOverview: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
+  const [showQuickAllocationModal, setShowQuickAllocationModal] = useState(false);
+  const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
 
   const handleRefresh = () => {
     fetchMetrics();
@@ -81,14 +85,20 @@ const ResourceOverview: React.FC = () => {
           </button>
         )}
         {canAllocateResources(user) && (
-          <button className="p-4 bg-green-50 hover:bg-green-100 rounded-lg border-2 border-dashed border-green-300 transition-colors">
+          <button 
+            onClick={() => setShowQuickAllocationModal(true)}
+            className="p-4 bg-green-50 hover:bg-green-100 rounded-lg border-2 border-dashed border-green-300 transition-colors"
+          >
             <div className="text-center">
               <Truck className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-green-900">Quick Allocation</span>
             </div>
           </button>
         )}
-        <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border-2 border-dashed border-purple-300 transition-colors">
+        <button 
+          onClick={() => setShowGenerateReportModal(true)}
+          className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border-2 border-dashed border-purple-300 transition-colors"
+        >
           <div className="text-center">
             <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-2" />
             <span className="text-sm font-medium text-purple-900">Generate Report</span>
@@ -252,6 +262,19 @@ const ResourceOverview: React.FC = () => {
         onClose={() => setShowResourceModal(false)}
         onSuccess={handleRefresh}
         mode="create"
+      />
+
+      {/* Quick Allocation Modal */}
+      <QuickAllocationModal
+        isOpen={showQuickAllocationModal}
+        onClose={() => setShowQuickAllocationModal(false)}
+        onSuccess={handleRefresh}
+      />
+
+      {/* Generate Report Modal */}
+      <GenerateReportModal
+        isOpen={showGenerateReportModal}
+        onClose={() => setShowGenerateReportModal(false)}
       />
     </div>
   );
