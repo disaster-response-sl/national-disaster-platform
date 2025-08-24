@@ -72,9 +72,9 @@ const NDXDashboard: React.FC = () => {
           <div className="bg-green-50 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="font-medium text-green-900">Integration Complete</span>
+              <span className="font-medium text-green-900">System Ready</span>
             </div>
-            <p className="text-sm text-green-700 mt-1">All 5 steps implemented</p>
+            <p className="text-sm text-green-700 mt-1">All features available</p>
           </div>
           
           <div className="bg-blue-50 rounded-lg p-4">

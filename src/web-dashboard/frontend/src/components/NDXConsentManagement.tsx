@@ -660,7 +660,7 @@ const NDXConsentManagement: React.FC = () => {
       <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h3 className="text-lg font-medium text-gray-800 mb-3">Quick Disaster Information</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Get disaster information instantly using NDX shortcut (auto-creates and approves consent)
+          Get disaster information instantly for your current location
         </p>
         <button
           onClick={handleGetDisasterInfo}
@@ -723,7 +723,7 @@ const NDXConsentManagement: React.FC = () => {
       <div className="mb-8 p-4 bg-cyan-50 rounded-lg border border-cyan-200">
         <h3 className="text-lg font-medium text-gray-800 mb-3">Quick Weather Alerts</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Get weather alerts instantly using NDX shortcut (auto-creates and approves consent)
+          Get weather alerts instantly for your selected area
         </p>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
