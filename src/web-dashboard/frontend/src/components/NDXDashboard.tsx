@@ -3,14 +3,15 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { useMemo } from 'react';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
 import { authService } from '../services/authService';
-import { Layers, Database, Shield, Download, CheckCircle } from 'lucide-react';
+import { Layers, Database, Shield, Download, CheckCircle, Upload } from 'lucide-react';
 import NDXDataProviders from './NDXDataProviders';
 import NDXConsentManagement from './NDXConsentManagement';
 import NDXDataExchange from './NDXDataExchange';
+import ImportExportPage from './ImportExportPage';
 // import NDXIntegrationSummary from './NDXIntegrationSummary';
 
 const NDXDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'providers' | 'consent' | 'exchange'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'consent' | 'exchange' | 'import-export'>('providers');
 
   // Get JWT token from authService
   const token = useMemo(() => authService.getToken() || '', []);
@@ -39,6 +40,12 @@ const NDXDashboard: React.FC = () => {
       label: 'Data Exchange',
       icon: <Download className="w-5 h-5" />,
       description: 'Exchange data with approved consent'
+    },
+    {
+      id: 'import-export' as const,
+      label: 'Import & Export',
+      icon: <Upload className="w-5 h-5" />,
+      description: 'Bulk import and export disaster data'
     }
   ];
 
@@ -50,6 +57,8 @@ const NDXDashboard: React.FC = () => {
         return <NDXConsentManagement />;
       case 'exchange':
         return <NDXDataExchange />;
+      case 'import-export':
+        return <ImportExportPage onBack={() => setActiveTab('providers')} />;
       default:
         return null;
     }
