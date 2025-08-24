@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+// API base URL - matching the guide specification
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api'  // Relative URL for production (proxied)
+  : 'http://localhost:5000/api';  // Full URL for development as per guide
+
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -1,0 +1,27 @@
+/* Ensure Leaflet map container has proper height */
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Fix for Leaflet in flexbox containers */
+.leaflet-container .leaflet-control-container {
+  position: relative;
+}
+
+/* Ensure proper z-index for map controls */
+.leaflet-control-zoom {
+  z-index: 1000;
+}
+
+/* Custom marker styles */
+.custom-red-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Map loading animation */
+@keyframes mapSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
