@@ -2,8 +2,10 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Shield, Users, AlertTriangle, Activity } from 'lucide-react';
+import { canAccessResourceManagement } from '../utils/permissions';
 import toast from 'react-hot-toast';
 import NDXDashboard from './NDXDashboard';
+import ResourceManagement from './ResourceManagement';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -129,6 +131,22 @@ const Dashboard: React.FC = () => {
               <div className="mt-8">
                 <NDXDashboard />
               </div>
+
+              {/* Resource Management Section - Only for Admin/Responder */}
+              {canAccessResourceManagement(user) && (
+                <>
+                  {/* Section Divider */}
+                  <div className="mt-8 sm:mt-12 border-t border-gray-200 pt-6 sm:pt-8">
+                    <div className="text-center mb-4 sm:mb-6">
+                      <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Resource Management</h2>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                        Manage disaster response resources and deployments
+                      </p>
+                    </div>
+                    <ResourceManagement />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   login: (individualId: string, otp: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isLoading: boolean;
@@ -23,12 +24,13 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshProfile = async () => {
     try {
-      const token = authService.getToken();
-      if (!token) return;
+      const currentToken = authService.getToken();
+      if (!currentToken) return;
 
       const response = await authService.getProfile();
       if (response.success && response.user) {
@@ -37,26 +39,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userWithId = { ...response.user, individualId };
         
         setUser(userWithId);
-        authService.saveAuthData(token, userWithId);
+        setToken(currentToken);
+        authService.saveAuthData(currentToken, userWithId);
       } else {
         // If profile fetch fails, clear auth data
         authService.logout();
         setUser(null);
+        setToken(null);
       }
     } catch (error) {
       console.error('Failed to refresh profile:', error);
       authService.logout();
       setUser(null);
+      setToken(null);
     }
   };
 
   useEffect(() => {
     const initAuth = async () => {
       const savedUser = authService.getCurrentUser();
-      const token = authService.getToken();
+      const savedToken = authService.getToken();
       
-      if (savedUser && token) {
+      if (savedUser && savedToken) {
         setUser(savedUser);
+        setToken(savedToken);
         // Optionally refresh profile to ensure it's up to date
         await refreshProfile();
       }
@@ -82,9 +88,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userWithId = { ...profileResponse.user, individualId };
           authService.saveAuthData(response.token, userWithId);
           setUser(userWithId);
+          setToken(response.token);
           return true;
         } else {
           authService.logout();
+          setToken(null);
           toast.error('Failed to fetch user profile');
           return false;
         }
@@ -114,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Still clear local state even if API call fails
       authService.logout();
       setUser(null);
+      setToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -121,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     user,
+    token,
     login,
     logout,
     isLoading,
