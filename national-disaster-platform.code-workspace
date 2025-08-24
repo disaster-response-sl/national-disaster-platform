@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "name": "Web Dashboard",
+      "path": "./src/web-dashboard"
+    },
+    {
+      "name": "Mobile App", 
+      "path": "./src/MobileApp"
+    },
+    {
+      "name": "Documentation",
+      "path": "./docs"
+    }
+  ],
+  "settings": {
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "typescript.workspace.fullRefresh": true,
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true
+    }
+  }
+}
