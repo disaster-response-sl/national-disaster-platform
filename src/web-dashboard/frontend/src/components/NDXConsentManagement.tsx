@@ -27,6 +27,8 @@ const NDXConsentManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [consentRequests, setConsentRequests] = useState<ConsentStatus[]>([]);
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({});
+  const [disasterInfoLoading, setDisasterInfoLoading] = useState(false);
+  const [disasterInfoData, setDisasterInfoData] = useState<any>(null);
 
   // Validation helper functions
   const validateConsentId = (consentId: string): { isValid: boolean; error?: string } => {
@@ -336,6 +338,28 @@ const NDXConsentManagement: React.FC = () => {
     }
   };
 
+  const handleGetDisasterInfo = async () => {
+    setDisasterInfoLoading(true);
+    try {
+      const response = await ndxService.getDisasterInfo({
+        lat: 6.9271, // Default Colombo coordinates
+        lng: 79.8612
+      });
+      
+      if (response.success) {
+        setDisasterInfoData(response);
+        toast.success(`Disaster info retrieved! Found ${response.data?.length || 0} records via NDX shortcut`);
+      } else {
+        toast.error(response.message || 'Failed to get disaster information');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Error getting disaster information';
+      toast.error(errorMessage);
+    } finally {
+      setDisasterInfoLoading(false);
+    }
+  };
+
   const handleCheckStatus = async (consentId: string) => {
     // Validate consent ID before making request
     const validation = validateConsentId(consentId);
@@ -582,6 +606,69 @@ const NDXConsentManagement: React.FC = () => {
       <div className="mb-8">
         <ConsentRequestForm onSubmit={handleRequestConsent} loading={loading} />
       </div>
+
+      {/* Disaster Info Shortcut */}
+      <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <h3 className="text-lg font-medium text-gray-800 mb-3">Quick Disaster Information</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Get disaster information instantly using NDX shortcut (auto-creates and approves consent)
+        </p>
+        <button
+          onClick={handleGetDisasterInfo}
+          disabled={disasterInfoLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+        >
+          {disasterInfoLoading ? (
+            <>
+              <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin"></div>
+              Getting Disaster Info...
+            </>
+          ) : (
+            <>
+              <Shield className="w-4 h-4" />
+              Get Disaster Info
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Disaster Info Results */}
+      {disasterInfoData && (
+        <div className="mb-8 p-4 bg-green-50 rounded-lg border border-green-200">
+          <h3 className="text-lg font-medium text-gray-800 mb-3">Disaster Information Retrieved</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-gray-600"><strong>Consent ID:</strong> {disasterInfoData.consentId}</p>
+              <p className="text-sm text-gray-600"><strong>Message:</strong> {disasterInfoData.message}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600"><strong>Records Found:</strong> {disasterInfoData.data?.length || 0}</p>
+              <p className="text-sm text-gray-600"><strong>Retrieved:</strong> {new Date().toLocaleString()}</p>
+            </div>
+          </div>
+          
+          {disasterInfoData.data && disasterInfoData.data.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-700">Disaster Records:</h4>
+              <div className="max-h-40 overflow-y-auto space-y-2">
+                {disasterInfoData.data.map((disaster: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      disaster.severity === 'high' ? 'bg-red-100 text-red-700' :
+                      disaster.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {disaster.severity?.toUpperCase() || 'N/A'}
+                    </span>
+                    <span className="text-sm font-medium">{disaster.type || 'Unknown'}</span>
+                    <span className="text-sm text-gray-600">at {disaster.location?.lat?.toFixed(4)}, {disaster.location?.lng?.toFixed(4)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Consent Requests List */}
       <div>
