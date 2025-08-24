@@ -3,10 +3,10 @@ import { Layers, Database, Shield, Download, CheckCircle } from 'lucide-react';
 import NDXDataProviders from './NDXDataProviders';
 import NDXConsentManagement from './NDXConsentManagement';
 import NDXDataExchange from './NDXDataExchange';
-import NDXIntegrationSummary from './NDXIntegrationSummary';
+// import NDXIntegrationSummary from './NDXIntegrationSummary';
 
 const NDXDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'providers' | 'consent' | 'exchange' | 'summary'>('summary');
+  const [activeTab, setActiveTab] = useState<'providers' | 'consent' | 'exchange'>('providers');
   
   // Debug log to verify component is loading
   React.useEffect(() => {
@@ -14,12 +14,6 @@ const NDXDashboard: React.FC = () => {
   }, []);
 
   const tabs = [
-    {
-      id: 'summary' as const,
-      label: 'Integration Summary',
-      icon: <CheckCircle className="w-5 h-5" />,
-      description: 'Complete NDX integration overview'
-    },
     {
       id: 'providers' as const,
       label: 'Data Providers',
@@ -42,8 +36,6 @@ const NDXDashboard: React.FC = () => {
 
   const renderActiveComponent = () => {
     switch (activeTab) {
-      case 'summary':
-        return <NDXIntegrationSummary />;
       case 'providers':
         return <NDXDataProviders />;
       case 'consent':
@@ -51,7 +43,7 @@ const NDXDashboard: React.FC = () => {
       case 'exchange':
         return <NDXDataExchange />;
       default:
-        return <NDXIntegrationSummary />;
+        return null;
     }
   };
 
