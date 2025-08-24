@@ -5,9 +5,9 @@ import { Shield, AlertTriangle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [individualId, setIndividualId] = useState('');
+  const [otp, setOtp] = useState('');
+  const [showOtp, setShowOtp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    if (!individualId || !otp) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const success = await login(username, password);
+      const success = await login(individualId, otp);
       
       if (success) {
         toast.success('Login successful!');
@@ -64,44 +64,44 @@ const LoginPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username Field */}
+            {/* Individual ID Field */}
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username
+              <label htmlFor="individualId" className="block text-sm font-medium text-gray-700 mb-2">
+                Individual ID
               </label>
               <input
-                id="username"
+                id="individualId"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={individualId}
+                onChange={(e) => setIndividualId(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter your username"
+                placeholder="Enter your Individual ID (e.g., admin001)"
                 disabled={isLoading}
               />
             </div>
 
-            {/* Password Field */}
+            {/* OTP Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+              <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+                One-Time Password (OTP)
               </label>
               <div className="relative">
                 <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  id="otp"
+                  type={showOtp ? 'text' : 'password'}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your password"
+                  placeholder="Enter OTP (use: 123456)"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowOtp(!showOtp)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   disabled={isLoading}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showOtp ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
@@ -130,40 +130,40 @@ const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setUsername('responder001');
-                  setPassword('123456');
+                  setIndividualId('responder001');
+                  setOtp('123456');
                 }}
                 className="w-full text-left p-2 text-xs bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors"
                 disabled={isLoading}
               >
                 <div className="font-medium text-blue-800">👨‍🚒 Responder Account</div>
-                <div className="text-blue-600">responder001 / 123456</div>
+                <div className="text-blue-600">responder001 / OTP: 123456</div>
               </button>
               
               <button
                 type="button"
                 onClick={() => {
-                  setUsername('admin001');
-                  setPassword('123456');
+                  setIndividualId('admin001');
+                  setOtp('123456');
                 }}
                 className="w-full text-left p-2 text-xs bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors"
                 disabled={isLoading}
               >
                 <div className="font-medium text-red-800">👑 Admin Account</div>
-                <div className="text-red-600">admin001 / 123456</div>
+                <div className="text-red-600">admin001 / OTP: 123456</div>
               </button>
               
               <button
                 type="button"
                 onClick={() => {
-                  setUsername('citizen001');
-                  setPassword('123456');
+                  setIndividualId('citizen001');
+                  setOtp('123456');
                 }}
                 className="w-full text-left p-2 text-xs bg-green-50 hover:bg-green-100 rounded border border-green-200 transition-colors"
                 disabled={isLoading}
               >
                 <div className="font-medium text-green-800">👤 Citizen Account</div>
-                <div className="text-green-600">citizen001 / 123456</div>
+                <div className="text-green-600">citizen001 / OTP: 123456</div>
               </button>
             </div>
             <div className="mt-3 text-xs text-gray-500">
