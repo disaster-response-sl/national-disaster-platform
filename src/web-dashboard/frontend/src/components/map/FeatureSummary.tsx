@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle, Wifi, Download, Map, Filter, BarChart3, AlertTriangle, Layers } from 'lucide-react';
 
-const FeatureSummary: React.FC = () => {
+const FeatureSummary = () => {
   const features = [
     {
       category: 'Core Mapping',

@@ -3,11 +3,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cel
 import type { StatisticsPanelProps } from '../../types/map';
 import { getTypeColor, getStatusColor, getPriorityColor } from '../../utils/mapHelpers';
 
-const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
+const StatisticsPanel = ({
   statistics,
   loading = false,
   className = '',
-}) => {
+}: StatisticsPanelProps) => {
   if (loading) {
     return (
       <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
@@ -78,7 +78,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
         {typeData.length > 0 && (
           <div>
             <h4 className="text-md font-medium text-gray-800 mb-3">Reports by Type</h4>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} {...({} as any)}>
               <BarChart data={typeData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -100,7 +100,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
         {statusData.length > 0 && (
           <div>
             <h4 className="text-md font-medium text-gray-800 mb-3">Reports by Status</h4>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} {...({} as any)}>
               <PieChart>
                 <Pie
                   data={statusData}

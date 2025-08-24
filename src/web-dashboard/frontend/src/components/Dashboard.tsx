@@ -1,7 +1,7 @@
 import React from 'react';
 import SimpleMap from './SimpleMap';
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   return (
     <div className="h-screen bg-gray-50">
       {/* Header */}

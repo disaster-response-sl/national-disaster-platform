@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMapApi } from '../hooks/useMapApi';
 
-const MapPage = (): JSX.Element => {
+const MapPage = () => {
   const { 
     reports, 
     heatmapData, 

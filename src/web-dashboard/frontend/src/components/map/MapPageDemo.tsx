@@ -21,7 +21,7 @@ import {
   sampleStatistics 
 } from '../../data/sampleData';
 
-const MapPageDemo: React.FC = () => {
+const MapPageDemo = () => {
   const { filters, updateFilter, resetFilters, hasActiveFilters } = useFilters();
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [selectedDisaster, setSelectedDisaster] = useState<Disaster | null>(null);
@@ -194,6 +194,7 @@ const MapPageDemo: React.FC = () => {
           <MapContainer
             className="w-full h-full"
             onBoundsChange={handleBoundsChange}
+            children={undefined as any}
           >
             <ReportsLayer
               reports={filteredReports}
@@ -253,7 +254,7 @@ const MapPageDemo: React.FC = () => {
                     if (key === 'dateRange') {
                       return;
                     }
-                    updateFilter(key as keyof typeof filters, value);
+                    updateFilter(key as keyof typeof filters, value as string);
                   });
                   if (newFilters.dateRange) {
                     updateFilter('dateRange', newFilters.dateRange);

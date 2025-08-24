@@ -10,7 +10,7 @@ interface RealTimeStatusProps {
   className?: string;
 }
 
-const RealTimeStatus: React.FC<RealTimeStatusProps> = ({
+const RealTimeStatus = ({
   status,
   lastUpdate,
   updateCount = 0,

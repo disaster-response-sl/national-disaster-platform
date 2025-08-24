@@ -3,7 +3,7 @@ import { Calendar, Filter, X, RotateCcw } from 'lucide-react';
 import type { FilterControlsProps } from '../../types/map';
 import { getDateRangePresets } from '../../utils/dateUtils';
 
-const FilterControls: React.FC<FilterControlsProps> = ({
+const FilterControls = ({
   filters,
   onFiltersChange,
   loading = false,

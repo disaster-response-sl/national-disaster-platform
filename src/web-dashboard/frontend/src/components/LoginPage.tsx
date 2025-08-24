@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Shield, AlertTriangle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

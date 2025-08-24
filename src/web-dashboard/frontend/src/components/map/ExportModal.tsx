@@ -18,7 +18,7 @@ interface ExportModalProps {
 
 type ExportFormat = 'pdf' | 'excel' | 'csv';
 
-const ExportModal: React.FC<ExportModalProps> = ({
+const ExportModal = ({
   isOpen,
   onClose,
   data,

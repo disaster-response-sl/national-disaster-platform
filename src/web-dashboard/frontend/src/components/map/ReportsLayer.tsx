@@ -33,7 +33,7 @@ const createCustomIcon = (priority: number, type: string) => {
   });
 };
 
-const ReportsLayer: React.FC<ReportsLayerProps> = ({
+const ReportsLayer = ({
   reports,
   onReportClick,
   visible = true,
@@ -106,12 +106,12 @@ const ReportsLayer: React.FC<ReportsLayerProps> = ({
                 )}
                 
                 {/* Resource Requirements */}
-                {Object.values(report.resource_requirements).some(val => val > 0) && (
+                {Object.values(report.resource_requirements).some(val => (val as number) > 0) && (
                   <div>
                     <span className="font-medium text-gray-600">Resource Needs:</span>
                     <div className="mt-1 grid grid-cols-2 gap-1 text-xs">
                       {Object.entries(report.resource_requirements)
-                        .filter(([_, value]) => value > 0)
+                        .filter(([_, value]) => (value as number) > 0)
                         .map(([resource, amount]) => (
                           <div key={resource} className="flex justify-between">
                             <span className="capitalize">{resource}:</span>

@@ -10,7 +10,7 @@ declare module 'leaflet' {
   function heatLayer(latlngs: Array<[number, number, number]>, options?: any): any;
 }
 
-const HeatmapLayer: React.FC<HeatmapLayerProps> = ({
+const HeatmapLayer = ({
   heatmapData,
   visible = true,
   opacity = 0.6,

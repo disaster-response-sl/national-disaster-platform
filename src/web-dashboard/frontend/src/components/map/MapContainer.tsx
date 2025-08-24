@@ -40,7 +40,7 @@ const MapEventHandler: React.FC<{ onBoundsChange?: (bounds: MapBounds) => void }
   return null;
 };
 
-const MapContainer: React.FC<MapContainerProps & { children?: React.ReactNode }> = ({
+const MapContainer = ({
   className = '',
   center = DEFAULT_MAP_CENTER,
   zoom = DEFAULT_MAP_ZOOM,

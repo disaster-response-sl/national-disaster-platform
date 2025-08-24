@@ -11,7 +11,7 @@ interface DisasterListProps {
   className?: string;
 }
 
-const DisasterList: React.FC<DisasterListProps> = ({
+const DisasterList = ({
   disasters,
   loading = false,
   onDisasterClick,

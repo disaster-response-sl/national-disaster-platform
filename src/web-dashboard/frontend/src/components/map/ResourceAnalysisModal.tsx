@@ -10,7 +10,7 @@ interface ResourceAnalysisModalProps {
   loading?: boolean;
 }
 
-const ResourceAnalysisModal: React.FC<ResourceAnalysisModalProps> = ({
+const ResourceAnalysisModal = ({
   isOpen,
   onClose,
   resourceData,
@@ -23,7 +23,7 @@ const ResourceAnalysisModal: React.FC<ResourceAnalysisModalProps> = ({
     
     resourceData.forEach(area => {
       Object.entries(area.resources).forEach(([resource, amount]) => {
-        totals[resource] = (totals[resource] || 0) + amount;
+        totals[resource] = (totals[resource] || 0) + (amount as number);
       });
     });
     
@@ -190,7 +190,7 @@ const ResourceAnalysisModal: React.FC<ResourceAnalysisModalProps> = ({
                       {/* Resources for this area */}
                       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                         {Object.entries(area.resources)
-                          .filter(([_, amount]) => amount > 0)
+                          .filter(([_, amount]) => (amount as number) > 0)
                           .map(([resource, amount]) => (
                             <div
                               key={resource}

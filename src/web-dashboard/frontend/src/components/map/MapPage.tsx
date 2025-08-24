@@ -16,7 +16,7 @@ import { useRealTimeData } from '../../hooks/useRealTimeData';
 import type { Report, Disaster, MapBounds } from '../../types/map';
 import { isDateInRange } from '../../utils/dateUtils';
 
-const MapPage: React.FC = () => {
+const MapPage = () => {
   const { reports, heatmapData, resourceAnalysis, statistics, disasters, loading, error, refetch } = useMapData();
   const { filters, updateFilter, resetFilters, hasActiveFilters } = useFilters();
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -215,6 +215,7 @@ const MapPage: React.FC = () => {
           <MapContainer
             className="w-full h-full"
             onBoundsChange={handleBoundsChange}
+            children={undefined as any}
           >
             <ReportsLayer
               reports={filteredReports}
@@ -278,7 +279,7 @@ const MapPage: React.FC = () => {
                       // Handle date range specially
                       return;
                     }
-                    updateFilter(key as keyof typeof filters, value);
+                    updateFilter(key as keyof typeof filters, value as string);
                   });
                   // Handle date range
                   if (newFilters.dateRange) {
