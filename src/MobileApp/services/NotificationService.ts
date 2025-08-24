@@ -106,7 +106,7 @@ class NotificationService {
           smallIcon: 'ic_notification',
           largeIcon: 'ic_launcher',
           circularLargeIcon: true,
-          vibrationPattern: type === 'high' ? [300, 500, 300, 500] : [300],
+          vibrationPattern: type === 'high' ? [300, 500, 300, 500] : [300, 500],
         },
       };
 

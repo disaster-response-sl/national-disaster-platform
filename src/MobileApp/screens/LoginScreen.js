@@ -53,7 +53,22 @@ const LoginScreen = ({ navigation }) => {
       console.error('Login error:', err);
       if (err.response) {
         console.error('Error response:', err.response.data);
-        Alert.alert('Login Failed', err.response.data.message);
+        // Always show a user-friendly message for common authentication errors
+        const msg = err.response.data.message ? err.response.data.message.toLowerCase() : '';
+        if (
+          msg.includes('invalid') ||
+          msg.includes('incorrect') ||
+          msg.includes('not found') ||
+          msg.includes('authentication failed') ||
+          msg.includes('unauthorized')
+        ) {
+          Alert.alert(
+            'Incorrect Credentials',
+            'The username or password you entered is incorrect. Please re-enter your credentials.'
+          );
+        } else {
+          Alert.alert('Login Failed', err.response.data.message);
+        }
       } else {
         console.error('Network error:', err.message);
         Alert.alert('Error', 'Could not connect to server');

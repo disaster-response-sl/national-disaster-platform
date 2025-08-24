@@ -198,19 +198,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         
         if (!isInSriLanka) {
           console.warn('⚠️ GPS shows location outside Sri Lanka');
-          
-          // Show location selection dialog for testing
-          Alert.alert(
-            'Location Selection',
-            'GPS shows you are outside Sri Lanka. Please select a Sri Lankan location for testing:',
-            [
-              { text: 'Malabe', onPress: () => useTestLocation(SRI_LANKA_LOCATIONS.malabe) },
-              { text: 'Colombo', onPress: () => useTestLocation(SRI_LANKA_LOCATIONS.colombo) },
-              { text: 'Negombo', onPress: () => useTestLocation(SRI_LANKA_LOCATIONS.negombo) },
-              { text: 'Ratnapura', onPress: () => useTestLocation(SRI_LANKA_LOCATIONS.ratnapura) },
-              { text: 'Other...', onPress: () => showMoreLocations(SRI_LANKA_LOCATIONS) }
-            ]
-          );
+          // No location selection for testing; do nothing or show a warning only
         } else {
           // Valid Sri Lankan location
           console.log('✅ Valid Sri Lankan location detected');
@@ -225,12 +213,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         
         Alert.alert(
           'Location Error',
-          'Unable to get GPS location. Please select a Sri Lankan location for testing:',
+          'Unable to get GPS location. Please check your location settings and try again.',
           [
-            { text: 'Malabe', onPress: () => useTestLocation(SRI_LANKA_LOCATIONS.malabe) },
-            { text: 'Colombo', onPress: () => useTestLocation(SRI_LANKA_LOCATIONS.colombo) },
-            { text: 'Negombo', onPress: () => useTestLocation(SRI_LANKA_LOCATIONS.negombo) },
-            { text: 'Other...', onPress: () => showMoreLocations(SRI_LANKA_LOCATIONS) }
+            { text: 'OK', onPress: () => {} }
           ]
         );
       },
