@@ -33,12 +33,35 @@ const AllocationModal: React.FC<AllocationModalProps> = ({
     priority: 'medium' as 'low' | 'medium' | 'high' | 'critical'
   });
 
+  // Helper function to safely render quantity values
+  const renderQuantity = (value: any): string => {
+    if (typeof value === 'number') return value.toString();
+    if (typeof value === 'object' && value !== null) {
+      // If it's an object with current property, use that
+      if ('current' in value) return value.current.toString();
+      // Otherwise, try to extract a meaningful number
+      return JSON.stringify(value);
+    }
+    return String(value || 0);
+  };
+
+  // Helper function to get numeric quantity value
+  const getNumericQuantity = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'object' && value !== null) {
+      // If it's an object with current property, use that
+      if ('current' in value) return Number(value.current) || 0;
+    }
+    return Number(value) || 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
 
-    if (formData.quantity > resource.available_quantity) {
-      toast.error(`Cannot allocate more than ${resource.available_quantity} units`);
+    const availableQty = getNumericQuantity(resource.available_quantity);
+    if (formData.quantity > availableQty) {
+      toast.error(`Cannot allocate more than ${availableQty} units`);
       return;
     }
 
@@ -92,7 +115,7 @@ const AllocationModal: React.FC<AllocationModalProps> = ({
 
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <p className="text-sm text-gray-600">
-            Available: <span className="font-medium">{resource.available_quantity}</span> / {resource.quantity}
+            Available: <span className="font-medium">{renderQuantity(resource.available_quantity)}</span> / {renderQuantity(resource.quantity)}
           </p>
           <p className="text-sm text-gray-600">
             Type: <span className="font-medium capitalize">{resource.type}</span>
@@ -108,7 +131,7 @@ const AllocationModal: React.FC<AllocationModalProps> = ({
               type="number"
               required
               min="1"
-              max={resource.available_quantity}
+              max={getNumericQuantity(resource.available_quantity)}
               value={formData.quantity}
               onChange={(e) => handleInputChange('quantity', parseInt(e.target.value) || 1)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"

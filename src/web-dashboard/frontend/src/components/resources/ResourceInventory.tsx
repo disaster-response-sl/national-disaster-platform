@@ -2,14 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getInventorySummary } from '../../services/resourceService';
 import { InventorySummaryResponse } from '../../types/resource';
-import { Package2, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
+import { canCreateResources } from '../../utils/permissions';
+import { Package2, TrendingUp, TrendingDown, Minus, AlertCircle, Plus } from 'lucide-react';
+import GenerateReportModal from './GenerateReportModal';
+import ResourceModal from './ResourceModal';
 import toast from 'react-hot-toast';
 
 const ResourceInventory: React.FC = () => {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [inventory, setInventory] = useState<InventorySummaryResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
+  const [showResourceModal, setShowResourceModal] = useState(false);
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -35,6 +40,69 @@ const ResourceInventory: React.FC = () => {
 
     fetchInventory();
   }, [token]);
+
+  const handleRefresh = () => {
+    if (token) {
+      const fetchInventory = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const response = await getInventorySummary(token);
+          setInventory(response.data);
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to refresh inventory';
+          setError(errorMessage);
+          toast.error(errorMessage);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchInventory();
+    }
+  };
+
+  const exportInventory = async () => {
+    try {
+      // Create CSV content from inventory data
+      const csvContent = generateInventoryCSV();
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `inventory_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Inventory exported successfully');
+    } catch (err) {
+      console.error('Failed to export inventory:', err);
+      toast.error('Failed to export inventory');
+    }
+  };
+
+  const generateInventoryCSV = () => {
+    let csv = 'Type,Total Quantity,Available Quantity,Allocated Quantity,Reserved Quantity\n';
+    
+    if (inventory?.overall) {
+      csv += `Overall Summary,${inventory.overall.total_quantity},${inventory.overall.available_quantity},${inventory.overall.allocated_quantity},${inventory.overall.reserved_quantity}\n`;
+    }
+
+    if (inventory?.by_type && Array.isArray(inventory.by_type)) {
+      inventory.by_type.forEach(type => {
+        csv += `${type.type},${type.total_quantity},${type.available_quantity},${type.allocated_quantity},${type.reserved_quantity}\n`;
+        
+        // Add categories for this type (only if categories exist and is an array)
+        if (type.categories && Array.isArray(type.categories) && type.categories.length > 0) {
+          type.categories.forEach(cat => {
+            csv += `  ${cat.category},${cat.quantity},${cat.available},,\n`;
+          });
+        }
+      });
+    }
+
+    return csv;
+  };
 
   if (loading) {
     return (
@@ -72,12 +140,27 @@ const ResourceInventory: React.FC = () => {
     <div className="space-y-6">
       {/* Inventory Actions Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <div className="flex space-x-2">
-          <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <div className="flex flex-wrap gap-2">
+          {canCreateResources(user) && (
+            <button 
+              onClick={() => setShowResourceModal(true)}
+              className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Resource
+            </button>
+          )}
+          <button 
+            onClick={exportInventory}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
             <Package2 className="w-4 h-4 mr-2" />
             Export Inventory
           </button>
-          <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          <button 
+            onClick={() => setShowGenerateReportModal(true)}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
             <TrendingUp className="w-4 h-4 mr-2" />
             Generate Report
           </button>
@@ -175,6 +258,20 @@ const ResourceInventory: React.FC = () => {
           Last updated: {new Date(inventory.last_updated).toLocaleString()}
         </div>
       )}
+
+      {/* Generate Report Modal */}
+      <GenerateReportModal
+        isOpen={showGenerateReportModal}
+        onClose={() => setShowGenerateReportModal(false)}
+      />
+
+      {/* Add Resource Modal */}
+      <ResourceModal
+        isOpen={showResourceModal}
+        onClose={() => setShowResourceModal(false)}
+        onSuccess={handleRefresh}
+        mode="create"
+      />
     </div>
   );
 };

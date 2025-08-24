@@ -46,7 +46,22 @@ export const getAllResources = async (token: string, queryParams?: {
     headers: getAuthHeaders(token)
   });
   
-  return handleResponse(response);
+  const result = await handleResponse(response);
+  
+  // Map backend pagination format to frontend expected format
+  if (result.pagination) {
+    const backendPagination = result.pagination;
+    result.pagination = {
+      page: backendPagination.current_page,
+      limit: backendPagination.items_per_page,
+      total: backendPagination.total_items,
+      pages: backendPagination.total_pages,
+      hasNext: backendPagination.current_page < backendPagination.total_pages,
+      hasPrev: backendPagination.current_page > 1
+    };
+  }
+  
+  return result;
 };
 
 // 2. Get Resource by ID

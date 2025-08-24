@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAllResources } from '../../services/resourceService';
-import { Resource, ResourceQueryParams } from '../../types/resource';
+import { Resource, ResourceQueryParams, Pagination } from '../../types/resource';
 import { canCreateResources, canEditResources, canAllocateResources } from '../../utils/permissions';
 import { Search, Filter, MapPin, Package, AlertCircle, Plus } from 'lucide-react';
 import ResourceModal from './ResourceModal';
@@ -13,6 +13,7 @@ const ResourceList: React.FC = () => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<ResourceQueryParams>({
     page: 1,
@@ -43,7 +44,22 @@ const ResourceList: React.FC = () => {
   }, [filters, token]);
 
   const handleFilterChange = (key: keyof ResourceQueryParams, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+    console.log(`Filter change: ${key} = ${value}`);
+    if (key === 'page') {
+      // When changing page, don't reset to page 1
+      setFilters(prev => {
+        const newFilters = { ...prev, [key]: value };
+        console.log('New filters (page change):', newFilters);
+        return newFilters;
+      });
+    } else {
+      // When changing other filters, reset to page 1
+      setFilters(prev => {
+        const newFilters = { ...prev, [key]: value, page: 1 };
+        console.log('New filters (filter change):', newFilters);
+        return newFilters;
+      });
+    }
   };
 
   const handleRefresh = () => {
@@ -71,8 +87,12 @@ const ResourceList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching resources with filters:', filters);
       const response = await getAllResources(token, filters);
+      console.log('API Response:', response);
       setResources(response.data || []);
+      setPagination(response.pagination || null);
+      console.log('Pagination set to:', response.pagination);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load resources';
       setError(errorMessage);
@@ -145,7 +165,14 @@ const ResourceList: React.FC = () => {
         </div>
         
         {canCreateResources(user) && (
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <button 
+            onClick={() => {
+              setSelectedResource(null);
+              setModalMode('create');
+              setShowResourceModal(true);
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Resource
           </button>
@@ -321,19 +348,30 @@ const ResourceList: React.FC = () => {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-700">
-          Showing {filteredResources.length} resources
+          {pagination ? (
+            <span>
+              Showing page {pagination.page} of {pagination.pages} 
+              ({pagination.total} total resources)
+            </span>
+          ) : (
+            <span>Showing {filteredResources.length} resources</span>
+          )}
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-500">
+            Page {filters.page || 1} of {pagination?.pages || 1}
+          </span>
           <button
             onClick={() => handleFilterChange('page', Math.max(1, (filters.page || 1) - 1))}
-            disabled={filters.page === 1}
+            disabled={!pagination?.hasPrev || (filters.page || 1) === 1}
             className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
           >
             Previous
           </button>
           <button
             onClick={() => handleFilterChange('page', (filters.page || 1) + 1)}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+            disabled={!pagination?.hasNext || (filters.page || 1) >= (pagination?.pages || 1)}
+            className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
           >
             Next
           </button>
