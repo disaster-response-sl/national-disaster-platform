@@ -29,6 +29,9 @@ const NDXConsentManagement: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({});
   const [disasterInfoLoading, setDisasterInfoLoading] = useState(false);
   const [disasterInfoData, setDisasterInfoData] = useState<any>(null);
+  const [weatherAlertsLoading, setWeatherAlertsLoading] = useState(false);
+  const [weatherAlertsData, setWeatherAlertsData] = useState<any>(null);
+  const [weatherArea, setWeatherArea] = useState('Colombo');
 
   // Validation helper functions
   const validateConsentId = (consentId: string): { isValid: boolean; error?: string } => {
@@ -360,6 +363,52 @@ const NDXConsentManagement: React.FC = () => {
     }
   };
 
+  const handleGetWeatherAlerts = async () => {
+    // Validate area input
+    if (!weatherArea.trim()) {
+      toast.error('Please enter an area to search for weather alerts');
+      return;
+    }
+
+    setWeatherAlertsLoading(true);
+    try {
+      const response = await ndxService.getWeatherAlerts(weatherArea.trim());
+      
+      if (response.success) {
+        setWeatherAlertsData(response);
+        const recordCount = response.data?.length || 0;
+        if (recordCount > 0) {
+          toast.success(`Weather alerts retrieved! Found ${recordCount} alert${recordCount === 1 ? '' : 's'} for ${weatherArea} via NDX shortcut`);
+        } else {
+          toast.success(`No weather alerts found for ${weatherArea}. Area is currently safe.`);
+        }
+      } else {
+        toast.error(response.message || `Failed to get weather alerts for ${weatherArea}`);
+      }
+    } catch (error: any) {
+      // Enhanced error handling
+      let errorMessage = 'Error getting weather alerts';
+      
+      if (isNetworkError(error)) {
+        errorMessage = 'Network error: Unable to connect to weather service. Please check your connection.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication error: Please login again to access weather alerts.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Access denied: You do not have permission to access weather alerts.';
+      } else if (error.response?.status === 404) {
+        errorMessage = `Weather alerts not available for area: ${weatherArea}. Try a different area.`;
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Server error: Weather alert service is temporarily unavailable. Please try again later.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setWeatherAlertsLoading(false);
+    }
+  };
+
   const handleCheckStatus = async (consentId: string) => {
     // Validate consent ID before making request
     const validation = validateConsentId(consentId);
@@ -665,6 +714,129 @@ const NDXConsentManagement: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Weather Alerts Shortcut */}
+      <div className="mb-8 p-4 bg-cyan-50 rounded-lg border border-cyan-200">
+        <h3 className="text-lg font-medium text-gray-800 mb-3">Quick Weather Alerts</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Get weather alerts instantly using NDX shortcut (auto-creates and approves consent)
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <label htmlFor="weatherArea" className="text-sm font-medium text-gray-700 flex-shrink-0">
+              Area:
+            </label>
+            <input
+              id="weatherArea"
+              type="text"
+              value={weatherArea}
+              onChange={(e) => setWeatherArea(e.target.value)}
+              placeholder="Enter area (e.g., Colombo, Western Province)"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+            />
+          </div>
+          
+          {/* Quick Area Suggestions */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Quick select:</span>
+            {['Colombo', 'Western Province', 'Kandy', 'Galle', 'Jaffna'].map((area) => (
+              <button
+                key={area}
+                onClick={() => setWeatherArea(area)}
+                className="px-2 py-1 text-xs bg-white border border-cyan-200 rounded hover:bg-cyan-50 hover:border-cyan-300 transition-colors"
+              >
+                {area}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <button
+          onClick={handleGetWeatherAlerts}
+          disabled={weatherAlertsLoading || !weatherArea.trim()}
+          className="mt-4 flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+        >
+          {weatherAlertsLoading ? (
+            <>
+              <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin"></div>
+              Getting Weather Alerts...
+            </>
+          ) : (
+            <>
+              <Shield className="w-4 h-4" />
+              Get Weather Alerts
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Weather Alerts Results */}
+      {weatherAlertsData && (
+        <div className="mb-8 p-4 bg-orange-50 rounded-lg border border-orange-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-medium text-gray-800">Weather Alerts Retrieved</h3>
+            <button
+              onClick={() => setWeatherAlertsData(null)}
+              className="text-orange-600 hover:text-orange-800 text-sm font-medium"
+            >
+              Clear Results
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-gray-600"><strong>Consent ID:</strong> {weatherAlertsData.consentId}</p>
+              <p className="text-sm text-gray-600"><strong>Message:</strong> {weatherAlertsData.message}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600"><strong>Records Found:</strong> {weatherAlertsData.data?.length || 0}</p>
+              <p className="text-sm text-gray-600"><strong>Area:</strong> {weatherArea}</p>
+              <p className="text-sm text-gray-600"><strong>Retrieved:</strong> {new Date().toLocaleString()}</p>
+            </div>
+          </div>
+          
+          {weatherAlertsData.data && weatherAlertsData.data.length > 0 ? (
+            <div>
+              <h4 className="text-md font-medium text-gray-800 mb-2">Weather Alert Records:</h4>
+              <div className="space-y-2">
+                {weatherAlertsData.data.map((alert: any, index: number) => (
+                  <div key={index} className="flex items-start gap-3 p-3 bg-white rounded border border-gray-200 hover:border-orange-300 transition-colors">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
+                      alert.severity === 'high' ? 'bg-red-100 text-red-700 border border-red-200' :
+                      alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
+                      'bg-green-100 text-green-700 border border-green-200'
+                    }`}>
+                      {alert.severity?.toUpperCase() || 'N/A'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-gray-900">{alert.type || 'Unknown Alert'}</span>
+                        {alert.area && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            📍 {alert.area}
+                          </span>
+                        )}
+                      </div>
+                      {alert.description && (
+                        <p className="text-sm text-gray-600 mt-1">{alert.description}</p>
+                      )}
+                      {alert.timestamp && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          ⏰ {new Date(alert.timestamp).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-500 text-sm">No weather alerts found for {weatherArea}</p>
+              <p className="text-gray-400 text-xs mt-1">Try searching for a different area</p>
             </div>
           )}
         </div>
