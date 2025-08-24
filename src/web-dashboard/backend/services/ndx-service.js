@@ -181,11 +181,24 @@ class MockNDXService {
           case 'weather-alerts':
             return [
               {
-                id: 'alert_001',
+                _id: 'alert_001',
                 type: 'heavy-rain',
                 severity: 'medium',
+                description: `Heavy rain alert for Western Province. Expected until ${new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString()}`,
+                location: { lat: 6.9271, lng: 79.8612 }, // Colombo center as reference
+                timestamp: new Date().toISOString(),
                 area: 'Western Province',
                 validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+              },
+              {
+                _id: 'alert_002',
+                type: 'wind',
+                severity: 'low',
+                description: 'Strong wind advisory for coastal areas of Western Province',
+                location: { lat: 6.9271, lng: 79.8612 },
+                timestamp: new Date().toISOString(),
+                area: 'Western Province - Coastal',
+                validUntil: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
               }
             ];
           default:

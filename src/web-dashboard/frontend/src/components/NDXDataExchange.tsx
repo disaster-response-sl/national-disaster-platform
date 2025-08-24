@@ -16,7 +16,7 @@ interface DisasterData {
   type: string;
   severity: string;
   description: string;
-  location: { lat: number; lng: number };
+  location?: { lat: number; lng: number };
   timestamp: string;
 }
 
@@ -267,10 +267,17 @@ const NDXDataExchange: React.FC = () => {
                 
                 <p className="text-gray-700 mb-3">{item.description}</p>
                 
-                <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <MapPin className="w-4 h-4" />
-                  <span>Lat: {item.location.lat.toFixed(4)}, Lng: {item.location.lng.toFixed(4)}</span>
-                </div>
+                {item.location && item.location.lat !== undefined && item.location.lng !== undefined ? (
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <MapPin className="w-4 h-4" />
+                    <span>Lat: {item.location.lat.toFixed(4)}, Lng: {item.location.lng.toFixed(4)}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <MapPin className="w-4 h-4" />
+                    <span>Location not available</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
