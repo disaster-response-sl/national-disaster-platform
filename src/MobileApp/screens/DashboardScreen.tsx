@@ -198,11 +198,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         
         if (!isInSriLanka) {
           console.warn('⚠️ GPS shows location outside Sri Lanka');
-          // No location selection for testing; do nothing or show a warning only
+          setLocation({ lat: latitude, lng: longitude });
+          setLocationName(`Lat: ${latitude.toFixed(3)}, Lng: ${longitude.toFixed(3)}`);
+          // Optionally, you can call fetchWeatherData/fetchRiskStatus here if you want to show info for out-of-SL locations
         } else {
           // Valid Sri Lankan location
           console.log('✅ Valid Sri Lankan location detected');
           setLocation({ lat: latitude, lng: longitude });
+          setLocationName('Sri Lanka');
           fetchWeatherData(latitude, longitude);
           fetchRiskStatus(latitude, longitude);
         }
