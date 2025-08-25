@@ -97,12 +97,21 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         animationType="slide"
         onRequestClose={onClose}
         statusBarTranslucent={true}
+        presentationStyle="overFullScreen"
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity 
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={() => {}} // Prevent closing when touching modal content
+          >
             {content}
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     );
   }
@@ -113,25 +122,26 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    zIndex: 9999,
   },
   modalContent: {
     backgroundColor: 'white',
     borderRadius: 16,
     width: width * 0.85,
     maxHeight: height * 0.75,
-    elevation: 10,
+    elevation: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    zIndex: 1000,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    zIndex: 10000,
   },
   container: {
     flex: 1,

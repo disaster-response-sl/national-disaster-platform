@@ -8,11 +8,29 @@ import en from './en';
 import si from './si';
 import ta from './ta';
 
-// Language resources
+// Language resources with flattened structure for easier access
 const resources = {
-  en: { translation: en },
-  si: { translation: si },
-  ta: { translation: ta },
+  en: {
+    translation: {
+      ...en.common,
+      ...en.screens,
+      ...en.settings,
+    }
+  },
+  si: {
+    translation: {
+      ...si.common,
+      ...si.screens,
+      ...si.settings,
+    }
+  },
+  ta: {
+    translation: {
+      ...ta.common,
+      ...ta.screens,
+      ...ta.settings,
+    }
+  },
 };
 
 // Supported languages
@@ -70,6 +88,9 @@ export const changeLanguage = async (languageCode: string): Promise<void> => {
 // Initialize i18n
 const initI18n = async () => {
   const initialLanguage = await getInitialLanguage();
+  console.log('🌐 Initializing i18n with language:', initialLanguage);
+  console.log('🌐 Available resources:', Object.keys(resources));
+  console.log('🌐 English resources structure:', Object.keys(resources.en));
   
   await i18n
     .use(initReactI18next)
@@ -78,7 +99,7 @@ const initI18n = async () => {
       resources,
       lng: initialLanguage,
       fallbackLng: 'en',
-      debug: __DEV__, // Enable debug in development
+      debug: true, // Force debug mode
       
       interpolation: {
         escapeValue: false, // React already escapes values

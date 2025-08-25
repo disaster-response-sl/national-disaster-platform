@@ -8,18 +8,64 @@ export const useAppTranslation = () => {
   const { t, i18n } = useTranslation();
   const { isRTL, currentLanguage } = useLanguage();
 
-  // Common translation shortcuts with string conversion
+  // Debug current i18n state
+  console.log('🌐 Current i18n state:', {
+    language: i18n.language,
+    isInitialized: i18n.isInitialized,
+    hasResourceBundle: i18n.hasResourceBundle(i18n.language, 'common'),
+    currentLanguage: currentLanguage
+  });
+
+  // Common translation shortcuts with explicit string conversion
   const tCommon = (key: string, options?: any): string => {
-    const result = t(`common:${key}`, options);
-    return typeof result === 'string' ? result : key;
+    try {
+      const result = t(key, options);
+      console.log(`🔍 tCommon('${key}') -> '${result}' (type: ${typeof result})`);
+      
+      // Force string conversion
+      if (typeof result === 'string' && result !== key) {
+        return result;
+      } else {
+        return key; // Return key if translation not found
+      }
+    } catch (error) {
+      console.error(`❌ tCommon error for key '${key}':`, error);
+      return key;
+    }
   };
+
   const tScreens = (key: string, options?: any): string => {
-    const result = t(`screens:${key}`, options);
-    return typeof result === 'string' ? result : key;
+    try {
+      const result = t(key, options);
+      console.log(`🔍 tScreens('${key}') -> '${result}' (type: ${typeof result})`);
+      
+      // Force string conversion
+      if (typeof result === 'string' && result !== key) {
+        return result;
+      } else {
+        return key; // Return key if translation not found
+      }
+    } catch (error) {
+      console.error(`❌ tScreens error for key '${key}':`, error);
+      return key;
+    }
   };
+
   const tSettings = (key: string, options?: any): string => {
-    const result = t(`settings:${key}`, options);
-    return typeof result === 'string' ? result : key;
+    try {
+      const result = t(key, options);
+      console.log(`🔍 tSettings('${key}') -> '${result}' (type: ${typeof result})`);
+      
+      // Force string conversion
+      if (typeof result === 'string' && result !== key) {
+        return result;
+      } else {
+        return key; // Return key if translation not found
+      }
+    } catch (error) {
+      console.error(`❌ tSettings error for key '${key}':`, error);
+      return key;
+    }
   };
 
   // Disaster type translations
