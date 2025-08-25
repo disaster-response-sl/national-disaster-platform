@@ -60,6 +60,11 @@ const MapsPage: React.FC<MapsPageProps> = ({ onBack }) => {
       console.log('All API Test Results:', results);
     } catch (error) {
       console.error('API Test Error:', error);
+      // Set a more detailed error state
+      setApiTestResults({
+        error: 'Failed to connect to backend APIs. Please ensure the backend server is running on the correct port.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   };
 
@@ -119,6 +124,17 @@ const MapsPage: React.FC<MapsPageProps> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Error Display for debugging */}
+      {Object.keys(apiTestResults).length > 0 && apiTestResults.error && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg z-[2000] max-w-lg">
+          <div className="font-semibold">Connection Error:</div>
+          <div className="text-sm mt-1">{apiTestResults.error}</div>
+          {apiTestResults.details && (
+            <div className="text-xs mt-2 text-red-600">{apiTestResults.details}</div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="px-6 py-4">
@@ -326,7 +342,6 @@ const MapsPage: React.FC<MapsPageProps> = ({ onBack }) => {
               {/* Map Content based on current view */}
               {currentView === 'reports' && (
                 <ReportsMap 
-                  filters={mapFilters}
                 />
               )}
 

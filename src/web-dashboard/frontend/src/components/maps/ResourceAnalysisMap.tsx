@@ -1,7 +1,6 @@
 // Resource Analysis Map - Visualizes resource distribution and gaps
 import React, { useEffect, useState } from 'react';
 import L from 'leaflet';
-import { Package, AlertTriangle } from 'lucide-react';
 import { ResourceAnalysisPoint } from '../../types/mapTypes';
 import MapService from '../../services/mapService';
 
@@ -9,18 +8,13 @@ interface ResourceAnalysisMapProps {
   map?: L.Map;
   filters?: any;
   onDataLoad?: (data: ResourceAnalysisPoint[]) => void;
-  className?: string;
 }
 
 const ResourceAnalysisMap: React.FC<ResourceAnalysisMapProps> = ({ 
   map,
   filters = {}, 
-  onDataLoad,
-  className = "" 
+  onDataLoad
 }) => {
-  const [resourceData, setResourceData] = useState<ResourceAnalysisPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [circles, setCircles] = useState<L.Circle[]>([]);
 
   useEffect(() => {
@@ -50,9 +44,6 @@ const ResourceAnalysisMap: React.FC<ResourceAnalysisMapProps> = ({
     console.log('ResourceAnalysisMap: Map instance available:', !!map);
 
     try {
-      setLoading(true);
-      setError(null);
-      
       // Clear existing circles
       circles.forEach(circle => {
         map.removeLayer(circle);
@@ -62,7 +53,6 @@ const ResourceAnalysisMap: React.FC<ResourceAnalysisMapProps> = ({
       const response = await MapService.getResourceAnalysis();
       console.log('ResourceAnalysisMap: API Response:', response);
       const data = response.data;
-      setResourceData(data);
       onDataLoad?.(data);
       console.log(`ResourceAnalysisMap: Loaded ${data.length} resource points`);
 
@@ -98,10 +88,7 @@ const ResourceAnalysisMap: React.FC<ResourceAnalysisMapProps> = ({
         map.fitBounds(bounds, { padding: [20, 20] });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load resource data');
       console.error('Resource analysis loading error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -202,107 +189,8 @@ const ResourceAnalysisMap: React.FC<ResourceAnalysisMapProps> = ({
     return 'Critical';
   };
 
-  // Calculate total statistics
-  const totalStats = resourceData.reduce((acc, point) => {
-    acc.totalReports += point.totalReports;
-    acc.totalAffected += point.totalAffected;
-    acc.totalCritical += point.criticalReports;
-    return acc;
-  }, { 
-    totalReports: 0, 
-    totalAffected: 0, 
-    totalCritical: 0
-  });
-
-  const averageCriticalLevel = totalStats.totalReports > 0 
-    ? totalStats.totalCritical / totalStats.totalReports 
-    : 0;
-
-  return (
-    <div className={className}>
-      {/* Loading Overlay */}
-      {loading && map && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-[1000] pointer-events-none">
-          <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
-            <span className="text-gray-700">Loading resource analysis...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Error Overlay */}
-      {error && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-[1000]">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            <span>{error}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Overlay Statistics Panel */}
-      {!loading && !error && resourceData.length > 0 && (
-        <div className="absolute bottom-4 right-4 bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg p-4 z-[1000] max-w-xs">
-          <div className="flex items-center gap-2 mb-3">
-            <Package className="w-4 h-4 text-blue-600" />
-            <h3 className="font-semibold text-gray-800">Resource Summary</h3>
-          </div>
-          
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Analysis Points:</span>
-              <span className="font-medium">{resourceData.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Reports:</span>
-              <span className="font-medium">{totalStats.totalReports.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Critical Reports:</span>
-              <span className="font-medium text-red-600">{totalStats.totalCritical.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Affected:</span>
-              <span className="font-medium">{totalStats.totalAffected.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Avg. Critical Level:</span>
-              <span className={`font-medium ${
-                averageCriticalLevel <= 0.2 ? 'text-green-600' :
-                averageCriticalLevel <= 0.4 ? 'text-yellow-600' :
-                averageCriticalLevel <= 0.6 ? 'text-red-600' : 'text-red-800'
-              }`}>
-                {formatPercentage(averageCriticalLevel)}
-              </span>
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="mt-3 pt-2 border-t border-gray-200">
-            <div className="text-xs text-gray-600 mb-2">Risk Levels:</div>
-            <div className="grid grid-cols-2 gap-1 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Low (0-20%)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <span>Moderate (20-40%)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span>High (40-60%)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-red-800 rounded-full"></div>
-                <span>Critical (60%+)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Don't render anything - circles are added directly to the map
+  return null;
 };
 
 export default ResourceAnalysisMap;

@@ -11,7 +11,7 @@ import {
   MapBounds
 } from '../types/mapTypes';
 
-const API_BASE_URL = '/api/map';
+const API_BASE_URL = 'http://localhost:5000/api/map';
 
 export class MapService {
   /**

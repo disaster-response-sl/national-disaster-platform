@@ -128,11 +128,12 @@ const Dashboard: React.FC = () => {
 
               {/* Navigation Actions */}
               <div className="mt-8 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto justify-center items-center">
+
                   {/* Maps Navigation Button */}
                   <button
                     onClick={() => navigate('/maps')}
-                    className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full md:w-80"
                   >
                     <div className="relative z-10">
                       <div className="flex items-center justify-center mb-3">
@@ -159,7 +160,7 @@ const Dashboard: React.FC = () => {
                       const element = document.getElementById('ndx-dashboard');
                       element?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="group relative overflow-hidden bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    className="group relative overflow-hidden bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full md:w-80"
                   >
                     <div className="relative z-10">
                       <div className="flex items-center justify-center mb-3">
