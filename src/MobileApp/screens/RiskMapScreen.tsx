@@ -62,6 +62,33 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [fadeAnim] = useState(new Animated.Value(0));
 
+  // Helper functions for translations
+  const getTranslatedDisasterType = (type: string) => {
+    switch (type) {
+      case 'flood': return tScreens('risk_map.disaster_type_flood');
+      case 'landslide': return tScreens('risk_map.disaster_type_landslide');
+      case 'cyclone': return tScreens('risk_map.disaster_type_cyclone');
+      default: return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  };
+
+  const getTranslatedSeverity = (severity: string) => {
+    switch (severity) {
+      case 'low': return tScreens('risk_map.severity_low');
+      case 'medium': return tScreens('risk_map.severity_medium');
+      case 'high': return tScreens('risk_map.severity_high');
+      default: return severity.toUpperCase();
+    }
+  };
+
+  const getTranslatedStatus = (status: string) => {
+    switch (status) {
+      case 'active': return tScreens('risk_map.status_active');
+      case 'resolved': return tScreens('risk_map.status_resolved');
+      default: return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
   useEffect(() => {
     // Fade in animation
     Animated.timing(fadeAnim, {
@@ -343,7 +370,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         <View style={styles.loadingContainer}>
           <View style={styles.loadingContent}>
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingTitle}>Loading Risk Map</Text>
+            <Text style={styles.loadingTitle}>{tScreens('risk_map.loading_title')}</Text>
             <Text style={styles.loadingText}>Fetching disaster data and location...</Text>
           </View>
         </View>
@@ -480,7 +507,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         {/* Disaster List */}
         <View style={styles.listContainer}>
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>{showAllDisasters ? 'All Disasters' : 'Active Disasters'}</Text>
+            <Text style={styles.listTitle}>{showAllDisasters ? tScreens('risk_map.all_disasters') : tScreens('risk_map.active_disasters')}</Text>
             <View style={styles.countBadge}>
               <Text style={styles.countText}>{filteredDisasters.length}</Text>
             </View>
@@ -511,7 +538,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                       </View>
                       <View style={styles.disasterInfo}>
                         <Text style={styles.disasterType}>
-                          {disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1)} Alert
+                          {getTranslatedDisasterType(disaster.type)} {tScreens('risk_map.alert')}
                         </Text>
                         <Text style={styles.disasterDescription} numberOfLines={2}>
                           {disaster.description}
@@ -520,7 +547,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.disasterRight}>
                       <View style={[styles.severityBadge, { backgroundColor: getRiskColor(disaster.severity) }]}>
-                        <Text style={styles.severityText}>{disaster.severity.toUpperCase()}</Text>
+                        <Text style={styles.severityText}>{getTranslatedSeverity(disaster.severity)}</Text>
                       </View>
                       <Text style={styles.timeText}>{getTimeAgo(disaster.timestamp)}</Text>
                     </View>
@@ -541,7 +568,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                           { color: disaster.status === 'active' ? '#ef4444' : '#10b981' },
                         ]}
                       >
-                        {disaster.status.charAt(0).toUpperCase() + disaster.status.slice(1)}
+                        {getTranslatedStatus(disaster.status)}
                       </Text>
                     </View>
                   </View>
@@ -550,12 +577,12 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
             ) : (
               <View style={styles.noDataContainer}>
                 <Text style={styles.noDataIcon}>🗺️</Text>
-                <Text style={styles.noDataText}>No disasters found</Text>
+                <Text style={styles.noDataText}>{tScreens('risk_map.no_disasters_found')}</Text>
                 <Text style={styles.noDataSubtext}>
-                  {showAllDisasters ? 'No disasters match your current filters' : 'No active disasters in your area'}
+                  {showAllDisasters ? tScreens('risk_map.no_disasters_match') : tScreens('risk_map.no_active_disasters')}
                 </Text>
                 <TouchableOpacity style={styles.refreshButton} onPress={fetchDisasters}>
-                  <Text style={styles.refreshButtonText}>🔄 Refresh Data</Text>
+                  <Text style={styles.refreshButtonText}>{tScreens('risk_map.refresh_data')}</Text>
                 </TouchableOpacity>
               </View>
             )}

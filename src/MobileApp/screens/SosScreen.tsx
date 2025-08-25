@@ -63,19 +63,19 @@ const SosScreen = ({ navigation }: { navigation: any }) => {
   const handleSendSOS = () => {
     if (!message.trim()) {
       Alert.alert(
-        "Emergency Description Required",
-        "Please describe your emergency situation so responders can help you better.",
-        [{ text: 'OK', style: 'default' }]
+        tScreens('sos.emergency_alert'),
+        tScreens('report.required_fields'),
+        [{ text: tCommon('app.ok'), style: 'default' }]
       );
       return;
     }
 
     Alert.alert(
-      "Send Emergency SOS?",
-      "This will immediately alert emergency responders to your location. Are you sure you want to proceed?",
+      tScreens('sos.confirm_sos'),
+      tScreens('sos.emergency_contacts_notified'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Send SOS', style: 'destructive', onPress: proceedWithSOS }
+        { text: tCommon('app.cancel'), style: 'cancel' },
+        { text: tScreens('sos.send_sos'), style: 'destructive', onPress: proceedWithSOS }
       ]
     );
   };
@@ -152,13 +152,13 @@ const SosScreen = ({ navigation }: { navigation: any }) => {
   const getPriorityDescription = (level: string) => {
     switch (level) {
       case 'high':
-        return 'Life-threatening emergency';
+        return tCommon('severity.high');
       case 'medium':
-        return 'Urgent but not life-threatening';
+        return tCommon('severity.medium');
       case 'low':
-        return 'Non-urgent emergency';
+        return tCommon('severity.low');
       default:
-        return 'Life-threatening emergency';
+        return tCommon('severity.high');
     }
   };
 
@@ -177,20 +177,20 @@ const SosScreen = ({ navigation }: { navigation: any }) => {
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
             <Text style={styles.infoIcon}>📍</Text>
-            <Text style={styles.infoTitle}>Your Location Will Be Shared</Text>
+            <Text style={styles.infoTitle}>{tScreens('sos.location_shared')}</Text>
           </View>
           <Text style={styles.infoDescription}>
-            Emergency responders will receive your exact GPS coordinates along with your message.
+            {tScreens('sos.emergency_contacts_notified')}
           </Text>
         </View>
 
         {/* Emergency Description */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Emergency Description</Text>
+          <Text style={styles.sectionTitle}>{tScreens('report.description')}</Text>
           <View style={[styles.inputContainer, focusedInput && styles.inputFocused]}>
             <TextInput
               style={styles.input}
-              placeholder="Describe your emergency situation (e.g., medical emergency, accident, fire, etc.)"
+              placeholder={tScreens('report.description')}
               placeholderTextColor="#94a3b8"
               value={message}
               onChangeText={setMessage}
@@ -205,7 +205,7 @@ const SosScreen = ({ navigation }: { navigation: any }) => {
 
         {/* Priority Level */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Emergency Priority</Text>
+          <Text style={styles.sectionTitle}>{tScreens('report.severity')}</Text>
           <View style={styles.priorityContainer}>
             <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(priority) }]}>
               <Text style={styles.priorityText}>{priority.toUpperCase()}</Text>
@@ -244,12 +244,12 @@ const SosScreen = ({ navigation }: { navigation: any }) => {
 
         {/* Emergency Instructions */}
         <View style={styles.instructionsCard}>
-          <Text style={styles.instructionsTitle}>💡 Emergency Tips</Text>
+          <Text style={styles.instructionsTitle}>💡 {tScreens('sos.emergency_tips')}</Text>
           <View style={styles.instructionsList}>
-            <Text style={styles.instructionItem}>• Stay calm and in a safe location</Text>
-            <Text style={styles.instructionItem}>• Keep your phone charged and nearby</Text>
-            <Text style={styles.instructionItem}>• Follow instructions from responders</Text>
-            <Text style={styles.instructionItem}>• Don't move if injured unless necessary</Text>
+            <Text style={styles.instructionItem}>• {tScreens('sos.stay_calm')}</Text>
+            <Text style={styles.instructionItem}>• {tScreens('sos.keep_phone_charged')}</Text>
+            <Text style={styles.instructionItem}>• {tScreens('sos.follow_instructions')}</Text>
+            <Text style={styles.instructionItem}>• {tScreens('sos.dont_move_if_injured')}</Text>
           </View>
         </View>
 
@@ -272,7 +272,7 @@ const SosScreen = ({ navigation }: { navigation: any }) => {
                   {sending ? '📡' : '🚨'}
                 </Text>
                 <Text style={styles.sosButtonText}>
-                  {sending ? 'SENDING EMERGENCY SIGNAL...' : 'SEND EMERGENCY SOS'}
+                  {sending ? tScreens('sos.sos_sent') : tScreens('sos.send_sos').toUpperCase()}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -288,18 +288,18 @@ const SosScreen = ({ navigation }: { navigation: any }) => {
 
         {/* Emergency Contacts */}
         <View style={styles.emergencyContactsCard}>
-          <Text style={styles.emergencyContactsTitle}>📞 Alternative Emergency Contacts</Text>
+          <Text style={styles.emergencyContactsTitle}>📞 {tScreens('sos.alternative_contacts')}</Text>
           <View style={styles.contactsList}>
             <TouchableOpacity style={styles.contactItem}>
-              <Text style={styles.contactLabel}>Police Emergency</Text>
+              <Text style={styles.contactLabel}>{tScreens('sos.police_emergency')}</Text>
               <Text style={styles.contactNumber}>119</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactItem}>
-              <Text style={styles.contactLabel}>Fire & Ambulance</Text>
+              <Text style={styles.contactLabel}>{tScreens('sos.medical_emergency')}</Text>
               <Text style={styles.contactNumber}>110</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactItem}>
-              <Text style={styles.contactLabel}>Disaster Management</Text>
+              <Text style={styles.contactLabel}>{tScreens('sos.fire_emergency')}</Text>
               <Text style={styles.contactNumber}>117</Text>
             </TouchableOpacity>
           </View>

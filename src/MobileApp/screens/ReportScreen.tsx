@@ -154,26 +154,26 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
     const typeInfo: { [key: string]: { icon: string; title: string; description: string; color: string } } = {
       food: {
         icon: '🍽️',
-        title: 'Food Shortage',
-        description: 'Report lack of food supplies or hunger',
+        title: tScreens('report.food_shortage'),
+        description: tScreens('report.food_shortage_desc'),
         color: '#f59e0b'
       },
       shelter: {
         icon: '🏠',
-        title: 'Shelter Needed',
-        description: 'Report need for temporary housing',
+        title: tScreens('report.shelter_needed'),
+        description: tScreens('report.shelter_needed_desc'),
         color: '#3b82f6'
       },
       danger: {
         icon: '⚠️',
-        title: 'Dangerous Situation',
-        description: 'Report immediate safety threats',
+        title: tScreens('report.dangerous_situation'),
+        description: tScreens('report.dangerous_situation_desc'),
         color: '#ef4444'
       },
       medical: {
         icon: '🏥',
-        title: 'Medical Emergency',
-        description: 'Report medical incidents or health issues',
+        title: tScreens('report.medical_emergency'),
+        description: tScreens('report.medical_emergency_desc'),
         color: '#dc2626'
       }
     };
@@ -198,20 +198,20 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
             <View style={styles.locationCard}>
               <View style={styles.locationHeader}>
                 <Text style={styles.locationIcon}>📍</Text>
-                <Text style={styles.locationTitle}>Report Location</Text>
+                <Text style={styles.locationTitle}>{tScreens('report.report_location')}</Text>
               </View>
               <Text style={styles.locationText}>
                 Lat: {location.lat.toFixed(6)}, Lng: {location.lng.toFixed(6)}
               </Text>
               <Text style={styles.locationNote}>
-                This location will be included with your report
+                {tScreens('report.location_included')}
               </Text>
             </View>
           )}
 
           {/* Report Type Selection */}
           <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Incident Type</Text>
+            <Text style={styles.sectionTitle}>{tScreens('report.incident_type_title')}</Text>
 
             {/* Current Selection Display */}
             <View style={[styles.currentSelection, { borderColor: currentTypeInfo.color }]}>
@@ -234,22 +234,22 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
                 dropdownIconColor="#64748b"
               >
                 <Picker.Item
-                  label="🍽️ Food Shortage - Lack of food supplies"
+                  label={tScreens('report.food_option')}
                   value="food"
                   color="#1f2937"
                 />
                 <Picker.Item
-                  label="🏠 Shelter Needed - Temporary housing required"
+                  label={tScreens('report.shelter_option')}
                   value="shelter"
                   color="#1f2937"
                 />
                 <Picker.Item
-                  label="⚠️ Dangerous Situation - Safety threats"
+                  label={tScreens('report.danger_option')}
                   value="danger"
                   color="#1f2937"
                 />
                 <Picker.Item
-                  label="🏥 Medical Emergency - Health incidents"
+                  label={tScreens('report.medical_option')}
                   value="medical"
                   color="#1f2937"
                 />
@@ -267,7 +267,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
             <View style={[styles.inputContainer, focusedInput && styles.inputFocused]}>
               <TextInput
                 style={styles.textArea}
-                placeholder={`Describe the ${currentTypeInfo.title.toLowerCase()} situation in detail...\n\nExample: Location details, number of people affected, urgency level, specific needs, etc.`}
+                placeholder={tScreens('report.describe_placeholder', { type: currentTypeInfo.title.toLowerCase() })}
                 placeholderTextColor="#94a3b8"
                 value={description}
                 onChangeText={setDescription}
@@ -279,7 +279,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
               />
               <View style={styles.characterCount}>
                 <Text style={styles.characterCountText}>
-                  {description.length} characters
+                  {description.length} {tScreens('report.characters')}
                 </Text>
               </View>
             </View>
@@ -287,12 +287,12 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
 
           {/* Guidelines Section */}
           <View style={styles.guidelinesCard}>
-            <Text style={styles.guidelinesTitle}>📋 Reporting Guidelines</Text>
+            <Text style={styles.guidelinesTitle}>{tScreens('report.guidelines_title')}</Text>
             <View style={styles.guidelinesList}>
-              <Text style={styles.guidelineItem}>• Be specific about location and situation</Text>
-              <Text style={styles.guidelineItem}>• Include number of people affected if known</Text>
-              <Text style={styles.guidelineItem}>• Mention any immediate dangers or urgent needs</Text>
-              <Text style={styles.guidelineItem}>• Provide contact information if you can assist</Text>
+              <Text style={styles.guidelineItem}>{tScreens('report.guideline_specific')}</Text>
+              <Text style={styles.guidelineItem}>{tScreens('report.guideline_affected')}</Text>
+              <Text style={styles.guidelineItem}>{tScreens('report.guideline_dangers')}</Text>
+              <Text style={styles.guidelineItem}>{tScreens('report.guideline_contact')}</Text>
             </View>
           </View>
 
@@ -309,15 +309,15 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
                   {loading ? '📡' : '📤'}
                 </Text>
                 <Text style={styles.submitButtonText}>
-                  {loading ? 'SUBMITTING REPORT...' : 'SUBMIT INCIDENT REPORT'}
+                  {loading ? tScreens('report.submitting') : tScreens('report.submit_incident')}
                 </Text>
               </View>
             </TouchableOpacity>
 
             {loading && (
               <View style={styles.loadingStatus}>
-                <Text style={styles.loadingText}>📍 Getting your location...</Text>
-                <Text style={styles.loadingSubtext}>Please wait while we prepare your report</Text>
+                <Text style={styles.loadingText}>{tScreens('report.getting_location')}</Text>
+                <Text style={styles.loadingSubtext}>{tScreens('report.please_wait')}</Text>
               </View>
             )}
           </View>
