@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const SosSignal = require('../../models/SosSignal');
 const Disaster = require('../../models/Disaster');
 const { authenticateToken, requireResponder } = require('../../middleware/auth');
+const notificationService = require('../../services/NotificationService');
 const router = express.Router();
 
 // Apply authentication middleware to all routes
@@ -280,6 +281,7 @@ router.put('/:id/assign', async (req, res) => {
     // Update signal
     sosSignal.assigned_responder = responder_id;
     sosSignal.status = 'acknowledged';
+    sosSignal.updated_at = new Date();
     
     if (notes) {
       sosSignal.notes.push({
@@ -291,10 +293,21 @@ router.put('/:id/assign', async (req, res) => {
 
     await sosSignal.save();
 
+    // Send notifications to the assigned responder
+    const notificationResult = await notificationService.notifyResponderAssignment(
+      sosSignal,
+      responder_id,
+      `${req.user.role} ${req.user.userId}`,
+      notes
+    );
+
+    console.log('[SOS ASSIGN] Notification result:', notificationResult);
+
     res.json({
       success: true,
       message: "Responder assigned successfully",
-      data: sosSignal
+      data: sosSignal,
+      notifications: notificationResult
     });
 
   } catch (error) {
@@ -357,6 +370,14 @@ router.put('/:id/status', async (req, res) => {
     });
 
     await sosSignal.save();
+
+    // Send status update notification
+    await notificationService.notifyStatusUpdate(
+      sosSignal,
+      previousStatus,
+      status,
+      `${req.user.role} ${req.user.userId}`
+    );
 
     res.json({
       success: true,
@@ -454,6 +475,7 @@ router.post('/:id/escalate', async (req, res) => {
     }
 
     // Update escalation
+    const previousLevel = sosSignal.escalation_level;
     sosSignal.escalation_level = escalation_level;
     if (escalation_level > 0 && !sosSignal.auto_escalated_at) {
       sosSignal.auto_escalated_at = new Date();
@@ -474,6 +496,14 @@ router.post('/:id/escalate', async (req, res) => {
     });
 
     await sosSignal.save();
+
+    // Send escalation notification
+    await notificationService.notifyEscalation(
+      sosSignal,
+      previousLevel,
+      escalation_level,
+      `${req.user.role} ${req.user.userId}`
+    );
 
     res.json({
       success: true,
