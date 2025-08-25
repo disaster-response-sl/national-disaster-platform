@@ -91,6 +91,9 @@ const SOSDashboard: React.FC = () => {
   // Selected signal for details
   const [selectedSignal, setSelectedSignal] = useState<SOSSignal | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedResponder, setSelectedResponder] = useState('');
+  const [assignNotes, setAssignNotes] = useState('');
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -704,9 +707,22 @@ const SOSDashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Status</label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedSignal.status)}`}>
-                    {selectedSignal.status.replace('_', ' ').toUpperCase()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedSignal.status)}`}>
+                      {selectedSignal.status.replace('_', ' ').toUpperCase()}
+                    </span>
+                    <select
+                      value={selectedSignal.status}
+                      onChange={(e) => updateSignalStatus(selectedSignal._id, e.target.value as any, 'Status updated via dashboard')}
+                      className="text-xs border border-gray-300 rounded px-2 py-1"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="acknowledged">Acknowledged</option>
+                      <option value="responding">Responding</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="false_alarm">False Alarm</option>
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Priority</label>
@@ -779,11 +795,16 @@ const SOSDashboard: React.FC = () => {
             
             <div className="px-6 py-4 border-t border-gray-200 flex gap-2">
               <button
-                onClick={() => assignResponder(selectedSignal._id, 'admin_seed', 'Assigned via dashboard')}
+                onClick={() => {
+                  setSelectedResponder('');
+                  setAssignNotes('');
+                  setShowAssignModal(true);
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={!!selectedSignal.assigned_responder}
               >
                 <UserCheck className="w-4 h-4" />
-                Assign Responder
+                {selectedSignal.assigned_responder ? 'Already Assigned' : 'Assign Responder'}
               </button>
               <button
                 onClick={() => escalateSignal(selectedSignal._id, (selectedSignal.escalation_level || 0) + 1, 'Manual escalation')}
@@ -797,6 +818,75 @@ const SOSDashboard: React.FC = () => {
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Responder Modal */}
+      {showAssignModal && selectedSignal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Assign Responder</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Responder
+                </label>
+                <select
+                  value={selectedResponder}
+                  onChange={(e) => setSelectedResponder(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Choose a responder...</option>
+                  <option value="admin_seed">Admin Seed (Emergency Coordinator)</option>
+                  <option value="responder001">Responder 001 (Field Team Alpha)</option>
+                  <option value="responder002">Responder 002 (Medical Team)</option>
+                  <option value="responder003">Responder 003 (Fire Department)</option>
+                  <option value="responder004">Responder 004 (Police Unit)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assignment Notes
+                </label>
+                <textarea
+                  value={assignNotes}
+                  onChange={(e) => setAssignNotes(e.target.value)}
+                  placeholder="Add any notes for this assignment..."
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={async () => {
+                  if (selectedResponder) {
+                    await assignResponder(selectedSignal._id, selectedResponder, assignNotes || 'Assigned via dashboard');
+                    setShowAssignModal(false);
+                    setSelectedResponder('');
+                    setAssignNotes('');
+                  }
+                }}
+                disabled={!selectedResponder}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Assign Responder
+              </button>
+              <button
+                onClick={() => {
+                  setShowAssignModal(false);
+                  setSelectedResponder('');
+                  setAssignNotes('');
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
               </button>
             </div>
           </div>
