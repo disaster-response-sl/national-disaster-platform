@@ -27,6 +27,14 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   const { t } = useTranslation();
   const { currentLanguage, supportedLanguages, changeLanguage } = useLanguage();
 
+  // Debug logging
+  console.log('🌐 LanguageSelector rendered:', {
+    visible,
+    currentLanguage,
+    supportedLanguagesCount: supportedLanguages?.length,
+    supportedLanguages,
+  });
+
   const handleLanguageSelect = async (languageCode: string) => {
     if (languageCode !== currentLanguage) {
       await changeLanguage(languageCode);
@@ -70,11 +78,18 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>
-          {t('settings:language.select')}
+          {t('language.select') || 'Select Language'}
         </Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Text style={styles.closeButtonText}>✕</Text>
         </TouchableOpacity>
+      </View>
+      
+      {/* Debug info */}
+      <View style={{ padding: 10, backgroundColor: '#f0f0f0' }}>
+        <Text style={{ fontSize: 12, color: '#666' }}>
+          Debug: Languages({supportedLanguages?.length || 0}), Current: {currentLanguage}
+        </Text>
       </View>
       
       <ScrollView style={styles.languageList} showsVerticalScrollIndicator={false}>
@@ -83,7 +98,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       
       <View style={styles.footer}>
         <Text style={styles.currentLanguageText}>
-          {t('settings:language.current')}: {t(`settings:language.${currentLanguage}`)}
+          {t('language.current') || 'Current'}: {t(`language.${currentLanguage}`) || currentLanguage.toUpperCase()}
         </Text>
       </View>
     </View>
@@ -132,6 +147,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     width: width * 0.85,
+    minHeight: 300,
     maxHeight: height * 0.75,
     elevation: 20,
     shadowColor: '#000',
@@ -144,8 +160,9 @@ const styles = StyleSheet.create({
     zIndex: 10000,
   },
   container: {
-    flex: 1,
     backgroundColor: 'white',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -175,8 +192,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   languageList: {
-    flex: 1,
     paddingHorizontal: 20,
+    minHeight: 180,
+    maxHeight: 300,
   },
   languageOption: {
     flexDirection: 'row',
