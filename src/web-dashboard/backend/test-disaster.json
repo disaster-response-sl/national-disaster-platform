@@ -1,0 +1,28 @@
+{
+  "title": "Flash Flood in Colombo",
+  "type": "flood",
+  "severity": "high",
+  "description": "Heavy rainfall has caused flash flooding in several areas of Colombo. Water levels are rising rapidly and evacuation may be required for low-lying areas.",
+  "location": {
+    "lat": 6.9271,
+    "lng": 79.8612
+  },
+  "zones": [
+    {
+      "zone_name": "Colombo Central",
+      "boundary_coordinates": [[6.9271, 79.8612], [6.9300, 79.8650], [6.9250, 79.8700], [6.9220, 79.8650]],
+      "estimated_population": 15000,
+      "area_km2": 2.5,
+      "risk_level": "high"
+    }
+  ],
+  "priority_level": "high",
+  "incident_commander": "John Silva",
+  "contact_number": "+94 11 234 5678",
+  "reporting_agency": "Disaster Management Centre",
+  "public_alert": true,
+  "alert_message": "Flash flood warning: Avoid travel to Colombo Central area. Seek higher ground if in affected zones.",
+  "evacuation_required": true,
+  "evacuation_zones": ["Colombo Central"],
+  "estimated_duration": 12
+}
