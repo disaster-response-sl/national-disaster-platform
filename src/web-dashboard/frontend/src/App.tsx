@@ -3,6 +3,8 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
+import SOSDashboard from './components/SOSDashboard';
+import DisasterManagement from './components/DisasterManagement';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -19,6 +21,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/sos" 
+                element={
+                  <ProtectedRoute>
+                    <SOSDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/disasters" 
+                element={
+                  <ProtectedRoute>
+                    <DisasterManagement />
                   </ProtectedRoute>
                 } 
               />

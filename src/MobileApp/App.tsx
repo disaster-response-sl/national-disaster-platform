@@ -1,5 +1,5 @@
 // App.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -10,11 +10,17 @@ import ReportScreen from './screens/ReportScreen';
 import ChatScreen from './screens/ChatScreen';
 import RiskMapScreen from './screens/RiskMapScreen';
 import ConsentManagementScreen from './screens/ConsentManagementScreen';
+import NotificationService from './services/NotificationService';
 
 const Stack = createNativeStackNavigator();
 
-function App(): JSX.Element {
+const App: React.FC = () => {
   const isDarkMode = useColorScheme() === 'dark';
+
+  useEffect(() => {
+    // Initialize notification service when app starts
+    console.log('🚀 Initializing notification service...');
+  }, []);
 
   return (
     <NavigationContainer>
@@ -81,7 +87,7 @@ function App(): JSX.Element {
       </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
 
 export default App;
 

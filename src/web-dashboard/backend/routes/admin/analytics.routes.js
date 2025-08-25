@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Disaster = require('../../models/Disaster');
-const { authenticateToken, requireAdmin } = require('../../middleware/auth');
+const { authenticateToken, requireResponder } = require('../../middleware/auth');
 
 // GET /api/admin/analytics/statistics - Dashboard statistics
-router.get('/statistics', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/statistics', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
@@ -135,7 +135,7 @@ router.get('/statistics', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // GET /api/admin/disasters/timeline - Timeline view of disasters
-router.get('/timeline', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/timeline', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { startDate, endDate, status, type, limit = 50 } = req.query;
 
@@ -157,11 +157,13 @@ router.get('/timeline', authenticateToken, requireAdmin, async (req, res) => {
 
     // Group by date for better visualization
     const groupedTimeline = timeline.reduce((acc, disaster) => {
-      const date = disaster.createdAt.toDateString();
-      if (!acc[date]) {
-        acc[date] = [];
+      if (disaster.createdAt) {
+        const date = disaster.createdAt.toDateString();
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(disaster);
       }
-      acc[date].push(disaster);
       return acc;
     }, {});
 
@@ -182,7 +184,7 @@ router.get('/timeline', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // GET /api/admin/disasters/zones-overlap - Check for overlapping zones
-router.get('/zones-overlap', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/zones-overlap', authenticateToken, requireResponder, async (req, res) => {
   try {
     const disasters = await Disaster.find({ 
       status: { $in: ['active', 'monitoring'] },
@@ -245,7 +247,7 @@ router.get('/zones-overlap', authenticateToken, requireAdmin, async (req, res) =
 });
 
 // GET /api/admin/disasters/resource-summary - Resource requirements summary
-router.get('/resource-summary', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/resource-summary', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { status = 'active,monitoring' } = req.query;
 
