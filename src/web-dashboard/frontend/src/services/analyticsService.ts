@@ -8,6 +8,9 @@ export async function getDashboardStatistics(token: string) {
       'Content-Type': 'application/json'
     }
   });
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -19,6 +22,9 @@ export async function getTimeline(token: string, params: Record<string, string> 
       'Content-Type': 'application/json'
     }
   });
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -29,6 +35,9 @@ export async function getZonesOverlap(token: string) {
       'Content-Type': 'application/json'
     }
   });
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -40,5 +49,8 @@ export async function getResourceSummary(token: string, params: Record<string, s
       'Content-Type': 'application/json'
     }
   });
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
   return res.json();
 }

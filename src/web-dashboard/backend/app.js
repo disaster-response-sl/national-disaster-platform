@@ -85,6 +85,8 @@ mongoose.connect(mongoUri)
   });
 
 // Start the server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Server accessible at: http://localhost:${PORT}`);
+  console.log(`Server accessible at: http://127.0.0.1:${PORT}`);
 });

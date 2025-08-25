@@ -6,7 +6,7 @@ import { canCreateResources, canAllocateResources } from '../../utils/permission
 import { Package, Users, TrendingUp, Activity, AlertCircle, Plus, Truck, BarChart3 } from 'lucide-react';
 import ResourceModal from './ResourceModal';
 import QuickAllocationModal from './QuickAllocationModal';
-import GenerateReportModal from './GenerateReportModal';
+// import GenerateReportModal from './GenerateReportModal';
 import toast from 'react-hot-toast';
 
 const ResourceOverview: React.FC = () => {
@@ -16,7 +16,7 @@ const ResourceOverview: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [showQuickAllocationModal, setShowQuickAllocationModal] = useState(false);
-  const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
+  // const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
 
   const handleRefresh = () => {
     fetchMetrics();
@@ -96,7 +96,7 @@ const ResourceOverview: React.FC = () => {
           </button>
         )}
         <button 
-          onClick={() => setShowGenerateReportModal(true)}
+          onClick={() => toast('Report generation temporarily disabled for maintenance')}
           className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border-2 border-dashed border-purple-300 transition-colors"
         >
           <div className="text-center">
@@ -271,11 +271,11 @@ const ResourceOverview: React.FC = () => {
         onSuccess={handleRefresh}
       />
 
-      {/* Generate Report Modal */}
-      <GenerateReportModal
+      {/* Generate Report Modal - Temporarily Disabled */}
+      {/* <GenerateReportModal
         isOpen={showGenerateReportModal}
         onClose={() => setShowGenerateReportModal(false)}
-      />
+      /> */}
     </div>
   );
 };
