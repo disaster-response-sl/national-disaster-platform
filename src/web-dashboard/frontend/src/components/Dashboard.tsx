@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Shield, Users, AlertTriangle, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 import NDXDashboard from './NDXDashboard';
+import NotificationBell from './NotificationBell';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -56,6 +57,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <NotificationBell />
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <div className="text-sm font-medium text-gray-900">
