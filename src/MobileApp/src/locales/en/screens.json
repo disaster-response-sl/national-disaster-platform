@@ -1,0 +1,71 @@
+{
+  "login": {
+    "title": "Login",
+    "individual_id": "Individual ID",
+    "otp": "OTP",
+    "enter_id": "Enter your Individual ID",
+    "enter_otp": "Enter OTP",
+    "login_button": "Login",
+    "forgot_password": "Forgot Password?",
+    "register": "Register",
+    "invalid_credentials": "Invalid credentials",
+    "login_success": "Login successful",
+    "login_failed": "Login failed"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "current_location": "Current Location",
+    "weather": "Weather",
+    "risk_status": "Risk Status",
+    "recent_alerts": "Recent Alerts",
+    "no_alerts": "No recent alerts",
+    "emergency_contacts": "Emergency Contacts",
+    "quick_actions": "Quick Actions",
+    "view_all": "View All",
+    "temperature": "{{temp}}°C",
+    "humidity": "Humidity: {{humidity}}%",
+    "wind_speed": "Wind: {{speed}} km/h"
+  },
+  "report": {
+    "title": "Report Incident",
+    "type": "Incident Type",
+    "description": "Description",
+    "location": "Location",
+    "severity": "Severity",
+    "add_photo": "Add Photo",
+    "current_location": "Use Current Location",
+    "submit_report": "Submit Report",
+    "report_success": "Report submitted successfully",
+    "report_failed": "Failed to submit report",
+    "required_fields": "Please fill all required fields"
+  },
+  "sos": {
+    "title": "Emergency SOS",
+    "emergency_alert": "Emergency Alert",
+    "send_sos": "Send SOS",
+    "sos_sent": "SOS signal sent successfully",
+    "sos_failed": "Failed to send SOS",
+    "confirm_sos": "Are you sure you want to send an emergency SOS?",
+    "emergency_contacts_notified": "Emergency contacts have been notified",
+    "location_shared": "Your location has been shared with authorities"
+  },
+  "risk_map": {
+    "title": "Risk Map",
+    "legend": "Legend",
+    "zoom_in": "Zoom In",
+    "zoom_out": "Zoom Out",
+    "my_location": "My Location",
+    "incident_details": "Incident Details",
+    "evacuation_routes": "Evacuation Routes",
+    "safe_zones": "Safe Zones"
+  },
+  "chat": {
+    "title": "Emergency Chat",
+    "type_message": "Type a message...",
+    "send": "Send",
+    "online": "Online",
+    "offline": "Offline",
+    "connecting": "Connecting...",
+    "emergency_operators": "Emergency Operators"
+  }
+}

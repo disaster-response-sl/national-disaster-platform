@@ -1,0 +1,47 @@
+{
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "notifications": "Notifications",
+    "emergency_contacts": "Emergency Contacts",
+    "privacy": "Privacy",
+    "about": "About",
+    "logout": "Logout",
+    "account": "Account",
+    "profile": "Profile"
+  },
+  "language": {
+    "title": "Language Settings",
+    "current": "Current Language",
+    "select": "Select Language",
+    "english": "English",
+    "sinhala": "සිංහල",
+    "tamil": "தமிழ்",
+    "change_success": "Language changed successfully",
+    "restart_required": "App restart may be required for full effect"
+  },
+  "notifications": {
+    "title": "Notification Settings",
+    "emergency_alerts": "Emergency Alerts",
+    "weather_updates": "Weather Updates",
+    "incident_reports": "Incident Reports",
+    "evacuation_notices": "Evacuation Notices",
+    "enable_all": "Enable All",
+    "disable_all": "Disable All",
+    "sound": "Sound",
+    "vibration": "Vibration",
+    "push_notifications": "Push Notifications"
+  },
+  "profile": {
+    "title": "Profile",
+    "name": "Name",
+    "phone": "Phone Number",
+    "email": "Email",
+    "address": "Address",
+    "emergency_contact": "Emergency Contact",
+    "blood_type": "Blood Type",
+    "medical_conditions": "Medical Conditions",
+    "save_profile": "Save Profile",
+    "profile_updated": "Profile updated successfully"
+  }
+}

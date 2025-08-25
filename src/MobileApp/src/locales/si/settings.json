@@ -1,0 +1,47 @@
+{
+  "settings": {
+    "title": "සැකසුම්",
+    "language": "භාෂාව",
+    "notifications": "දැනුම්දීම්",
+    "emergency_contacts": "හදිසි සම්බන්ධතා",
+    "privacy": "රහස්‍යතාව",
+    "about": "ගැන",
+    "logout": "ඉවත්වන්න",
+    "account": "ගිණුම",
+    "profile": "පැතිකඩ"
+  },
+  "language": {
+    "title": "භාෂා සැකසුම්",
+    "current": "වර්තමාන භාෂාව",
+    "select": "භාෂාව තෝරන්න",
+    "english": "English",
+    "sinhala": "සිංහල",
+    "tamil": "தமிழ்",
+    "change_success": "භාෂාව සාර්ථකව වෙනස් කරන ලදි",
+    "restart_required": "සම්පූර්ණ ප්‍රතිඵලයක් සඳහා යෙදුම නැවත ආරම්භ කිරීම අවශ්‍ය විය හැක"
+  },
+  "notifications": {
+    "title": "දැනුම්දීම් සැකසුම්",
+    "emergency_alerts": "හදිසි අනතුරු ඇඟවීම්",
+    "weather_updates": "කාලගුණ යාවත්කාලීන",
+    "incident_reports": "සිදුවීම් වාර්තා",
+    "evacuation_notices": "ඉවත්වීමේ දැනුම්දීම්",
+    "enable_all": "සියල්ල සක්‍රීය කරන්න",
+    "disable_all": "සියල්ල අක්‍රීය කරන්න",
+    "sound": "ශබ්දය",
+    "vibration": "කම්පනය",
+    "push_notifications": "තල්ලු දැනුම්දීම්"
+  },
+  "profile": {
+    "title": "පැතිකඩ",
+    "name": "නම",
+    "phone": "දුරකථන අංකය",
+    "email": "ඊමේල්",
+    "address": "ලිපිනය",
+    "emergency_contact": "හදිසි සම්බන්ධතාව",
+    "blood_type": "රුධිර වර්ගය",
+    "medical_conditions": "වෛද්‍ය තත්ත්වයන්",
+    "save_profile": "පැතිකඩ සුරකින්න",
+    "profile_updated": "පැතිකඩ සාර්ථකව යාවත්කාලීන කරන ලදි"
+  }
+}

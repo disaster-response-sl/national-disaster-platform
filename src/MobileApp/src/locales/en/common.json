@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "Disaster Response",
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "submit": "Submit",
+    "close": "Close",
+    "next": "Next",
+    "previous": "Previous",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "report": "Report",
+    "riskMap": "Risk Map", 
+    "sos": "SOS",
+    "chat": "Chat",
+    "settings": "Settings"
+  },
+  "time": {
+    "now": "Now",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "minutes_ago": "{{count}} minutes ago",
+    "hours_ago": "{{count}} hours ago",
+    "days_ago": "{{count}} days ago"
+  },
+  "severity": {
+    "low": "Low",
+    "medium": "Medium", 
+    "high": "High",
+    "critical": "Critical",
+    "emergency": "Emergency"
+  },
+  "disaster_types": {
+    "flood": "Flood",
+    "landslide": "Landslide",
+    "cyclone": "Cyclone",
+    "fire": "Fire",
+    "earthquake": "Earthquake",
+    "drought": "Drought",
+    "tsunami": "Tsunami"
+  }
+}

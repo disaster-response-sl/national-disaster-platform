@@ -1,0 +1,71 @@
+{
+  "login": {
+    "title": "உள்நுழைவு",
+    "individual_id": "தனிப்பட்ட அடையாள எண்",
+    "otp": "OTP",
+    "enter_id": "உங்கள் தனிப்பட்ட அடையாள எண்ணை உள்ளிடவும்",
+    "enter_otp": "OTP ஐ உள்ளிடவும்",
+    "login_button": "உள்நுழைய",
+    "forgot_password": "கடவுச்சொல்லை மறந்துவிட்டீர்களா?",
+    "register": "பதிவு செய்யவும்",
+    "invalid_credentials": "தவறான நற்சான்றிதழ்கள்",
+    "login_success": "வெற்றிகரமான உள்நுழைவு",
+    "login_failed": "உள்நுழைவு தோல்வியடைந்தது"
+  },
+  "dashboard": {
+    "welcome": "வணக்கம், {{name}}",
+    "current_location": "தற்போதைய இடம்",
+    "weather": "வானிலை",
+    "risk_status": "ஆபத்து நிலை",
+    "recent_alerts": "சமீபத்திய எச்சரிக்கைகள்",
+    "no_alerts": "சமீபத்திய எச்சரிக்கைகள் இல்லை",
+    "emergency_contacts": "அவசர தொடர்புகள்",
+    "quick_actions": "விரைவு செயல்கள்",
+    "view_all": "அனைத்தையும் பார்க்கவும்",
+    "temperature": "{{temp}}°C",
+    "humidity": "ஈரப்பதம்: {{humidity}}%",
+    "wind_speed": "காற்று: {{speed}} km/h"
+  },
+  "report": {
+    "title": "சம்பவத்தை புகாரளிக்கவும்",
+    "type": "சம்பவ வகை",
+    "description": "விளக்கம்",
+    "location": "இடம்",
+    "severity": "தீவிரம்",
+    "add_photo": "புகைப்படம் சேர்க்கவும்",
+    "current_location": "தற்போதைய இடத்தைப் பயன்படுத்தவும்",
+    "submit_report": "புகாரை சமர்ப்பிக்கவும்",
+    "report_success": "புகார் வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது",
+    "report_failed": "புகார் சமர்ப்பிக்க முடியவில்லை",
+    "required_fields": "தயவுசெய்து அனைத்து தேவையான புலங்களையும் நிரப்பவும்"
+  },
+  "sos": {
+    "title": "அவசரகால SOS",
+    "emergency_alert": "அவசரகால எச்சரிக்கை",
+    "send_sos": "SOS அனுப்பவும்",
+    "sos_sent": "SOS சமிக்ஞை வெற்றிகரமாக அனுப்பப்பட்டது",
+    "sos_failed": "SOS அனுப்ப முடியவில்லை",
+    "confirm_sos": "நீங்கள் அவசரகால SOS அனுப்ப விரும்புகிறீர்களா?",
+    "emergency_contacts_notified": "அவசர தொடர்புகளுக்கு அறிவிக்கப்பட்டுள்ளது",
+    "location_shared": "உங்கள் இடம் அதிகாரிகளுடன் பகிரப்பட்டுள்ளது"
+  },
+  "risk_map": {
+    "title": "ஆபத்து வரைபடம்",
+    "legend": "குறியீடு",
+    "zoom_in": "பெரிதாக்கு",
+    "zoom_out": "சிறிதாக்கு",
+    "my_location": "என் இடம்",
+    "incident_details": "சம்பவ விவரங்கள்",
+    "evacuation_routes": "வெளியேற்ற வழிகள்",
+    "safe_zones": "பாதுகாப்பான பகுதிகள்"
+  },
+  "chat": {
+    "title": "அவசரகால அரட்டை",
+    "type_message": "ஒரு செய்தியை தட்டச்சு செய்யவும்...",
+    "send": "அனுப்பு",
+    "online": "ஆன்லைன்",
+    "offline": "ஆஃப்லைன்",
+    "connecting": "இணைக்கிறது...",
+    "emergency_operators": "அவசரகால ஆபரேட்டர்கள்"
+  }
+}

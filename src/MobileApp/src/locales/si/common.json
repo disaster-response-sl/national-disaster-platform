@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "ආපදා ප්‍රතිචාර",
+    "loading": "පූරණය වෙමින්...",
+    "error": "දෝෂය",
+    "retry": "නැවත උත්සාහ කරන්න",
+    "cancel": "අවලංගු කරන්න",
+    "confirm": "තහවුරු කරන්න",
+    "save": "සුරකින්න",
+    "submit": "ඉදිරිපත් කරන්න",
+    "close": "වසන්න",
+    "next": "ඊළඟ",
+    "previous": "පෙර",
+    "ok": "හරි",
+    "yes": "ඔව්",
+    "no": "නැහැ"
+  },
+  "navigation": {
+    "dashboard": "පැනලය",
+    "report": "වාර්තාව",
+    "riskMap": "අවදානම් සිතියම", 
+    "sos": "හදිසි",
+    "chat": "කතාබස්",
+    "settings": "සැකසුම්"
+  },
+  "time": {
+    "now": "දැන්",
+    "today": "අද",
+    "yesterday": "ඊයේ",
+    "minutes_ago": "මිනිත්තු {{count}}කට පෙර",
+    "hours_ago": "පැය {{count}}කට පෙර",
+    "days_ago": "දින {{count}}කට පෙර"
+  },
+  "severity": {
+    "low": "අඩු",
+    "medium": "මධ්‍යම", 
+    "high": "ඉහළ",
+    "critical": "ඉතා වැදගත්",
+    "emergency": "හදිසි"
+  },
+  "disaster_types": {
+    "flood": "ගංවතුර",
+    "landslide": "නායයාම",
+    "cyclone": "සුළි කුණාටුව",
+    "fire": "ගින්න",
+    "earthquake": "භූමිකම්පනය",
+    "drought": "නියඟය",
+    "tsunami": "සුනාමිය"
+  }
+}
