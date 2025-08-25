@@ -293,6 +293,14 @@ router.put('/:id/assign', async (req, res) => {
 
     await sosSignal.save();
 
+    console.log('[DEBUG] About to call notificationService.notifyResponderAssignment...');
+    console.log('[DEBUG] Parameters:', {
+      sosSignalId: sosSignal._id,
+      responderId: responder_id,
+      assignedBy: `${req.user.role} ${req.user.userId}`,
+      notes: notes
+    });
+
     // Send notifications to the assigned responder
     const notificationResult = await notificationService.notifyResponderAssignment(
       sosSignal,
@@ -302,6 +310,7 @@ router.put('/:id/assign', async (req, res) => {
     );
 
     console.log('[SOS ASSIGN] Notification result:', notificationResult);
+    console.log('[DEBUG] Finished notification service call');
 
     res.json({
       success: true,
