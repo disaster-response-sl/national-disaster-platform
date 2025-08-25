@@ -39,7 +39,6 @@ const DisasterSchema = new mongoose.Schema({
   disaster_code: {
     type: String,
     unique: true,
-    required: true,
     match: /^DIS-\d{4}-\d{6}$/
   },
   zones: [{
@@ -157,8 +156,6 @@ const DisasterSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-DisasterSchema.index({ "zones.boundary_coordinates": "2dsphere" });
-DisasterSchema.index({ "location": "2dsphere" });
 DisasterSchema.index({ status: 1, priority_level: 1 });
 DisasterSchema.index({ type: 1, severity: 1 });
 DisasterSchema.index({ timestamp: -1 });
