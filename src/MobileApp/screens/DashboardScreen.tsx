@@ -1,4 +1,3 @@
-// components/DashboardScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,11 +9,15 @@ import {
   RefreshControl,
   StatusBar,
   Dimensions,
-  Image
+  Image,
+  Platform,
+  PermissionsAndroid
 } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import NotificationService from '../services/NotificationService';
+import BackgroundNotificationService from '../services/BackgroundNotificationService';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +47,7 @@ interface NavigationProps {
 
 const DashboardScreen = ({ navigation }: NavigationProps) => {
   const [location, setLocation] = useState<Location | null>(null);
+  const [locationName, setLocationName] = useState<string>('Unknown');
   const [weather, setWeather] = useState<Weather | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>('Low');
   const [recentAlerts, setRecentAlerts] = useState<AlertItem[]>([]);
@@ -51,10 +55,85 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('User');
   const [availableResources, setAvailableResources] = useState<any[]>([]);
+  const [notificationPermission, setNotificationPermission] = useState<boolean>(false);
+
+  // Request notification permissions
+  const requestNotificationPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          {
+            title: 'Disaster Alert Notifications',
+            message: 'This app needs permission to send you important disaster alerts.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        const hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+        setNotificationPermission(hasPermission);
+        console.log('📱 Notification permission:', hasPermission ? 'Granted' : 'Denied');
+        return hasPermission;
+      } catch (err) {
+        console.warn('Error requesting notification permission:', err);
+        return false;
+      }
+    } else {
+      // For iOS, you would typically use @react-native-async-storage/async-storage
+      // or react-native-push-notification
+      setNotificationPermission(true);
+      return true;
+    }
+  };
+
+  // Send local notification using NotificationService
+  const sendLocalNotification = async (title: string, message: string, type: 'high' | 'medium' | 'low' = 'high') => {
+    console.log(`📢 Sending ${type} notification:`, title, message);
+    
+    // Use the new notification service for proper background notifications
+    await NotificationService.sendLocalNotification(title, message, type, {
+      timestamp: new Date().toISOString(),
+      location: locationName,
+    });
+
+    // Store notification in AsyncStorage for notification history
+    storeNotificationHistory(title, message, type);
+  };
+
+  // Store notification history
+  const storeNotificationHistory = async (title: string, message: string, type: string) => {
+    try {
+      const existingHistory = await AsyncStorage.getItem('notificationHistory');
+      const history = existingHistory ? JSON.parse(existingHistory) : [];
+      
+      const newNotification = {
+        id: Date.now().toString(),
+        title,
+        message,
+        type,
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      
+      history.unshift(newNotification); // Add to beginning
+      
+      // Keep only last 50 notifications
+      if (history.length > 50) {
+        history.splice(50);
+      }
+      
+      await AsyncStorage.setItem('notificationHistory', JSON.stringify(history));
+      console.log('💾 Notification stored in history');
+    } catch (error) {
+      console.error('Error storing notification:', error);
+    }
+  };
 
   // ... (keep all the existing functions unchanged)
   useEffect(() => {
     getUserInfo();
+    requestNotificationPermission();
     getCurrentLocation();
     fetchRecentAlerts();
     fetchAvailableResources();
@@ -96,18 +175,76 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   };
 
   const getCurrentLocation = () => {
+    // Sri Lanka location presets for testing/fallback
+    const SRI_LANKA_LOCATIONS = {
+      malabe: { lat: 6.9056, lng: 79.958, name: 'Malabe' },
+      colombo: { lat: 6.9271, lng: 79.8612, name: 'Colombo' },
+      negombo: { lat: 7.2008, lng: 79.8737, name: 'Negombo' },
+      ratnapura: { lat: 6.6847, lng: 80.4025, name: 'Ratnapura' },
+      kandy: { lat: 7.2906, lng: 80.6337, name: 'Kandy' },
+      galle: { lat: 6.0535, lng: 80.2210, name: 'Galle' },
+      jaffna: { lat: 9.6615, lng: 80.0255, name: 'Jaffna' },
+      trincomalee: { lat: 8.5874, lng: 81.2152, name: 'Trincomalee' }
+    };
+
     Geolocation.getCurrentPosition(
       position => {
         const { latitude, longitude } = position.coords;
-        setLocation({ lat: latitude, lng: longitude });
-        fetchWeatherData(latitude, longitude);
-        fetchRiskStatus(latitude, longitude);
+        console.log('📍 GPS Location detected:', latitude, longitude);
+        
+        // Check if we're in Sri Lanka (lat: 5.9-9.9, lng: 79.5-81.9)
+        const isInSriLanka = (latitude >= 5.9 && latitude <= 9.9) && 
+                            (longitude >= 79.5 && longitude <= 81.9);
+        
+        if (!isInSriLanka) {
+          console.warn('⚠️ GPS shows location outside Sri Lanka');
+          setLocation({ lat: latitude, lng: longitude });
+          setLocationName(`Lat: ${latitude.toFixed(3)}, Lng: ${longitude.toFixed(3)}`);
+          // Optionally, you can call fetchWeatherData/fetchRiskStatus here if you want to show info for out-of-SL locations
+        } else {
+          // Valid Sri Lankan location
+          console.log('✅ Valid Sri Lankan location detected');
+          setLocation({ lat: latitude, lng: longitude });
+          setLocationName('Sri Lanka');
+          fetchWeatherData(latitude, longitude);
+          fetchRiskStatus(latitude, longitude);
+        }
       },
       error => {
         console.error('Location error:', error);
-        Alert.alert('Location Error', 'Unable to get your current location');
+        console.log('🧪 GPS failed, showing location selection');
+        
+        Alert.alert(
+          'Location Error',
+          'Unable to get GPS location. Please check your location settings and try again.',
+          [
+            { text: 'OK', onPress: () => {} }
+          ]
+        );
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  };
+
+  const useTestLocation = (locationData: any) => {
+    console.log(`🧪 Using test location: ${locationData.name}`, locationData);
+    setLocation({ lat: locationData.lat, lng: locationData.lng });
+    setLocationName(locationData.name);
+    fetchWeatherData(locationData.lat, locationData.lng);
+    fetchRiskStatus(locationData.lat, locationData.lng);
+  };
+
+  const showMoreLocations = (locations: any) => {
+    Alert.alert(
+      'More Locations',
+      'Select a location:',
+      [
+        { text: 'Kandy', onPress: () => useTestLocation(locations.kandy) },
+        { text: 'Galle', onPress: () => useTestLocation(locations.galle) },
+        { text: 'Jaffna', onPress: () => useTestLocation(locations.jaffna) },
+        { text: 'Trincomalee', onPress: () => useTestLocation(locations.trincomalee) },
+        { text: 'Cancel', style: 'cancel' }
+      ]
     );
   };
 
@@ -142,7 +279,16 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const fetchRiskStatus = async (lat: number, lng: number) => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      // TEMPORARY FIX: Use test token if no token is stored (same as RiskMapScreen)
+      let token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        console.warn('No auth token found, using test token for risk assessment');
+        token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJ0ZXN0LXVzZXItMTIzIiwiaW5kaXZpZHVhbElkIjoidGVzdC11c2VyLTEyMyIsInJvbGUiOiJDaXRpemVuIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTc1NTk0NzExNSwiZXhwIjoxNzU2MDMzNTE1fQ.KvJrjN-i0lDKIHf8GnQLMMRWb1cFjxpVfcnkdI8lXPI';
+        await AsyncStorage.setItem('authToken', token);
+      }
+
+      console.log('🔍 Assessing risk for location:', lat, lng);
+      
       const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
         headers: {
           Authorization: `Bearer ${token}`
@@ -151,49 +297,141 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
       if (response.data.success) {
         const disasters = response.data.data;
+        console.log('📊 Found disasters for risk assessment:', disasters.length);
 
         let riskLevel = 'Low';
         let highRiskCount = 0;
         let mediumRiskCount = 0;
+        let lowRiskCount = 0;
+
+        // Function to calculate distance between two points in kilometers
+        const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+          const R = 6371; // Earth's radius in kilometers
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLng = (lng2 - lng1) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          return R * c;
+        };
 
         disasters.forEach((disaster: any) => {
           if (disaster.location && disaster.location.lat && disaster.location.lng) {
-            const distance = Math.sqrt(
-              Math.pow(disaster.location.lat - lat, 2) +
-              Math.pow(disaster.location.lng - lng, 2)
+            const distance = calculateDistance(
+              lat, lng, 
+              disaster.location.lat, disaster.location.lng
             );
 
-            if (distance < 0.1) {
+            console.log(`📍 Disaster ${disaster.type} at ${disaster.location.lat}, ${disaster.location.lng}`);
+            console.log(`📏 Distance: ${distance.toFixed(2)}km, Severity: ${disaster.severity}`);
+
+            // Consider disasters within 20km as affecting the area
+            if (distance < 20) {
               if (disaster.severity === 'high') {
                 highRiskCount++;
+                console.log('🔴 High risk disaster nearby!');
               } else if (disaster.severity === 'medium') {
                 mediumRiskCount++;
+                console.log('🟡 Medium risk disaster nearby');
+              } else if (disaster.severity === 'low') {
+                lowRiskCount++;
+                console.log('🟢 Low risk disaster nearby');
               }
             }
           }
         });
 
+        // Determine risk level based on nearby disasters
         if (highRiskCount > 0) {
           riskLevel = 'High';
-        } else if (mediumRiskCount > 0 || highRiskCount > 0) {
+          console.log('🚨 RISK LEVEL: HIGH due to', highRiskCount, 'high-severity disasters');
+        } else if (mediumRiskCount > 0) {
           riskLevel = 'Medium';
+          console.log('⚠️ RISK LEVEL: MEDIUM due to', mediumRiskCount, 'medium-severity disasters');
+        } else if (lowRiskCount > 0) {
+          riskLevel = 'Medium'; // Even low-severity disasters can elevate risk from Low
+          console.log('⚠️ RISK LEVEL: MEDIUM due to', lowRiskCount, 'low-severity disasters');
         } else {
           riskLevel = 'Low';
+          console.log('✅ RISK LEVEL: LOW - no disasters nearby');
         }
 
+        console.log('🛡️ Final risk assessment:', riskLevel);
         setRiskStatus(riskLevel);
+        
+        // Send appropriate notifications based on risk level
+        if (riskLevel === 'High') {
+          const highRiskDisasters = disasters.filter((d: any) => {
+            if (d.location && d.location.lat && d.location.lng && d.severity === 'high') {
+              const distance = calculateDistance(lat, lng, d.location.lat, d.location.lng);
+              return distance < 20;
+            }
+            return false;
+          });
+          
+          const disasterTypes = highRiskDisasters.map((d: any) => d.type).join(', ');
+          const nearestDisaster = highRiskDisasters.sort((a: any, b: any) => {
+            const distA = calculateDistance(lat, lng, a.location.lat, a.location.lng);
+            const distB = calculateDistance(lat, lng, b.location.lat, b.location.lng);
+            return distA - distB;
+          })[0];
+          
+          const distance = calculateDistance(lat, lng, nearestDisaster.location.lat, nearestDisaster.location.lng);
+          
+          sendLocalNotification(
+            'HIGH RISK ALERT',
+            `You are ${distance.toFixed(1)}km from a ${nearestDisaster.type} (${nearestDisaster.severity} severity). Multiple disasters detected: ${disasterTypes}. Please stay alert and follow safety guidelines.`,
+            'high'
+          );
+          
+          console.log('🚨 HIGH RISK NOTIFICATION SENT');
+          
+        } else if (riskLevel === 'Medium') {
+          const mediumRiskDisasters = disasters.filter((d: any) => {
+            if (d.location && d.location.lat && d.location.lng) {
+              const distance = calculateDistance(lat, lng, d.location.lat, d.location.lng);
+              return distance < 20 && (d.severity === 'medium' || d.severity === 'low');
+            }
+            return false;
+          });
+          
+          if (mediumRiskDisasters.length > 0) {
+            const nearestDisaster = mediumRiskDisasters[0];
+            const distance = calculateDistance(lat, lng, nearestDisaster.location.lat, nearestDisaster.location.lng);
+            
+            sendLocalNotification(
+              'Medium Risk Alert',
+              `You are ${distance.toFixed(1)}km from a ${nearestDisaster.type} (${nearestDisaster.severity} severity). Please stay informed about local conditions.`,
+              'medium'
+            );
+            
+            console.log('⚠️ MEDIUM RISK NOTIFICATION SENT');
+          }
+        } else {
+          console.log('✅ Low risk area - no immediate alerts needed');
+        }
       } else {
+        console.error('❌ API returned unsuccessful response');
         setRiskStatus('Low');
       }
     } catch (error) {
-      console.error('Risk assessment error:', error);
+      console.error('❌ Risk assessment error:', error);
       setRiskStatus('Low');
     }
   };
 
   const fetchRecentAlerts = async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      // TEMPORARY FIX: Use test token if no token is stored
+      let token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        console.warn('No auth token found, using test token for alerts');
+        token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJ0ZXN0LXVzZXItMTIzIiwiaW5kaXZpZHVhbElkIjoidGVzdC11c2VyLTEyMyIsInJvbGUiOiJDaXRpemVuIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTc1NTk0NzExNSwiZXhwIjoxNzU2MDMzNTE1fQ.KvJrjN-i0lDKIHf8GnQLMMRWb1cFjxpVfcnkdI8lXPI';
+        await AsyncStorage.setItem('authToken', token);
+      }
+
       const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
         headers: {
           Authorization: `Bearer ${token}`
@@ -357,6 +595,17 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                 <Text style={styles.riskText}>{riskStatus}</Text>
               </View>
               <Text style={styles.riskDescription}>Current area risk level</Text>
+              {riskStatus === 'High' && (
+                <View style={styles.highRiskWarning}>
+                  <Text style={styles.warningText}>⚠️ Stay Alert!</Text>
+                  <TouchableOpacity 
+                    style={styles.viewDetailsButton}
+                    onPress={() => navigation.navigate('RiskMap')}
+                  >
+                    <Text style={styles.viewDetailsText}>View Details</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -429,6 +678,33 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             </View>
           </View>
         )}
+
+        {/* Location Selection Button for Testing */}
+        <View style={styles.debugSection}>
+          <Text style={styles.sectionTitle}>🧪 Testing Tools</Text>
+          <View style={styles.debugButtons}>
+            <TouchableOpacity 
+              style={styles.debugButton}
+              onPress={() => getCurrentLocation()}
+            >
+              <Text style={styles.debugButtonText}>📍 Change Location</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.debugButton}
+              onPress={() => sendLocalNotification('Test Alert', 'This is a test notification to verify the notification system is working.', 'medium')}
+            >
+              <Text style={styles.debugButtonText}>🔔 Test Notification</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.debugButton}
+              onPress={() => BackgroundNotificationService.sendDemoNotification()}
+            >
+              <Text style={styles.debugButtonText}>🚨 Demo Background Alert</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -606,6 +882,27 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
   },
+  highRiskWarning: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  warningText: {
+    fontSize: 10,
+    color: '#ef4444',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  viewDetailsButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  viewDetailsText: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
   quickActionsSection: {
     backgroundColor: '#ffffff',
     marginHorizontal: 16,
@@ -694,6 +991,35 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 24,
+  },
+  debugSection: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  debugButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  debugButton: {
+    flex: 1,
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

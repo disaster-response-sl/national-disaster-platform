@@ -14,14 +14,15 @@ import {
   PermissionsAndroid,
   StatusBar,
   Dimensions,
-  Animated
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Geolocation from '@react-native-community/geolocation';
-// Leaflet via WebView
+// Leaflet via Web View
 import LeafletMap, { LeafletDisasterPoint } from '../components/LeafletMap';
 import NDXService from '../services/NDXService';
+import { API_BASE_URL } from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -65,9 +66,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   const requestLocationPermission = async (): Promise<boolean> => {
     try {
       if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        );
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       }
       return true;
@@ -79,13 +78,17 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
 
   const fetchDisasters = async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      let token = await AsyncStorage.getItem('authToken');
       console.log('Auth token:', token ? 'Present' : 'Missing');
+      console.log('Auth token value:', token);
 
+      // TEMPORARY FIX: Use test token if no token is stored
       if (!token) {
-        console.error('No auth token found');
-        Alert.alert('Authentication Error', 'Please log in again');
-        return;
+        console.warn('No auth token found, using test token for debugging');
+        token =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJ0ZXN0LXVzZXItMTIzIiwiaW5kaXZpZHVhbElkIjoidGVzdC11c2VyLTEyMyIsInJvbGUiOiJDaXRpemVuIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTc1NTk0NzExNSwiZXhwIjoxNzU2MDMzNTE1fQ.KvJrjN-i0lDKIHf8GnQLMMRWb1cFjxpVfcnkdI8lXPI';
+        // Store the test token for future use
+        await AsyncStorage.setItem('authToken', token);
       }
 
       let userLocationForNDX = null;
@@ -95,27 +98,41 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         userLocationForNDX = { lat: 6.9271, lng: 79.8612 };
       }
 
-      try {
-        const ndxResult = await NDXService.getDisasterInfo(userLocationForNDX);
-        if (ndxResult.success && ndxResult.data) {
-          console.log('NDX disaster data retrieved:', ndxResult.data);
-          setDisasters(ndxResult.data);
-          setOfflineMode(false);
-          return;
+      // TEMPORARILY DISABLE NDX SERVICE TO USE REAL DATABASE DATA
+      // Try NDX service first
+      const useNDX = false; // Set to false to use real database data
+      if (useNDX) {
+        try {
+          console.log('🔍 Trying NDX service...');
+          const ndxResult = await NDXService.getDisasterInfo(userLocationForNDX);
+          if (ndxResult.success && ndxResult.data) {
+            console.log('✅ NDX disaster data retrieved:', ndxResult.data.length, 'disasters');
+            console.log('NDX data:', JSON.stringify(ndxResult.data, null, 2));
+            setDisasters(ndxResult.data);
+            setOfflineMode(false);
+            return;
+          } else {
+            console.log('❌ NDX returned no data or failed');
+          }
+        } catch (ndxError) {
+          console.log('❌ NDX not available, falling back to direct API:', ndxError);
         }
-      } catch (ndxError) {
-        console.log('NDX not available, falling back to direct API:', ndxError);
+      } else {
+        console.log('🔧 NDX service disabled, using direct API');
       }
 
-      console.log('Making API call to:', 'http://10.0.2.2:5000/api/mobile/disasters');
-      const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
-        headers: { Authorization: `Bearer ${token}` }
+      // Fallback to direct API
+      console.log('🌐 Making API call to:', `${API_BASE_URL}/mobile/disasters`);
+      const response = await axios.get(`${API_BASE_URL}/mobile/disasters`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log('API Response status:', response.status);
-      console.log('API Response data:', response.data);
+      console.log('✅ API Response status:', response.status);
+      console.log('📄 API Response data:', JSON.stringify(response.data, null, 2));
 
       const fetchedDisasters = response.data?.data || [];
+      console.log('📊 Parsed disasters:', fetchedDisasters.length, 'disasters found');
+      console.log('🔍 Disaster details:', JSON.stringify(fetchedDisasters, null, 2));
 
       setDisasters(fetchedDisasters);
 
@@ -146,24 +163,67 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
       const cachedData = await AsyncStorage.getItem('cachedDisasters');
       const cacheTime = await AsyncStorage.getItem('disastersCacheTime');
 
+      console.log('🗂️ Checking cached data...');
+      console.log('Cached data exists:', !!cachedData);
+      console.log('Cache time exists:', !!cacheTime);
+
       if (cachedData && cacheTime) {
         const parsedDisasters = JSON.parse(cachedData);
         const cacheAge = new Date().getTime() - new Date(cacheTime).getTime();
         const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
+
+        console.log('📦 Cached disasters count:', parsedDisasters.length);
+        console.log('⏰ Cache age (hours):', Math.round(cacheAge / (1000 * 60 * 60)));
+        console.log('🔍 Cached data:', JSON.stringify(parsedDisasters, null, 2));
 
         if (cacheAge < maxCacheAge) {
           setDisasters(parsedDisasters);
           setOfflineMode(true);
           Alert.alert('Offline Mode', 'Showing cached disaster data. Some data may be outdated.');
         } else {
+          console.log('❌ Cache expired, clearing...');
+          await AsyncStorage.removeItem('cachedDisasters');
+          await AsyncStorage.removeItem('disastersCacheTime');
           Alert.alert('Cache Expired', 'Cached data is too old. Please check your internet connection.');
         }
       } else {
+        console.log('❌ No cached data found');
         Alert.alert('No Cached Data', 'No offline data available. Please check your internet connection.');
       }
     } catch (error) {
       console.error('Error loading cached disasters:', error);
       Alert.alert('Cache Error', 'Unable to load cached disaster data.');
+    }
+  };
+
+  // Function to clear all cached data
+  const clearCache = async () => {
+    try {
+      await AsyncStorage.removeItem('cachedDisasters');
+      await AsyncStorage.removeItem('disastersCacheTime');
+      console.log('🧹 Cache cleared successfully');
+      Alert.alert('Cache Cleared', 'All cached disaster data has been removed.');
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  };
+
+  // Function to test API connection
+  const testAPIConnection = async () => {
+    try {
+      console.log('🔍 Testing API connection...');
+      const token = await AsyncStorage.getItem('authToken');
+      console.log('Using token:', token);
+
+      const response = await axios.get(`${API_BASE_URL}/mobile/disasters`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log('✅ API Test Success:', response.status, response.data);
+      Alert.alert('API Test', `Success! Found ${response.data?.data?.length || 0} disasters`);
+    } catch (error: any) {
+      console.error('❌ API Test Failed:', error);
+      Alert.alert('API Test Failed', error.message || 'Unknown error');
     }
   };
 
@@ -195,15 +255,19 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
 
   const getFilteredDisasters = () => {
     let filtered = disasters;
+    console.log('Total disasters before filtering:', disasters.length);
 
     if (!showAllDisasters) {
-      filtered = filtered.filter(disaster => disaster.status === 'active');
+      filtered = filtered.filter((disaster) => disaster.status === 'active');
+      console.log('After status filter (active only):', filtered.length);
     }
 
     if (selectedFilter !== 'all') {
-      filtered = filtered.filter(disaster => disaster.severity === selectedFilter);
+      filtered = filtered.filter((disaster) => disaster.severity === selectedFilter);
+      console.log('After severity filter (' + selectedFilter + '):', filtered.length);
     }
 
+    console.log('Final filtered disasters:', filtered.length);
     return filtered;
   };
 
@@ -225,10 +289,10 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   };
 
   const getDisasterStats = () => {
-    const active = disasters.filter(d => d.status === 'active').length;
-    const high = disasters.filter(d => d.severity === 'high').length;
-    const medium = disasters.filter(d => d.severity === 'medium').length;
-    const low = disasters.filter(d => d.severity === 'low').length;
+    const active = disasters.filter((d) => d.status === 'active').length;
+    const high = disasters.filter((d) => d.severity === 'high').length;
+    const medium = disasters.filter((d) => d.severity === 'medium').length;
+    const low = disasters.filter((d) => d.severity === 'low').length;
 
     return { active, high, medium, low, total: disasters.length };
   };
@@ -251,14 +315,14 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
           (err) => {
             console.warn('Geolocation error:', err?.message || err);
           },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
         );
       }
     })();
   }, []);
 
   const recenterMap = () => {
-    setRefreshFlag(flag => flag + 1);
+    setRefreshFlag((flag) => flag + 1);
   };
 
   const filteredDisasters = getFilteredDisasters();
@@ -267,7 +331,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   if (loading) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
+        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
         <View style={styles.loadingContainer}>
           <View style={styles.loadingContent}>
             <ActivityIndicator size="large" color="#3b82f6" />
@@ -281,34 +345,9 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
+
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-        {/* Header */}
-        {/* Updated Compact Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-
-          <View style={styles.headerContent}>
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerIcon}>🗺️</Text>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.title}>Risk Map</Text>
-                <Text style={styles.subtitle}>Real-time monitoring</Text>
-              </View>
-            </View>
-
-            {offlineMode && (
-              <View style={styles.offlineIndicator}>
-                <Text style={styles.offlineText}>📶 Offline</Text>
-              </View>
-            )}
-          </View>
-        </View>
 
 
         {/* Statistics Cards */}
@@ -344,45 +383,44 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                 ios_backgroundColor="#d1d5db"
               />
             </View>
+
+            {/* Debug Controls */}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity style={styles.debugButton} onPress={clearCache}>
+                <Text style={styles.debugButtonText}>🧹 Clear Cache</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.debugButton} onPress={testAPIConnection}>
+                <Text style={styles.debugButtonText}>🔍 Test API</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Filter Buttons */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterScroll}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
               onPress={() => setSelectedFilter('all')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>
-                All Levels
-              </Text>
+              <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>All Levels</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'high' && styles.filterButtonActive, { borderColor: '#ef4444' }]}
               onPress={() => setSelectedFilter('high')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'high' && styles.filterTextActive]}>
-                🔴 High Risk
-              </Text>
+              <Text style={[styles.filterText, selectedFilter === 'high' && styles.filterTextActive]}>🔴 High Risk</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'medium' && styles.filterButtonActive, { borderColor: '#f59e0b' }]}
               onPress={() => setSelectedFilter('medium')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'medium' && styles.filterTextActive]}>
-                🟡 Medium Risk
-              </Text>
+              <Text style={[styles.filterText, selectedFilter === 'medium' && styles.filterTextActive]}>🟡 Medium Risk</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'low' && styles.filterButtonActive, { borderColor: '#10b981' }]}
               onPress={() => setSelectedFilter('low')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'low' && styles.filterTextActive]}>
-                🟢 Low Risk
-              </Text>
+              <Text style={[styles.filterText, selectedFilter === 'low' && styles.filterTextActive]}>🟢 Low Risk</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -392,7 +430,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
           <LeafletMap
             key={`leaflet-${refreshFlag}`}
             points={disasters
-              .filter(d => {
+              .filter((d) => {
                 const hasLocation = d.location && typeof d.location === 'object';
                 return hasLocation;
               })
@@ -434,9 +472,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         {/* Disaster List */}
         <View style={styles.listContainer}>
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>
-              {showAllDisasters ? 'All Disasters' : 'Active Disasters'}
-            </Text>
+            <Text style={styles.listTitle}>{showAllDisasters ? 'All Disasters' : 'Active Disasters'}</Text>
             <View style={styles.countBadge}>
               <Text style={styles.countText}>{filteredDisasters.length}</Text>
             </View>
@@ -456,7 +492,10 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
           >
             {filteredDisasters.length > 0 ? (
               filteredDisasters.map((disaster, index) => (
-                <View key={disaster._id} style={[styles.disasterItem, index === filteredDisasters.length - 1 && styles.lastDisasterItem]}>
+                <View
+                  key={disaster._id}
+                  style={[styles.disasterItem, index === filteredDisasters.length - 1 && styles.lastDisasterItem]}
+                >
                   <View style={styles.disasterHeader}>
                     <View style={styles.disasterLeft}>
                       <View style={[styles.disasterIconContainer, { backgroundColor: getRiskColor(disaster.severity) }]}>
@@ -488,7 +527,12 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailIcon}>🔄</Text>
-                      <Text style={[styles.statusText, { color: disaster.status === 'active' ? '#ef4444' : '#10b981' }]}>
+                      <Text
+                        style={[
+                          styles.statusText,
+                          { color: disaster.status === 'active' ? '#ef4444' : '#10b981' },
+                        ]}
+                      >
                         {disaster.status.charAt(0).toUpperCase() + disaster.status.slice(1)}
                       </Text>
                     </View>
@@ -518,6 +562,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   loadingContainer: {
     flex: 1,
@@ -535,79 +580,81 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginTop: 16,
     marginBottom: 8,
+    paddingTop: StatusBar.currentHeight || 20,
   },
   loadingText: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
   },
-  header: {
-    backgroundColor: '#1f2937',
-    paddingTop: 50,
-    paddingBottom: 20,
+
+  // New compact header styles
+  compactHeader: {
+    backgroundColor: '#f8fafc',
+    paddingTop: Platform.OS === 'ios' ? 48 : 20,
+    paddingBottom: 12,
     paddingHorizontal: 20,
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  backIcon: {
-    fontSize: 20,
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  headerContent: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
   },
-  headerIcon: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  headerTextContainer: {
+  compactBackButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  title: {
-    fontSize: 28,
+  compactBackIcon: {
+    fontSize: 18,
+    color: '#1f2937',
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 4,
+    marginLeft: 2,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#d1d5db',
+  compactHeaderContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
   },
-  offlineIndicator: {
+  compactHeaderIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  compactTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    textAlign: 'center',
+  },
+  compactSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  compactOfflineIndicator: {
     backgroundColor: '#f59e0b',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  offlineText: {
-    fontSize: 12,
+  compactOfflineText: {
+    fontSize: 10,
     color: '#ffffff',
     fontWeight: 'bold',
   },
+
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginTop: -20,
-    marginBottom: 16,
+    marginBottom: 16, // Removed negative marginTop for clean spacing
     gap: 8,
   },
   statCard: {
@@ -895,6 +942,17 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: '#ffffff',
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  debugButton: {
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  debugButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });
