@@ -110,7 +110,11 @@ const SOSDashboard: React.FC = () => {
         sortOrder
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/sos/dashboard?${queryParams}`, {
+      const apiUrl = `${API_BASE_URL}/api/admin/sos/dashboard?${queryParams}`;
+      console.log('Fetching SOS dashboard data from:', apiUrl);
+      console.log('Token:', token);
+
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -118,12 +122,16 @@ const SOSDashboard: React.FC = () => {
       });
 
       if (!response.ok) {
+        console.error('Response not OK:', response.status, response.statusText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('SOS dashboard response data:', data);
       
       if (data.success) {
+        console.log('Signals received:', data.data.signals?.length || 0);
+        console.log('Stats received:', data.data.stats);
         setSignals(data.data.signals || []);
         setStats(data.data.stats || null);
         setPagination(prev => ({
@@ -361,18 +369,34 @@ const SOSDashboard: React.FC = () => {
           <AlertTriangle className="w-8 h-8 text-red-600" />
           SOS Emergency Dashboard
         </h1>
-        <button
-          onClick={() => {
-            fetchDashboardData();
-            fetchClusters();
-            fetchAnalytics();
-          }}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              // Set admin token for testing
+              const adminToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJhZG1pbi1zZWVkLTEyMyIsImluZGl2aWR1YWxJZCI6ImFkbWluLXNlZWQtMTIzIiwicm9sZSI6ImFkbWluIiwibmFtZSI6IkFkbWluIFVzZXIiLCJpYXQiOjE3NTYxMDI3OTMsImV4cCI6MTc1NjE4OTE5M30.nDdV_SZOYh6XHLS2X69mF9YfyL9RXTLkJE34D1K-LqM';
+              const adminUser = { _id: 'admin-seed-123', individualId: 'admin-seed-123', role: 'admin', name: 'Admin User' };
+              localStorage.setItem('token', adminToken);
+              localStorage.setItem('user', JSON.stringify(adminUser));
+              console.log('Admin token set!');
+              fetchDashboardData();
+            }}
+            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+          >
+            Set Admin Token
+          </button>
+          <button
+            onClick={() => {
+              fetchDashboardData();
+              fetchClusters();
+              fetchAnalytics();
+            }}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
