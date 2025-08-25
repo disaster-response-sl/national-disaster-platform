@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useMemo } from 'react';
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
-import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/authService';
 import { Layers, Database, Shield, Download, CheckCircle } from 'lucide-react';
 import NDXDataProviders from './NDXDataProviders';
 import NDXConsentManagement from './NDXConsentManagement';
@@ -11,9 +12,9 @@ import NDXDataExchange from './NDXDataExchange';
 const NDXDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'providers' | 'consent' | 'exchange'>('providers');
 
-  // Get JWT token from AuthContext
-  const { token } = useAuth();
-  const { statistics, loading, error } = useDashboardAnalytics(token || '');
+  // Get JWT token from authService
+  const token = useMemo(() => authService.getToken() || '', []);
+  const { statistics, loading, error } = useDashboardAnalytics(token);
   
   // Debug log to verify component is loading
   React.useEffect(() => {

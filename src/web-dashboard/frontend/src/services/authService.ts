@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -61,18 +62,18 @@ export interface ProfileResponse {
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post('/auth/login', credentials);
+    const response = await api.post('/api/auth/login', credentials);
     return response.data;
   },
 
   async getProfile(): Promise<ProfileResponse> {
-    const response = await api.get('/auth/profile');
+    const response = await api.get('/api/auth/profile');
     return response.data;
   },
 
   async logout(): Promise<void> {
     try {
-      await api.post('/auth/logout');
+      await api.post('/api/auth/logout');
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
