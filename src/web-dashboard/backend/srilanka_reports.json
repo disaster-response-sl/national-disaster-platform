@@ -1,0 +1,25 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"success":true,"data":[{"location":{"lat":23.745801547262456,"lng":90.339728325130
+                    25,"address":"Dhaka area","city":"Dhaka","state":"Bangladesh","country":"Bangladesh
+                    "},"resource_requirements":{"food"...
+RawContent        : HTTP/1.1 200 OK
+                    Access-Control-Allow-Origin: *
+                    Connection: keep-alive
+                    Keep-Alive: timeout=5
+                    Content-Length: 23349
+                    Content-Type: application/json; charset=utf-8
+                    Date: Mon, 25 Aug 2025 11:07:30 GM...
+Forms             : {}
+Headers           : {[Access-Control-Allow-Origin, *], [Connection, keep-alive], [Keep-Alive, 
+                    timeout=5], [Content-Length, 23349]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 23349
+
+
+
