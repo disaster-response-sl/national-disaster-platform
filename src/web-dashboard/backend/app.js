@@ -26,6 +26,9 @@ const adminAnalyticsRoutes = require('./routes/admin/analytics.routes');
 const adminZonesRoutes = require('./routes/admin/zones.routes');
 const adminImportExportRoutes = require('./routes/admin/import-export.routes');
 
+// Import responder routes
+const responderNotificationsRoutes = require('./routes/responder/notifications.routes');
+
 // Import test routes (NO AUTH - for Postman testing)
 const testCrudRoutes = require('./routes/test-crud.routes');
 
@@ -45,6 +48,9 @@ app.use('/api/admin/disasters', adminDisastersRoutes);            // Main CRUD
 app.use('/api/admin/analytics', adminAnalyticsRoutes);            // Statistics, Timeline, etc.
 app.use('/api/admin/zones', adminZonesRoutes);                    // Avoided conflict by changing path
 app.use('/api/admin/import-export', adminImportExportRoutes);     // Import/Export ops
+
+// Use responder routes
+app.use('/api/responder/notifications', responderNotificationsRoutes);
 
 // Use test routes (NO AUTH - for Postman testing)
 app.use('/api/test', testCrudRoutes);

@@ -163,14 +163,7 @@ const SosScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.emergencyIconContainer}>
-            <Text style={styles.emergencyIcon}>🚨</Text>
-          </View>
-          <Text style={styles.title}>Emergency SOS</Text>
-          <Text style={styles.subtitle}>Get immediate help from emergency responders</Text>
-        </View>
+
 
         {/* Emergency Information Card */}
         <View style={styles.infoCard}>
@@ -314,6 +307,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    paddingTop: StatusBar.currentHeight || 20,
   },
   scrollContent: {
     flexGrow: 1,

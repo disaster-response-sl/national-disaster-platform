@@ -183,22 +183,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Header Section */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backIcon}>←</Text>
-            </TouchableOpacity>
-            <View style={styles.headerContent}>
-              <View style={styles.headerIconContainer}>
-                <Text style={styles.headerIcon}>📝</Text>
-              </View>
-              <Text style={styles.title}>Report Incident</Text>
-              <Text style={styles.subtitle}>Help emergency responders by reporting incidents in your area</Text>
-            </View>
-          </View>
+
 
           {/* Location Status */}
           {location && (
@@ -340,9 +325,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+
   },
   scrollContent: {
     flexGrow: 1,
+    paddingTop: StatusBar.currentHeight || 10,
   },
   header: {
     backgroundColor: '#1f2937',
