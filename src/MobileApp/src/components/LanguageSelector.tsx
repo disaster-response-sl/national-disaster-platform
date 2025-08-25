@@ -96,6 +96,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         transparent={true}
         animationType="slide"
         onRequestClose={onClose}
+        statusBarTranslucent={true}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -112,23 +113,25 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    width: width * 0.9,
-    maxHeight: height * 0.7,
-    elevation: 5,
+    borderRadius: 16,
+    width: width * 0.85,
+    maxHeight: height * 0.75,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    zIndex: 1000,
   },
   container: {
     flex: 1,

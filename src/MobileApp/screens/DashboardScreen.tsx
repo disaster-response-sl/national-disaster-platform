@@ -82,11 +82,11 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           {
-            title: String(tScreens('dashboard.emergency_contacts')) || 'Disaster Alert Notifications',
+            title: tScreens('dashboard.emergency_contacts') || 'Disaster Alert Notifications',
             message: 'This app needs permission to send you important disaster alerts.',
-            buttonNeutral: String(tCommon('app.cancel')) || 'Ask Me Later',
-            buttonNegative: String(tCommon('app.cancel')) || 'Cancel',
-            buttonPositive: String(tCommon('app.ok')) || 'OK',
+            buttonNeutral: tCommon('app.cancel') || 'Ask Me Later',
+            buttonNegative: tCommon('app.cancel') || 'Cancel',
+            buttonPositive: tCommon('app.ok') || 'OK',
           }
         );
         const hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
@@ -557,7 +557,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
               </View>
               <View style={styles.userInfo}>
                 <Text style={[styles.welcomeText, getTextDirection()]}>
-                  {String(tScreens('dashboard.welcome')).replace('{{name}}', '')}
+                  {tScreens('dashboard.welcome').replace('{{name}}', '')}
                 </Text>
                 <Text style={[styles.userNameText, getTextDirection()]}>{userName}</Text>
                 <Text style={[styles.roleText, getTextDirection()]}>{userRole}</Text>
@@ -582,7 +582,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         {/* Current Location Section */}
         <View style={styles.locationSection}>
           <Text style={[styles.sectionTitle, getTextDirection()]}>
-            📍 {String(tScreens('dashboard.current_location'))}
+            📍 {tScreens('dashboard.current_location')}
           </Text>
           {location ? (
             <View style={styles.locationContent}>
@@ -597,7 +597,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             </View>
           ) : (
             <Text style={[styles.loadingText, getTextDirection()]}>
-              {String(tCommon('app.loading'))}...
+              {tCommon('app.loading')}...
             </Text>
           )}
         </View>
@@ -607,7 +607,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
           {/* Weather Card */}
           <View style={styles.statusCard}>
             <Text style={[styles.statusCardTitle, getTextDirection()]}>
-              ☀️ {String(tScreens('dashboard.weather'))}
+              ☀️ {tScreens('dashboard.weather')}
             </Text>
             {weather ? (
               <View style={styles.weatherContent}>
@@ -620,7 +620,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
               </View>
             ) : (
               <Text style={[styles.loadingText, getTextDirection()]}>
-                {String(tCommon('app.loading'))}...
+                {tCommon('app.loading')}...
               </Text>
             )}
           </View>
@@ -628,7 +628,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
           {/* Risk Status Card */}
           <View style={styles.statusCard}>
             <Text style={[styles.statusCardTitle, getTextDirection()]}>
-              🛡️ {String(tScreens('dashboard.risk_status'))}
+              🛡️ {tScreens('dashboard.risk_status')}
             </Text>
             <View style={styles.riskContent}>
               <View style={[styles.riskBadge, { backgroundColor: getRiskColor(riskStatus) }]}>
@@ -643,7 +643,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                     onPress={() => navigation.navigate('RiskMap')}
                   >
                     <Text style={styles.viewDetailsText}>
-                      {String(tScreens('dashboard.view_all'))}
+                      {tScreens('dashboard.view_all')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -655,7 +655,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
           <Text style={[styles.sectionTitle, getTextDirection()]}>
-            ⚡ {String(tScreens('dashboard.quick_actions'))}
+            ⚡ {tScreens('dashboard.quick_actions')}
           </Text>
           <View style={styles.actionsGrid}>
             <TouchableOpacity
@@ -664,7 +664,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             >
               <Text style={styles.actionIcon}>🚨</Text>
               <Text style={[styles.actionText, getTextDirection()]}>
-                {String(tScreens('sos.emergency_alert'))}
+                {tScreens('sos.emergency_alert')}
               </Text>
             </TouchableOpacity>
 
@@ -674,7 +674,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             >
               <Text style={styles.actionIcon}>📝</Text>
               <Text style={[styles.actionText, getTextDirection()]}>
-                {String(tScreens('report.title'))}
+                {tScreens('report.title')}
               </Text>
             </TouchableOpacity>
 
@@ -684,7 +684,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             >
               <Text style={styles.actionIcon}>🗺️</Text>
               <Text style={[styles.actionText, getTextDirection()]}>
-                {String(tScreens('risk_map.title'))}
+                {tScreens('risk_map.title')}
               </Text>
             </TouchableOpacity>
 
@@ -694,7 +694,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                 >
                   <Text style={styles.actionIcon}>💬</Text>
                   <Text style={[styles.actionText, getTextDirection()]}>
-                    {String(tScreens('chat.title'))}
+                    {tScreens('chat.title')}
                   </Text>
                 </TouchableOpacity>
 

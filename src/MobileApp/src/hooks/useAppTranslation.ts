@@ -8,10 +8,19 @@ export const useAppTranslation = () => {
   const { t, i18n } = useTranslation();
   const { isRTL, currentLanguage } = useLanguage();
 
-  // Common translation shortcuts
-  const tCommon = (key: string, options?: any) => t(`common:${key}`, options);
-  const tScreens = (key: string, options?: any) => t(`screens:${key}`, options);
-  const tSettings = (key: string, options?: any) => t(`settings:${key}`, options);
+  // Common translation shortcuts with string conversion
+  const tCommon = (key: string, options?: any): string => {
+    const result = t(`common:${key}`, options);
+    return typeof result === 'string' ? result : key;
+  };
+  const tScreens = (key: string, options?: any): string => {
+    const result = t(`screens:${key}`, options);
+    return typeof result === 'string' ? result : key;
+  };
+  const tSettings = (key: string, options?: any): string => {
+    const result = t(`settings:${key}`, options);
+    return typeof result === 'string' ? result : key;
+  };
 
   // Disaster type translations
   const getDisasterTypeText = (type: string): string => {
@@ -134,23 +143,17 @@ export const useEmergencyTranslation = () => {
   const { tCommon, tScreens } = useAppTranslation();
 
   const getEmergencyMessage = (type: 'sos_sent' | 'sos_failed' | 'alert_received' | 'evacuation_required'): string => {
-    let translated: string | object;
-    
     switch (type) {
       case 'sos_sent':
-        translated = tScreens('sos.sos_sent');
-        return typeof translated === 'string' ? translated : 'SOS sent successfully';
+        return tScreens('sos.sos_sent');
       case 'sos_failed':
-        translated = tScreens('sos.sos_failed');
-        return typeof translated === 'string' ? translated : 'Failed to send SOS';
+        return tScreens('sos.sos_failed');
       case 'alert_received':
-        translated = tScreens('dashboard.recent_alerts');
-        return typeof translated === 'string' ? translated : 'Recent Alerts';
+        return tScreens('dashboard.recent_alerts');
       case 'evacuation_required':
         return 'Evacuation Required - පිටවීම අවශ්‍යයි - வெளியேற்றம் தேவை';
       default:
-        translated = tCommon('app.error');
-        return typeof translated === 'string' ? translated : 'Error';
+        return tCommon('app.error');
     }
   };
 

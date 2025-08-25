@@ -10,7 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions
+  Dimensions,
+  StyleSheet
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,11 +25,15 @@ import { createTypographyStyles, COLORS, SPACING } from '../src/styles/typograph
 
 const { width, height } = Dimensions.get('window');
 
-const LoginScreen = ({ navigation }) => {
+interface NavigationProps {
+  navigation: any;
+}
+
+const LoginScreen = ({ navigation }: NavigationProps) => {
   const [individualId, setIndividualId] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focusedInput, setFocusedInput] = useState(null);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
   // Internationalization hooks
@@ -56,19 +61,27 @@ const LoginScreen = ({ navigation }) => {
       const userData = await AuthService.login(individualId, otp);
       console.log('✅ Login successful:', userData);
       
-      await AsyncStorage.setItem('userRole', userData.role || 'individual');
-      await AsyncStorage.setItem('userName', userData.name || 'User');
-      
-      Alert.alert(
-        tCommon('app.ok'),
-        tScreens('login.login_success'),
-        [
-          {
-            text: tCommon('app.ok'),
-            onPress: () => navigation.replace('Dashboard')
-          }
-        ]
-      );
+      if (userData.success) {
+        // Set default values since AuthService doesn't return role/name
+        await AsyncStorage.setItem('userRole', 'individual');
+        await AsyncStorage.setItem('userName', individualId || 'User');
+        
+        Alert.alert(
+          tCommon('app.ok'),
+          tScreens('login.login_success'),
+          [
+            {
+              text: tCommon('app.ok'),
+              onPress: () => navigation.replace('Dashboard')
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          tCommon('app.error'),
+          userData.error || tScreens('login.login_failed') || 'Login failed. Please try again.'
+        );
+      }
     } catch (error) {
       console.error('❌ Login failed:', error);
       Alert.alert(
@@ -205,13 +218,13 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background.primary,
   },
   languageButton: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 50,
     right: 20,
     zIndex: 1000,
@@ -229,11 +242,11 @@ const styles = {
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'center' as const,
     paddingHorizontal: SPACING.lg,
   },
   headerSection: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     marginBottom: SPACING.xxl,
   },
   logo: {
@@ -243,10 +256,10 @@ const styles = {
   },
   title: {
     marginBottom: SPACING.sm,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
   subtitle: {
-    textAlign: 'center',
+    textAlign: 'center' as const,
     color: COLORS.text.secondary,
   },
   formSection: {
@@ -282,19 +295,19 @@ const styles = {
     backgroundColor: COLORS.text.disabled,
   },
   loginButtonText: {
-    textAlign: 'center',
+    textAlign: 'center' as const,
     color: COLORS.text.inverse,
   },
   linksContainer: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   linkButton: {
     paddingVertical: SPACING.sm,
   },
   linkText: {
     color: COLORS.primary,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
-};
+});
 
 export default LoginScreen;
