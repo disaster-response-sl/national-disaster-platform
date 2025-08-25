@@ -1,7 +1,5 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogOut, Shield, Users, AlertTriangle, Activity, MapPin } from 'lucide-react';
 import { canAccessResourceManagement } from '../utils/permissions';
