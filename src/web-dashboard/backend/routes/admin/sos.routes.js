@@ -29,6 +29,9 @@ function generateClusterId() {
 // GET /api/admin/sos/dashboard - Real-time SOS dashboard feed
 router.get('/dashboard', async (req, res) => {
   try {
+    console.log('[SOS DASHBOARD] Request received from user:', req.user?.role, req.user?.individualId);
+    console.log('[SOS DASHBOARD] Query params:', req.query);
+    
     const {
       status = 'all',
       priority = 'all',
@@ -42,11 +45,11 @@ router.get('/dashboard', async (req, res) => {
     // Build query filters
     let query = {};
     
-    if (status !== 'all') {
+    if (status && status !== 'all' && status !== '') {
       query.status = status;
     }
     
-    if (priority !== 'all') {
+    if (priority && priority !== 'all' && priority !== '') {
       query.priority = priority;
     }
 
@@ -117,6 +120,11 @@ router.get('/dashboard', async (req, res) => {
         }
       }
     ]);
+
+    console.log('[SOS DASHBOARD] Query built:', JSON.stringify(query));
+    console.log('[SOS DASHBOARD] Signals found:', sosSignals.length);
+    console.log('[SOS DASHBOARD] Total count:', totalCount);
+    console.log('[SOS DASHBOARD] Stats:', stats[0]);
 
     res.json({
       success: true,
