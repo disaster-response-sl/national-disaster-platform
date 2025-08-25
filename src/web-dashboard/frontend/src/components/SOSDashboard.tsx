@@ -19,20 +19,25 @@ import toast from 'react-hot-toast';
 
 interface SOSSignal {
   _id: string;
-  user_id: string; // Changed from individualId
+  user_id: string;
   location: {
-    lat: number; // Changed from latitude
-    lng: number; // Changed from longitude
+    lat: number;
+    lng: number;
     address?: string;
   };
+  message: string;
   status: 'pending' | 'acknowledged' | 'responding' | 'resolved' | 'false_alarm';
   priority: 'low' | 'medium' | 'high' | 'critical';
   created_at: string;
   updated_at: string;
-  assigned_responder?: string; // Changed from responder_id
+  assigned_responder?: string;
   escalation_level?: number;
-  notes?: string;
-  message?: string; // Added message field
+  notes?: Array<{
+    responder_id: string;
+    note: string;
+    timestamp: string;
+  }>;
+  emergency_type?: 'medical' | 'fire' | 'accident' | 'crime' | 'natural_disaster' | 'other';
 }
 
 interface SOSStats {
@@ -111,8 +116,6 @@ const SOSDashboard: React.FC = () => {
       });
 
       const apiUrl = `${API_BASE_URL}/api/admin/sos/dashboard?${queryParams}`;
-      console.log('Fetching SOS dashboard data from:', apiUrl);
-      console.log('Token:', token);
 
       const response = await fetch(apiUrl, {
         headers: {
@@ -122,16 +125,12 @@ const SOSDashboard: React.FC = () => {
       });
 
       if (!response.ok) {
-        console.error('Response not OK:', response.status, response.statusText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('SOS dashboard response data:', data);
       
       if (data.success) {
-        console.log('Signals received:', data.data.signals?.length || 0);
-        console.log('Stats received:', data.data.stats);
         setSignals(data.data.signals || []);
         setStats(data.data.stats || null);
         setPagination(prev => ({
@@ -191,8 +190,7 @@ const SOSDashboard: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          // Analytics data received but not used in current implementation
-          console.log('Analytics data:', data.data);
+          // Analytics data received
         }
       }
     } catch (err) {
@@ -369,34 +367,18 @@ const SOSDashboard: React.FC = () => {
           <AlertTriangle className="w-8 h-8 text-red-600" />
           SOS Emergency Dashboard
         </h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              // Set admin token for testing
-              const adminToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJhZG1pbi1zZWVkLTEyMyIsImluZGl2aWR1YWxJZCI6ImFkbWluLXNlZWQtMTIzIiwicm9sZSI6ImFkbWluIiwibmFtZSI6IkFkbWluIFVzZXIiLCJpYXQiOjE3NTYxMDI3OTMsImV4cCI6MTc1NjE4OTE5M30.nDdV_SZOYh6XHLS2X69mF9YfyL9RXTLkJE34D1K-LqM';
-              const adminUser = { _id: 'admin-seed-123', individualId: 'admin-seed-123', role: 'admin', name: 'Admin User' };
-              localStorage.setItem('token', adminToken);
-              localStorage.setItem('user', JSON.stringify(adminUser));
-              console.log('Admin token set!');
-              fetchDashboardData();
-            }}
-            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-          >
-            Set Admin Token
-          </button>
-          <button
-            onClick={() => {
-              fetchDashboardData();
-              fetchClusters();
-              fetchAnalytics();
-            }}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            fetchDashboardData();
+            fetchClusters();
+            fetchAnalytics();
+          }}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       {/* Statistics Cards */}
@@ -529,6 +511,9 @@ const SOSDashboard: React.FC = () => {
                     Signal Info
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Message
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Location
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -560,6 +545,16 @@ const SOSDashboard: React.FC = () => {
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                        {signal.message}
+                      </div>
+                      {signal.emergency_type && (
+                        <div className="text-xs text-gray-500 capitalize">
+                          {signal.emergency_type.replace('_', ' ')}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
@@ -740,10 +735,15 @@ const SOSDashboard: React.FC = () => {
                 </div>
               </div>
               
-              {selectedSignal.message && (
+              <div>
+                <label className="text-sm font-medium text-gray-500">Message</label>
+                <p className="text-sm text-gray-900">{selectedSignal.message}</p>
+              </div>
+              
+              {selectedSignal.emergency_type && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Message</label>
-                  <p className="text-sm text-gray-900">{selectedSignal.message}</p>
+                  <label className="text-sm font-medium text-gray-500">Emergency Type</label>
+                  <p className="text-sm text-gray-900 capitalize">{selectedSignal.emergency_type.replace('_', ' ')}</p>
                 </div>
               )}
               
@@ -761,10 +761,18 @@ const SOSDashboard: React.FC = () => {
                 </div>
               )}
               
-              {selectedSignal.notes && (
+              {selectedSignal.notes && selectedSignal.notes.length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Notes</label>
-                  <p className="text-sm text-gray-900">{selectedSignal.notes}</p>
+                  <div className="space-y-2">
+                    {selectedSignal.notes.map((note, index) => (
+                      <div key={index} className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                        <div className="font-medium">{note.responder_id}</div>
+                        <div>{note.note}</div>
+                        <div className="text-xs text-gray-500">{formatTime(note.timestamp)}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

@@ -2,12 +2,12 @@ const express = require('express');
 const mongoose = require('mongoose');
 const SosSignal = require('../../models/SosSignal');
 const Disaster = require('../../models/Disaster');
-const { authenticateToken, requireAdmin } = require('../../middleware/auth');
+const { authenticateToken, requireResponder } = require('../../middleware/auth');
 const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);
-router.use(requireAdmin);
+router.use(requireResponder);
 
 // Utility function to calculate distance between two coordinates (in km)
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -57,16 +57,16 @@ router.get('/dashboard', async (req, res) => {
       
       switch (timeRange) {
         case '1h':
-          timeFilter.setHours(now.getHours() - 1);
+          timeFilter.setTime(now.getTime() - (1 * 60 * 60 * 1000));
           break;
         case '6h':
-          timeFilter.setHours(now.getHours() - 6);
+          timeFilter.setTime(now.getTime() - (6 * 60 * 60 * 1000));
           break;
         case '24h':
-          timeFilter.setDate(now.getDate() - 1);
+          timeFilter.setTime(now.getTime() - (24 * 60 * 60 * 1000));
           break;
         case '7d':
-          timeFilter.setDate(now.getDate() - 7);
+          timeFilter.setTime(now.getTime() - (7 * 24 * 60 * 60 * 1000));
           break;
         default:
           timeFilter = null;
