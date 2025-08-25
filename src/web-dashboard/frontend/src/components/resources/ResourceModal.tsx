@@ -96,11 +96,17 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
 
     setLoading(true);
     try {
+      // Transform formData to match service expectations
+      const serviceData = {
+        ...formData,
+        quantity: typeof formData.quantity === 'object' ? formData.quantity.current : formData.quantity
+      };
+
       if (mode === 'create') {
-        await createResource(token, formData);
+        await createResource(token, serviceData);
         toast.success('Resource created successfully');
       } else if (mode === 'edit' && resource) {
-        await updateResource(token, resource._id, formData);
+        await updateResource(token, resource._id, serviceData);
         toast.success('Resource updated successfully');
       }
       onSuccess();

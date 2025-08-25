@@ -4,7 +4,7 @@ import { getInventorySummary } from '../../services/resourceService';
 import { InventorySummaryResponse } from '../../types/resource';
 import { canCreateResources } from '../../utils/permissions';
 import { Package2, TrendingUp, TrendingDown, Minus, AlertCircle, Plus } from 'lucide-react';
-import GenerateReportModal from './GenerateReportModal';
+// import GenerateReportModal from './GenerateReportModal';
 import ResourceModal from './ResourceModal';
 import toast from 'react-hot-toast';
 
@@ -13,7 +13,7 @@ const ResourceInventory: React.FC = () => {
   const [inventory, setInventory] = useState<InventorySummaryResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
+  // const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
 
   useEffect(() => {
@@ -158,8 +158,10 @@ const ResourceInventory: React.FC = () => {
             Export Inventory
           </button>
           <button 
-            onClick={() => setShowGenerateReportModal(true)}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            // onClick={() => setShowGenerateReportModal(true)}
+            disabled
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed opacity-50"
+            title="Report generation temporarily disabled"
           >
             <TrendingUp className="w-4 h-4 mr-2" />
             Generate Report
@@ -259,11 +261,11 @@ const ResourceInventory: React.FC = () => {
         </div>
       )}
 
-      {/* Generate Report Modal */}
-      <GenerateReportModal
+      {/* Generate Report Modal - Temporarily disabled due to implementation issues */}
+      {/* <GenerateReportModal
         isOpen={showGenerateReportModal}
         onClose={() => setShowGenerateReportModal(false)}
-      />
+      /> */}
 
       {/* Add Resource Modal */}
       <ResourceModal
