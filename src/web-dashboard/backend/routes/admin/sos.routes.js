@@ -2,12 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const SosSignal = require('../../models/SosSignal');
 const Disaster = require('../../models/Disaster');
-const { authenticateToken, requireAdmin } = require('../../middleware/auth');
+const { authenticateToken, requireResponder } = require('../../middleware/auth');
+const notificationService = require('../../services/NotificationService');
 const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);
-router.use(requireAdmin);
+router.use(requireResponder);
 
 // Utility function to calculate distance between two coordinates (in km)
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -29,6 +30,9 @@ function generateClusterId() {
 // GET /api/admin/sos/dashboard - Real-time SOS dashboard feed
 router.get('/dashboard', async (req, res) => {
   try {
+    console.log('[SOS DASHBOARD] Request received from user:', req.user?.role, req.user?.individualId);
+    console.log('[SOS DASHBOARD] Query params:', req.query);
+    
     const {
       status = 'all',
       priority = 'all',
@@ -42,11 +46,11 @@ router.get('/dashboard', async (req, res) => {
     // Build query filters
     let query = {};
     
-    if (status !== 'all') {
+    if (status && status !== 'all' && status !== '') {
       query.status = status;
     }
     
-    if (priority !== 'all') {
+    if (priority && priority !== 'all' && priority !== '') {
       query.priority = priority;
     }
 
@@ -57,16 +61,16 @@ router.get('/dashboard', async (req, res) => {
       
       switch (timeRange) {
         case '1h':
-          timeFilter.setHours(now.getHours() - 1);
+          timeFilter.setTime(now.getTime() - (1 * 60 * 60 * 1000));
           break;
         case '6h':
-          timeFilter.setHours(now.getHours() - 6);
+          timeFilter.setTime(now.getTime() - (6 * 60 * 60 * 1000));
           break;
         case '24h':
-          timeFilter.setDate(now.getDate() - 1);
+          timeFilter.setTime(now.getTime() - (24 * 60 * 60 * 1000));
           break;
         case '7d':
-          timeFilter.setDate(now.getDate() - 7);
+          timeFilter.setTime(now.getTime() - (7 * 24 * 60 * 60 * 1000));
           break;
         default:
           timeFilter = null;
@@ -117,6 +121,11 @@ router.get('/dashboard', async (req, res) => {
         }
       }
     ]);
+
+    console.log('[SOS DASHBOARD] Query built:', JSON.stringify(query));
+    console.log('[SOS DASHBOARD] Signals found:', sosSignals.length);
+    console.log('[SOS DASHBOARD] Total count:', totalCount);
+    console.log('[SOS DASHBOARD] Stats:', stats[0]);
 
     res.json({
       success: true,
@@ -272,6 +281,7 @@ router.put('/:id/assign', async (req, res) => {
     // Update signal
     sosSignal.assigned_responder = responder_id;
     sosSignal.status = 'acknowledged';
+    sosSignal.updated_at = new Date();
     
     if (notes) {
       sosSignal.notes.push({
@@ -283,10 +293,30 @@ router.put('/:id/assign', async (req, res) => {
 
     await sosSignal.save();
 
+    console.log('[DEBUG] About to call notificationService.notifyResponderAssignment...');
+    console.log('[DEBUG] Parameters:', {
+      sosSignalId: sosSignal._id,
+      responderId: responder_id,
+      assignedBy: `${req.user.role} ${req.user.userId}`,
+      notes: notes
+    });
+
+    // Send notifications to the assigned responder
+    const notificationResult = await notificationService.notifyResponderAssignment(
+      sosSignal,
+      responder_id,
+      `${req.user.role} ${req.user.userId}`,
+      notes
+    );
+
+    console.log('[SOS ASSIGN] Notification result:', notificationResult);
+    console.log('[DEBUG] Finished notification service call');
+
     res.json({
       success: true,
       message: "Responder assigned successfully",
-      data: sosSignal
+      data: sosSignal,
+      notifications: notificationResult
     });
 
   } catch (error) {
@@ -349,6 +379,14 @@ router.put('/:id/status', async (req, res) => {
     });
 
     await sosSignal.save();
+
+    // Send status update notification
+    await notificationService.notifyStatusUpdate(
+      sosSignal,
+      previousStatus,
+      status,
+      `${req.user.role} ${req.user.userId}`
+    );
 
     res.json({
       success: true,
@@ -446,6 +484,7 @@ router.post('/:id/escalate', async (req, res) => {
     }
 
     // Update escalation
+    const previousLevel = sosSignal.escalation_level;
     sosSignal.escalation_level = escalation_level;
     if (escalation_level > 0 && !sosSignal.auto_escalated_at) {
       sosSignal.auto_escalated_at = new Date();
@@ -466,6 +505,14 @@ router.post('/:id/escalate', async (req, res) => {
     });
 
     await sosSignal.save();
+
+    // Send escalation notification
+    await notificationService.notifyEscalation(
+      sosSignal,
+      previousLevel,
+      escalation_level,
+      `${req.user.role} ${req.user.userId}`
+    );
 
     res.json({
       success: true,

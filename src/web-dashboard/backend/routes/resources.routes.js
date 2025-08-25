@@ -384,60 +384,83 @@ router.post('/:id/reserve', authenticateToken, requireResponder, async (req, res
 // GET /api/resources/inventory/summary - Get inventory summary
 router.get('/inventory/summary', authenticateToken, async (req, res) => {
   try {
-    const summary = await Resource.aggregate([
+    // Aggregate by type and category
+    const byType = await Resource.aggregate([
       {
         $group: {
-          _id: {
-            type: '$type',
-            status: '$status'
-          },
+          _id: { type: '$type', category: '$category' },
           total_quantity: { $sum: '$quantity.current' },
           allocated_quantity: { $sum: '$quantity.allocated' },
           reserved_quantity: { $sum: '$quantity.reserved' },
-          count: { $sum: 1 }
+          count: { $sum: 1 },
+          available_quantity: {
+            $sum: { $subtract: ['$quantity.current', { $add: ['$quantity.allocated', '$quantity.reserved'] }] }
+          }
         }
       },
       {
         $group: {
           _id: '$_id.type',
-          statuses: {
+          categories: {
             $push: {
-              status: '$_id.status',
-              total_quantity: '$total_quantity',
-              allocated_quantity: '$allocated_quantity',
-              reserved_quantity: '$reserved_quantity',
-              count: '$count'
+              category: '$_id.category',
+              quantity: '$total_quantity',
+              available: '$available_quantity'
             }
           },
-          total_resources: { $sum: '$count' },
-          total_quantity: { $sum: '$total_quantity' }
+          total_quantity: { $sum: '$total_quantity' },
+          allocated_quantity: { $sum: '$allocated_quantity' },
+          reserved_quantity: { $sum: '$reserved_quantity' },
+          available_quantity: { $sum: '$available_quantity' },
+          count: { $sum: '$count' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          type: '$_id',
+          total_quantity: 1,
+          allocated_quantity: 1,
+          reserved_quantity: 1,
+          available_quantity: 1,
+          categories: 1,
+          count: 1
         }
       }
     ]);
 
-    const overallStats = await Resource.aggregate([
+    // Calculate overall stats
+    const overallAgg = await Resource.aggregate([
       {
         $group: {
           _id: null,
           total_resources: { $sum: 1 },
           total_quantity: { $sum: '$quantity.current' },
-          total_allocated: { $sum: '$quantity.allocated' },
-          total_reserved: { $sum: '$quantity.reserved' },
-          critical_resources: {
-            $sum: { $cond: [{ $eq: ['$priority', 'critical'] }, 1, 0] }
-          },
-          depleted_resources: {
-            $sum: { $cond: [{ $eq: ['$status', 'depleted'] }, 1, 0] }
+          allocated_quantity: { $sum: '$quantity.allocated' },
+          reserved_quantity: { $sum: '$quantity.reserved' },
+          available_quantity: {
+            $sum: { $subtract: ['$quantity.current', { $add: ['$quantity.allocated', '$quantity.reserved'] }] }
           }
         }
       }
     ]);
+    const overall = overallAgg[0] || {
+      total_resources: 0,
+      total_quantity: 0,
+      allocated_quantity: 0,
+      reserved_quantity: 0,
+      available_quantity: 0
+    };
+    // Utilization rate: allocated + reserved / total_quantity
+    overall.utilization_rate = overall.total_quantity > 0
+      ? ((overall.allocated_quantity + overall.reserved_quantity) / overall.total_quantity) * 100
+      : 0;
 
     res.json({
       success: true,
       data: {
-        by_type: summary,
-        overall: overallStats[0] || {},
+        by_type: byType,
+        overall,
         last_updated: new Date()
       }
     });
@@ -720,67 +743,95 @@ router.get('/dashboard/metrics', authenticateToken, async (req, res) => {
     const { timeframe = 7 } = req.query;
     const cutoffDate = new Date(Date.now() - timeframe * 24 * 60 * 60 * 1000);
 
-    // Get comprehensive metrics
-    const [
-      totalResources,
-      resourcesByStatus,
-      resourcesByType,
-      recentDeployments,
-      lowStockAlerts,
-      utilizationRate
-    ] = await Promise.all([
-      Resource.countDocuments(),
-      Resource.aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 }, total_quantity: { $sum: '$quantity.current' } } }
-      ]),
-      Resource.aggregate([
-        { $group: { _id: '$type', count: { $sum: 1 }, total_quantity: { $sum: '$quantity.current' } } }
-      ]),
-      Resource.aggregate([
-        { $unwind: '$deployment_history' },
-        { $match: { 'deployment_history.deployed_at': { $gte: cutoffDate } } },
-        { $group: { _id: null, total_deployments: { $sum: 1 }, total_quantity_deployed: { $sum: '$deployment_history.quantity_deployed' } } }
-      ]),
-      Resource.find({
-        $expr: {
-          $lt: [
-            { $subtract: ['$quantity.current', { $add: ['$quantity.allocated', '$quantity.reserved'] }] },
-            20
-          ]
-        }
-      }).countDocuments(),
-      Resource.aggregate([
-        {
-          $project: {
-            utilization: {
-              $divide: [
-                { $add: ['$quantity.allocated', '$quantity.reserved'] },
-                '$quantity.current'
-              ]
-            }
+    // Get all resources for calculations
+    const allResources = await Resource.find({});
+    const totalResources = allResources.length;
+    const availableResources = allResources.filter(r => r.status === 'available').length;
+    const allocatedResources = allResources.filter(r => r.status === 'dispatched' || r.status === 'allocated').length;
+    const reservedResources = allResources.filter(r => r.status === 'reserved').length;
+    const totalValue = 0; // Placeholder, add value field if needed
+
+    // Utilization rate: (allocated + reserved) / total current
+    let totalCurrent = 0, totalAllocated = 0, totalReserved = 0;
+    allResources.forEach(r => {
+      totalCurrent += r.quantity.current;
+      totalAllocated += r.quantity.allocated;
+      totalReserved += r.quantity.reserved;
+    });
+    const utilizationRate = totalCurrent > 0 ? ((totalAllocated + totalReserved) / totalCurrent) * 100 : 0;
+
+    // Performance metrics calculated from deployment_history
+    let totalDeployments = 0;
+    let successfulDeployments = 0;
+    let totalResponseTime = 0;
+    let responseTimeCount = 0;
+    let totalTurnover = 0;
+    let turnoverCount = 0;
+
+    allResources.forEach(r => {
+      if (Array.isArray(r.deployment_history)) {
+        r.deployment_history.forEach(d => {
+          totalDeployments++;
+          // Consider deployments with status 'completed' as successful
+          if (d.status === 'completed') successfulDeployments++;
+          // If actual_duration is present, use for response time
+          if (d.actual_duration) {
+            totalResponseTime += d.actual_duration;
+            responseTimeCount++;
           }
-        },
-        { $group: { _id: null, avg_utilization: { $avg: '$utilization' } } }
-      ])
-    ]);
+          // If quantity_deployed and current are present, use for turnover
+          if (typeof d.quantity_deployed === 'number' && typeof r.quantity.current === 'number' && r.quantity.current > 0) {
+            totalTurnover += (d.quantity_deployed / r.quantity.current) * 100;
+            turnoverCount++;
+          }
+        });
+      }
+    });
+
+    const allocationEfficiency = utilizationRate;
+    const responseTime = responseTimeCount > 0 ? totalResponseTime / responseTimeCount : 0;
+    const resourceTurnover = turnoverCount > 0 ? totalTurnover / turnoverCount : 0;
+    const deploymentSuccessRate = totalDeployments > 0 ? (successfulDeployments / totalDeployments) * 100 : 0;
+
+    // Breakdown by type and status
+    const typeCounts = {};
+    const statusCounts = {};
+    allResources.forEach(r => {
+      typeCounts[r.type] = (typeCounts[r.type] || 0) + 1;
+      statusCounts[r.status] = (statusCounts[r.status] || 0) + 1;
+    });
+    const byType = Object.entries(typeCounts).map(([type, count]) => ({
+      type,
+      count,
+      available: allResources.filter(r => r.type === type && r.status === 'available').length,
+      percentage: totalResources > 0 ? Math.round((count / totalResources) * 100) : 0
+    }));
+    const byStatus = Object.entries(statusCounts).map(([status, count]) => ({
+      status,
+      count,
+      percentage: totalResources > 0 ? Math.round((count / totalResources) * 100) : 0
+    }));
 
     res.json({
       success: true,
       data: {
         overview: {
           total_resources: totalResources,
-          low_stock_alerts: lowStockAlerts,
-          avg_utilization_rate: utilizationRate[0]?.avg_utilization ? Math.round(utilizationRate[0].avg_utilization * 100) : 0,
-          recent_deployments: recentDeployments[0]?.total_deployments || 0
+          available_resources: availableResources,
+          allocated_resources: allocatedResources,
+          reserved_resources: reservedResources,
+          total_value: totalValue,
+          utilization_rate: utilizationRate
         },
         breakdown: {
-          by_status: resourcesByStatus,
-          by_type: resourcesByType
+          by_type: byType,
+          by_status: byStatus
         },
         performance: {
-          total_quantity_deployed: recentDeployments[0]?.total_quantity_deployed || 0,
-          deployment_rate: recentDeployments[0]?.total_deployments || 0,
-          timeframe_days: timeframe
+          allocation_efficiency: allocationEfficiency,
+          response_time: responseTime,
+          resource_turnover: resourceTurnover,
+          deployment_success_rate: deploymentSuccessRate
         },
         generated_at: new Date()
       }

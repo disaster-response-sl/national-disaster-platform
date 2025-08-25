@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, Shield, Users, AlertTriangle, Activity, MapPin, Navigation } from 'lucide-react';
+import { LogOut, Shield, Users, AlertTriangle, Activity, MapPin } from 'lucide-react';
 import { canAccessResourceManagement } from '../utils/permissions';
 import toast from 'react-hot-toast';
 import NDXDashboard from './NDXDashboard';
@@ -85,8 +85,8 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg p-8">
+  <div className="px-4 py-6 sm:px-0">
+              <div className="mt-8">
             <div className="text-center">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <Shield className="w-8 h-8 text-green-600" />
@@ -97,7 +97,6 @@ const Dashboard: React.FC = () => {
               <p className="text-gray-600 mb-6">
                 You have successfully logged in to the Disaster Response Platform.
               </p>
-              
               {/* User Info Card */}
               <div className="max-w-md mx-auto bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Your Account</h3>
@@ -122,17 +121,16 @@ const Dashboard: React.FC = () => {
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-500">Role:</span>
-                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
+                          <Activity className="w-8 h-8 text-white" />
                       {getRoleIcon(user?.role || '')}
                       {user?.role?.toUpperCase()}
                     </div>
                   </div>
                 </div>
               </div>
-
               {/* Navigation Actions */}
-              <div className="mt-8 space-y-4">
-                <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto justify-center items-center">
+              <div className="mt-8">
+                <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto justify-center items-center mb-8">
                   {/* Maps Navigation Button */}
                   <button
                     onClick={() => navigate('/maps')}
@@ -184,6 +182,9 @@ const Dashboard: React.FC = () => {
                 </div>
                 {/* Grid quick links */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+=======
+              <div className="mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <Link 
                     to="/disasters"
                     className="bg-blue-50 hover:bg-blue-100 p-6 rounded-lg border border-blue-200 transition-colors"
@@ -196,6 +197,7 @@ const Dashboard: React.FC = () => {
                       </div>
                     </div>
                   </Link>
+                  
                   <Link 
                     to="/sos"
                     className="bg-red-50 hover:bg-red-100 p-6 rounded-lg border border-red-200 transition-colors"
@@ -208,6 +210,7 @@ const Dashboard: React.FC = () => {
                       </div>
                     </div>
                   </Link>
+
                   <div className="bg-green-50 p-6 rounded-lg border border-green-200">
                     <div className="flex items-center">
                       <Activity className="w-8 h-8 text-green-600 mr-4" />
@@ -241,6 +244,7 @@ const Dashboard: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
         </div>
       </main>
     </div>
