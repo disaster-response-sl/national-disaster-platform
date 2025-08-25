@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { X, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
+import jsPDF from 'jspdf';
 
 interface GenerateReportModalProps {
   isOpen: boolean;
@@ -69,11 +70,8 @@ const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
 
     try {
       setLoading(true);
-      
-      // Simulate report generation (mock implementation)
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
-      
-      // Create mock report content
+
       const reportData = {
         title: `Resource ${reportConfig.type.charAt(0).toUpperCase() + reportConfig.type.slice(1)} Report`,
         generatedAt: new Date().toISOString(),
@@ -83,25 +81,55 @@ const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
         includeDetails: reportConfig.includeDetails
       };
 
-      // Create and download mock file
-      const content = generateMockReportContent(reportData);
-      const blob = new Blob([content], { 
-        type: reportConfig.format === 'pdf' ? 'application/pdf' : 
-              reportConfig.format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
-              'text/csv'
-      });
-      
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      const fileName = `resource_${reportConfig.type}_report_${new Date().toISOString().split('T')[0]}.${reportConfig.format === 'excel' ? 'xlsx' : reportConfig.format}`;
-      link.download = fileName;
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      let fileName = `resource_${reportConfig.type}_report_${new Date().toISOString().split('T')[0]}`;
+
+      if (reportConfig.format === 'pdf') {
+        // Use jsPDF to generate a real PDF
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(reportData.title, 10, 20);
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date(reportData.generatedAt).toLocaleString()}`, 10, 30);
+        doc.text(`Date Range: ${reportData.dateRange}`, 10, 36);
+        doc.text('Report Configuration:', 10, 46);
+        doc.text(`- Type: ${reportConfig.type}`, 12, 52);
+        doc.text(`- Format: ${reportConfig.format}`, 12, 58);
+        doc.text(`- Include Charts: ${reportConfig.includeCharts ? 'Yes' : 'No'}`, 12, 64);
+        doc.text(`- Include Details: ${reportConfig.includeDetails ? 'Yes' : 'No'}`, 12, 70);
+        doc.text('Applied Filters:', 10, 80);
+        let y = 86;
+        Object.entries(reportConfig.filters)
+          .filter(([_, value]) => value !== '')
+          .forEach(([key, value]) => {
+            doc.text(`- ${key}: ${value}`, 12, y);
+            y += 6;
+          });
+        doc.text('Sample Resource Data:', 10, y + 6);
+        doc.text('1. Emergency Medical Kit - Medical Equipment (45 available)', 12, y + 12);
+        doc.text('2. Water Purification Tablets - Water Consumable (800 available)', 12, y + 18);
+        doc.text('3. Emergency Tents - Shelter Equipment (20 available)', 12, y + 24);
+        doc.text('4. Emergency Food Packets - Food Consumable (350 available)', 12, y + 30);
+        doc.text('5. Rescue Boats - Transportation Equipment (6 available)', 12, y + 36);
+        doc.text('Note: This is a demonstration report. In a production environment, this would contain real data from the resource management system.', 10, y + 48, { maxWidth: 180 });
+        doc.save(`${fileName}.pdf`);
+      } else {
+        // CSV or Excel (mock)
+        const content = generateMockReportContent(reportData);
+        const blob = new Blob([content], {
+          type:
+            reportConfig.format === 'excel'
+              ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+              : 'text/csv',
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${fileName}.${reportConfig.format === 'excel' ? 'xlsx' : reportConfig.format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
 
       toast.success('Report generated and downloaded successfully');
       onClose();

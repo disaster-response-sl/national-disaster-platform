@@ -7,7 +7,12 @@ export interface Resource {
   name: string;
   type: string;
   category: string;
-  quantity: number;
+  quantity: {
+    current: number;
+    unit: string;
+    allocated?: number;
+    reserved?: number;
+  };
   available_quantity: number;
   allocated_quantity: number;
   reserved_quantity: number;
@@ -67,7 +72,12 @@ export interface CreateResourceRequest {
   name: string;
   type: string;
   category: string;
-  quantity: number;
+  quantity: {
+    current: number;
+    unit: string;
+    allocated?: number;
+    reserved?: number;
+  };
   location: {
     lat: number;
     lng: number;

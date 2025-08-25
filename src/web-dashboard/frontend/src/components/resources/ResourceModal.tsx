@@ -20,13 +20,24 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
   resource,
   mode
 }) => {
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [isOpen]);
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreateResourceRequest>({
     name: '',
     type: '',
     category: '',
-    quantity: 0,
+    quantity: { current: 0, unit: '' },
     location: {
       lat: 0,
       lng: 0,
@@ -48,7 +59,7 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
         name: resource.name,
         type: resource.type,
         category: resource.category,
-        quantity: resource.quantity,
+        quantity: resource.quantity || { current: 0, unit: '' },
         location: resource.location,
         status: resource.status,
         priority: resource.priority,
@@ -61,7 +72,7 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
         name: '',
         type: '',
         category: '',
-        quantity: 0,
+        quantity: { current: 0, unit: '' },
         location: {
           lat: 0,
           lng: 0,
@@ -105,6 +116,12 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+  const handleQuantityChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      quantity: { ...prev.quantity, [field]: value }
+    }));
+  };
 
   const handleLocationChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -124,8 +141,9 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-lg p-0 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
             {mode === 'create' ? 'Add New Resource' : 'Edit Resource'}
           </h2>
@@ -137,7 +155,7 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+  <form id="resource-modal-form" onSubmit={handleSubmit} className="space-y-4 flex flex-col h-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -163,12 +181,16 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select Type</option>
-                <option value="medical">Medical</option>
+                <option value="medicine">Medicine</option>
                 <option value="food">Food</option>
                 <option value="shelter">Shelter</option>
-                <option value="transport">Transport</option>
-                <option value="equipment">Equipment</option>
+                <option value="water">Water</option>
+                <option value="medical_supplies">Medical Supplies</option>
+                <option value="transportation">Transportation</option>
                 <option value="personnel">Personnel</option>
+                <option value="equipment">Equipment</option>
+                <option value="clothing">Clothing</option>
+                <option value="communication">Communication</option>
               </select>
             </div>
 
@@ -176,27 +198,51 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Category *
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                <option value="">Select Category</option>
+                <option value="emergency">Emergency</option>
+                <option value="medical">Medical</option>
+                <option value="basic_needs">Basic Needs</option>
+                <option value="infrastructure">Infrastructure</option>
+                <option value="logistics">Logistics</option>
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Quantity *
               </label>
-              <input
-                type="number"
-                required
-                min="0"
-                value={formData.quantity}
-                onChange={(e) => handleInputChange('quantity', parseInt(e.target.value) || 0)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={formData.quantity.current}
+                  onChange={(e) => handleQuantityChange('current', parseInt(e.target.value) || 0)}
+                  className="w-2/3 border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Current"
+                />
+                <select
+                  required
+                  value={formData.quantity.unit}
+                  onChange={(e) => handleQuantityChange('unit', e.target.value)}
+                  className="w-1/3 border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Unit</option>
+                  <option value="pieces">Pieces</option>
+                  <option value="kg">Kg</option>
+                  <option value="liters">Liters</option>
+                  <option value="boxes">Boxes</option>
+                  <option value="people">People</option>
+                  <option value="vehicles">Vehicles</option>
+                  <option value="sets">Sets</option>
+                </select>
+              </div>
             </div>
 
             <div>
@@ -319,24 +365,27 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Saving...' : mode === 'create' ? 'Create Resource' : 'Update Resource'}
-            </button>
-          </div>
         </form>
       </div>
+      {/* Action bar always visible at the bottom */}
+      <div className="flex justify-end space-x-3 pt-4 border-t bg-white p-4 sticky bottom-0 left-0 z-20">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="resource-modal-form"
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Saving...' : mode === 'create' ? 'Create Resource' : 'Update Resource'}
+        </button>
+      </div>
+    </div>
     </div>
   );
 };
