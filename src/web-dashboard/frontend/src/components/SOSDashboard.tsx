@@ -19,19 +19,20 @@ import toast from 'react-hot-toast';
 
 interface SOSSignal {
   _id: string;
-  individualId: string;
+  user_id: string; // Changed from individualId
   location: {
-    latitude: number;
-    longitude: number;
+    lat: number; // Changed from latitude
+    lng: number; // Changed from longitude
     address?: string;
   };
   status: 'pending' | 'acknowledged' | 'responding' | 'resolved' | 'false_alarm';
   priority: 'low' | 'medium' | 'high' | 'critical';
   created_at: string;
   updated_at: string;
-  responder_id?: string;
+  assigned_responder?: string; // Changed from responder_id
   escalation_level?: number;
   notes?: string;
+  message?: string; // Added message field
 }
 
 interface SOSStats {
@@ -40,20 +41,23 @@ interface SOSStats {
   acknowledged: number;
   responding: number;
   resolved: number;
-  false_alarm: number;
+  false_alarm?: number; // Made optional as backend doesn't always include it
   critical: number;
   high: number;
-  medium: number;
-  low: number;
+  medium?: number; // Made optional as backend doesn't always include it
+  low?: number; // Made optional as backend doesn't always include it
+  escalated?: number; // Added from backend
 }
 
 interface SOSCluster {
+  id: string;
   center: {
-    latitude: number;
-    longitude: number;
+    lat: number;
+    lng: number;
   };
-  count: number;
   signals: SOSSignal[];
+  priority: string;
+  status: string;
   radius: number;
 }
 
@@ -414,7 +418,7 @@ const SOSDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Critical</p>
-                <p className="text-2xl font-bold text-red-600">{stats.critical}</p>
+                <p className="text-2xl font-bold text-red-600">{stats.critical || 0}</p>
               </div>
               <div className="p-3 bg-red-100 rounded-full">
                 <AlertCircle className="w-6 h-6 text-red-600" />
@@ -525,7 +529,7 @@ const SOSDashboard: React.FC = () => {
                         <User className="w-5 h-5 text-gray-400 mr-2" />
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {signal.individualId}
+                            {signal.user_id}
                           </div>
                           <div className="text-sm text-gray-500">
                             ID: {signal._id.slice(-8)}
@@ -537,7 +541,7 @@ const SOSDashboard: React.FC = () => {
                       <div className="flex items-center text-sm text-gray-900">
                         <MapPin className="w-4 h-4 text-gray-400 mr-1" />
                         <div>
-                          <div>{signal.location.latitude.toFixed(6)}, {signal.location.longitude.toFixed(6)}</div>
+                          <div>{signal.location.lat.toFixed(6)}, {signal.location.lng.toFixed(6)}</div>
                           {signal.location.address && (
                             <div className="text-xs text-gray-500">{signal.location.address}</div>
                           )}
@@ -628,20 +632,25 @@ const SOSDashboard: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Signal Clusters</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {clusters.map((cluster, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
+              <div key={cluster.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-900">Cluster {index + 1}</span>
                   <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                    {cluster.count} signals
+                    {cluster.signals.length} signals
                   </span>
                 </div>
                 <div className="text-sm text-gray-600">
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 mr-1" />
-                    {cluster.center.latitude.toFixed(4)}, {cluster.center.longitude.toFixed(4)}
+                    {cluster.center.lat.toFixed(4)}, {cluster.center.lng.toFixed(4)}
                   </div>
                   <div className="mt-1">
                     Radius: {cluster.radius.toFixed(2)} km
+                  </div>
+                  <div className="mt-1">
+                    Priority: <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(cluster.priority)}`}>
+                      {cluster.priority.toUpperCase()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -672,7 +681,7 @@ const SOSDashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Individual ID</label>
-                  <p className="text-sm text-gray-900">{selectedSignal.individualId}</p>
+                  <p className="text-sm text-gray-900">{selectedSignal.user_id}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Status</label>
@@ -699,18 +708,25 @@ const SOSDashboard: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-gray-500">Location</label>
                 <div className="text-sm text-gray-900">
-                  <div>Latitude: {selectedSignal.location.latitude}</div>
-                  <div>Longitude: {selectedSignal.location.longitude}</div>
+                  <div>Latitude: {selectedSignal.location.lat}</div>
+                  <div>Longitude: {selectedSignal.location.lng}</div>
                   {selectedSignal.location.address && (
                     <div>Address: {selectedSignal.location.address}</div>
                   )}
                 </div>
               </div>
               
-              {selectedSignal.responder_id && (
+              {selectedSignal.message && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Message</label>
+                  <p className="text-sm text-gray-900">{selectedSignal.message}</p>
+                </div>
+              )}
+              
+              {selectedSignal.assigned_responder && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">Assigned Responder</label>
-                  <p className="text-sm text-gray-900">{selectedSignal.responder_id}</p>
+                  <p className="text-sm text-gray-900">{selectedSignal.assigned_responder}</p>
                 </div>
               )}
               
