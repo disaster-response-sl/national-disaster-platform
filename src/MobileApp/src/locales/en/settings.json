@@ -2,6 +2,8 @@
   "settings": {
     "title": "Settings",
     "language": "Language",
+    "language_test": "Language Test",
+    "privacy_settings": "Privacy Settings",
     "notifications": "Notifications",
     "emergency_contacts": "Emergency Contacts",
     "privacy": "Privacy",

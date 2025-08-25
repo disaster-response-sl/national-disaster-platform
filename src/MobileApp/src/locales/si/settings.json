@@ -2,11 +2,13 @@
   "settings": {
     "title": "සැකසුම්",
     "language": "භාෂාව",
+    "language_test": "භාෂා පරීක්ෂණය",
+    "privacy_settings": "පෞද්ගලිකත්ව සැකසුම්",
     "notifications": "දැනුම්දීම්",
     "emergency_contacts": "හදිසි සම්බන්ධතා",
-    "privacy": "රහස්‍යතාව",
-    "about": "ගැන",
-    "logout": "ඉවත්වන්න",
+    "privacy": "පෞද්ගලිකත්වය",
+    "about": "අපි ගැන",
+    "logout": "ඉවත් වන්න",
     "account": "ගිණුම",
     "profile": "පැතිකඩ"
   },

@@ -13,7 +13,9 @@
     "previous": "Previous",
     "ok": "OK",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "location_required": "Location Access Required",
+    "enable_location": "We need your location to send help to you. Please enable GPS and try again."
   },
   "navigation": {
     "dashboard": "Dashboard",

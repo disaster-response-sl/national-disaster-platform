@@ -181,31 +181,3 @@ export const useAppTranslation = () => {
     i18n,
   };
 };
-
-/**
- * Hook for emergency/critical messages that need immediate translation
- */
-export const useEmergencyTranslation = () => {
-  const { tCommon, tScreens } = useAppTranslation();
-
-  const getEmergencyMessage = (type: 'sos_sent' | 'sos_failed' | 'alert_received' | 'evacuation_required'): string => {
-    switch (type) {
-      case 'sos_sent':
-        return tScreens('sos.sos_sent');
-      case 'sos_failed':
-        return tScreens('sos.sos_failed');
-      case 'alert_received':
-        return tScreens('dashboard.recent_alerts');
-      case 'evacuation_required':
-        return 'Evacuation Required - පිටවීම අවශ්‍යයි - வெளியேற்றம் தேவை';
-      default:
-        return tCommon('app.error');
-    }
-  };
-
-  return {
-    getEmergencyMessage,
-  };
-};
-
-export default useAppTranslation;

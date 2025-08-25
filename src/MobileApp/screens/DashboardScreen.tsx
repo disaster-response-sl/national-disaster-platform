@@ -67,6 +67,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const { 
     tCommon, 
     tScreens, 
+    tSettings,
     getDisasterTypeText, 
     getSeverityText, 
     formatRelativeTime,
@@ -704,7 +705,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                 >
                   <Text style={styles.actionIcon}>🌐</Text>
                   <Text style={[styles.actionText, getTextDirection()]}>
-                    Language Test
+                    {tSettings('settings.language_test')}
                   </Text>
                 </TouchableOpacity>
 
@@ -714,7 +715,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                   onPress={() => handleQuickAction('consent')}
                 >
                   <Text style={styles.actionIcon}>🔐</Text>
-                  <Text style={styles.actionText}>Privacy Settings</Text>
+                  <Text style={styles.actionText}>{tSettings('settings.privacy_settings')}</Text>
                 </TouchableOpacity>
           </View>
         </View>
@@ -722,7 +723,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         {/* Recent Alerts */}
         {recentAlerts.length > 0 && (
           <View style={styles.alertsSection}>
-            <Text style={styles.sectionTitle}>🚨 Recent Alerts</Text>
+            <Text style={styles.sectionTitle}>🚨 {tScreens('dashboard.recent_alerts')}</Text>
             <View style={styles.alertsList}>
               {recentAlerts.slice(0, 2).map((alert) => (
                 <View key={alert.id} style={styles.alertItem}>

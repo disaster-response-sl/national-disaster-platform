@@ -15,6 +15,10 @@ import {
 } from 'react-native';
 import NDXService, { NDXProvider, NDXConsent } from '../services/NDXService';
 
+// Import multilingual support
+import { useAppTranslation } from '../src/hooks/useAppTranslation';
+import { useLanguage } from '../src/contexts/LanguageContext';
+
 const { width } = Dimensions.get('window');
 
 interface ConsentManagementScreenProps {
@@ -22,6 +26,10 @@ interface ConsentManagementScreenProps {
 }
 
 const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navigation }) => {
+  // Multilingual support
+  const { tScreens, tCommon, tSettings } = useAppTranslation();
+  const { currentLanguage } = useLanguage();
+  
   const [providers, setProviders] = useState<NDXProvider[]>([]);
   const [consents, setConsents] = useState<Record<string, NDXConsent>>({});
   const [loading, setLoading] = useState(true);
@@ -270,7 +278,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
         <View style={styles.loadingContainer}>
           <View style={styles.loadingContent}>
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingTitle}>Loading Privacy Settings</Text>
+            <Text style={styles.loadingTitle}>{tSettings('privacy_settings')}</Text>
             <Text style={styles.loadingText}>Fetching your data sharing preferences...</Text>
           </View>
         </View>

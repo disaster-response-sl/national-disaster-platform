@@ -66,6 +66,22 @@
     "online": "Online",
     "offline": "Offline",
     "connecting": "Connecting...",
-    "emergency_operators": "Emergency Operators"
+    "emergency_operators": "Emergency Operators",
+    "ai_assistant": "AI Safety Assistant",
+    "quick_questions": "Quick Questions",
+    "earthquake_help": "What should I do in an earthquake?",
+    "hurricane_prep": "How to prepare for a hurricane?",
+    "emergency_supplies": "What emergency supplies do I need?",
+    "flood_safety": "How to stay safe during a flood?",
+    "evacuation_procedures": "What are evacuation procedures?",
+    "help_others": "How to help others in crisis?",
+    "warning_signs": "What are the warning signs of danger?",
+    "emergency_communication": "How to communicate during emergencies?",
+    "thinking": "Thinking...",
+    "error_occurred": "An error occurred. Please try again.",
+    "no_messages": "No messages yet. Start a conversation!",
+    "safety_level_high": "High Risk",
+    "safety_level_medium": "Medium Risk",
+    "safety_level_low": "Low Risk"
   }
 }

@@ -17,9 +17,17 @@ import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
+// Import multilingual support
+import { useAppTranslation } from '../src/hooks/useAppTranslation';
+import { useLanguage } from '../src/contexts/LanguageContext';
+
 const { width } = Dimensions.get('window');
 
 const ReportScreen = ({ navigation }: { navigation: any }) => {
+  // Multilingual support
+  const { tScreens, tCommon } = useAppTranslation();
+  const { currentLanguage } = useLanguage();
+  
   const [reportType, setReportType] = useState('food');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -143,7 +151,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
   };
 
   const getReportTypeInfo = (type: string) => {
-    const typeInfo = {
+    const typeInfo: { [key: string]: { icon: string; title: string; description: string; color: string } } = {
       food: {
         icon: '🍽️',
         title: 'Food Shortage',

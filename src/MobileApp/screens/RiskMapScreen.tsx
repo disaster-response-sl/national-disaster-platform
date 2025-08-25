@@ -24,6 +24,10 @@ import LeafletMap, { LeafletDisasterPoint } from '../components/LeafletMap';
 import NDXService from '../services/NDXService';
 import { API_BASE_URL } from '../config/api';
 
+// Import multilingual support
+import { useAppTranslation } from '../src/hooks/useAppTranslation';
+import { useLanguage } from '../src/contexts/LanguageContext';
+
 const { width, height } = Dimensions.get('window');
 
 interface Disaster {
@@ -44,6 +48,10 @@ interface RiskMapScreenProps {
 }
 
 const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
+  // Multilingual support
+  const { tScreens, tCommon } = useAppTranslation();
+  const { currentLanguage } = useLanguage();
+  
   const [disasters, setDisasters] = useState<Disaster[]>([]);
   const [showAllDisasters, setShowAllDisasters] = useState(true);
   const [loading, setLoading] = useState(true);

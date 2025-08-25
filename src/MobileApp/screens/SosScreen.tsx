@@ -17,9 +17,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 
+// Import multilingual support
+import { useAppTranslation } from '../src/hooks/useAppTranslation';
+import { useLanguage } from '../src/contexts/LanguageContext';
+
 const { width, height } = Dimensions.get('window');
 
-const SosScreen = ({ navigation }) => {
+const SosScreen = ({ navigation }: { navigation: any }) => {
+  // Multilingual support
+  const { tScreens, tCommon } = useAppTranslation();
+  const { currentLanguage } = useLanguage();
+  
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState('high');
@@ -93,11 +101,11 @@ const SosScreen = ({ navigation }) => {
           });
 
           Alert.alert(
-            "🚨 SOS Signal Sent Successfully",
-            "Emergency responders have been notified of your location. Help is on the way. Stay calm and follow any safety instructions.",
+            tScreens('sos.sos_sent'),
+            tScreens('sos.emergency_contacts_notified'),
             [
               {
-                text: 'OK',
+                text: tCommon('app.ok'),
                 onPress: () => {
                   setMessage('');
                   navigation.goBack();
@@ -105,12 +113,12 @@ const SosScreen = ({ navigation }) => {
               }
             ]
           );
-        } catch (err) {
+        } catch (err: any) {
           console.error(err);
           Alert.alert(
-            "SOS Send Failed",
-            err?.response?.data?.message || "Unable to send emergency signal. Please try again or call emergency services directly.",
-            [{ text: 'Retry', onPress: () => setSending(false) }]
+            tScreens('sos.sos_failed'),
+            err?.response?.data?.message || tScreens('sos.sos_failed'),
+            [{ text: tCommon('app.retry'), onPress: () => setSending(false) }]
           );
         } finally {
           setSending(false);
@@ -118,9 +126,9 @@ const SosScreen = ({ navigation }) => {
       },
       error => {
         Alert.alert(
-          "Location Access Required",
-          "We need your location to send help to you. Please enable GPS and try again.",
-          [{ text: 'Retry', onPress: () => setSending(false) }]
+          tCommon('app.location_required'),
+          tCommon('app.enable_location'),
+          [{ text: tCommon('app.retry'), onPress: () => setSending(false) }]
         );
         setSending(false);
       },
@@ -128,7 +136,7 @@ const SosScreen = ({ navigation }) => {
     );
   };
 
-  const getPriorityColor = (level) => {
+  const getPriorityColor = (level: string) => {
     switch (level) {
       case 'high':
         return '#ef4444';
@@ -141,7 +149,7 @@ const SosScreen = ({ navigation }) => {
     }
   };
 
-  const getPriorityDescription = (level) => {
+  const getPriorityDescription = (level: string) => {
     switch (level) {
       case 'high':
         return 'Life-threatening emergency';
