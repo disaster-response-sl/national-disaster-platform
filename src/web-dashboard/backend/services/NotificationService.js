@@ -91,10 +91,13 @@ class NotificationService {
       // Simulate push notification to mobile app
       await this.sendPushNotification(responder, sosSignal);
 
+      // Store in-app notification
+      await this.storeInAppNotification(responderId, sosSignal, notes, assignedBy);
+
       return {
         success: true,
         message: 'Notifications sent successfully',
-        channels: ['email', 'sms', 'push'],
+        channels: ['email', 'sms', 'push', 'in-app'],
         recipient: responder
       };
 
@@ -222,6 +225,40 @@ Check NDX dashboard immediately: http://localhost:3000/dashboard`;
       console.log(`🆔 SOS ID: ${sosSignal._id}`);
       console.log(`📈 ESCALATION: Level ${oldLevel} → Level ${newLevel}`);
       console.log(`👤 ESCALATED BY: ${escalatedBy}`);
+    }
+  }
+
+  /**
+   * Store in-app notification for responder
+   */
+  async storeInAppNotification(responderId, sosSignal, notes, assignedBy) {
+    try {
+      // Import the notification store
+      const { storeNotificationForResponder } = require('./NotificationStore');
+      
+      const notification = {
+        type: 'SOS_ASSIGNMENT',
+        title: '🚨 New Emergency Assignment',
+        message: `You have been assigned to emergency SOS #${sosSignal._id}`,
+        priority: sosSignal.priority,
+        sosId: sosSignal._id,
+        data: {
+          location: sosSignal.location,
+          emergencyType: sosSignal.emergency_type,
+          citizenMessage: sosSignal.message,
+          assignedBy: assignedBy,
+          notes: notes,
+          assignmentTime: new Date()
+        }
+      };
+      
+      // Store the notification
+      storeNotificationForResponder(responderId, notification);
+      
+      console.log('🔔 [IN-APP] Notification stored for responder:', responderId);
+      
+    } catch (error) {
+      console.error('[IN-APP NOTIFICATION ERROR]', error);
     }
   }
 }
