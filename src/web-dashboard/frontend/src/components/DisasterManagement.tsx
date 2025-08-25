@@ -14,6 +14,7 @@ import {
 import toast from 'react-hot-toast';
 import { disasterService, Disaster, DisasterFilters } from '../services/disasterService';
 import CreateDisasterForm from './CreateDisasterForm';
+import EditDisasterForm from './EditDisasterForm';
 import DisasterDetailsModal from './DisasterDetailsModal';
 
 interface DisasterManagementProps {}
@@ -29,6 +30,8 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
     sortOrder: 'desc'
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingDisaster, setEditingDisaster] = useState<Disaster | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedDisaster, setSelectedDisaster] = useState<Disaster | null>(null);
   const [pagination, setPagination] = useState({
@@ -73,6 +76,11 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
       [key]: value,
       page: 1
     }));
+  };
+
+  const handleEdit = (disaster: Disaster) => {
+    setEditingDisaster(disaster);
+    setShowEditModal(true);
   };
 
   // Future implementation for status updates
@@ -355,7 +363,7 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {/* Handle edit */}}
+                            onClick={() => handleEdit(disaster)}
                             className="text-green-600 hover:text-green-900"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -473,7 +481,23 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
         />
       )}
 
-      {/* Disaster Details Modal - placeholder for now */}
+      {/* Edit Disaster Modal */}
+      {showEditModal && editingDisaster && (
+        <EditDisasterForm 
+          disaster={editingDisaster}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingDisaster(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setEditingDisaster(null);
+            loadDisasters();
+          }}
+        />
+      )}
+
+      {/* Disaster Details Modal */}
       {selectedDisaster && (
         <DisasterDetailsModal 
           disaster={selectedDisaster}
