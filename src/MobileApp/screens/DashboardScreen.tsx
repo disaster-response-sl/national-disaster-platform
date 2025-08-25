@@ -19,6 +19,11 @@ import axios from 'axios';
 import NotificationService from '../services/NotificationService';
 import BackgroundNotificationService from '../services/BackgroundNotificationService';
 
+// Import multilingual support
+import { useAppTranslation } from '../src/hooks/useAppTranslation';
+import { useLanguage } from '../src/contexts/LanguageContext';
+import LanguageSelector from '../src/components/LanguageSelector';
+
 const { width } = Dimensions.get('window');
 
 interface Location {
@@ -56,6 +61,19 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const [userName, setUserName] = useState<string>('User');
   const [availableResources, setAvailableResources] = useState<any[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<boolean>(false);
+  const [showLanguageSelector, setShowLanguageSelector] = useState<boolean>(false);
+
+  // Multilingual support
+  const { 
+    tCommon, 
+    tScreens, 
+    getDisasterTypeText, 
+    getSeverityText, 
+    formatRelativeTime,
+    getTextDirection,
+    currentLanguage 
+  } = useAppTranslation();
+  const { getCurrentLanguageNativeName } = useLanguage();
 
   // Request notification permissions
   const requestNotificationPermission = async () => {
@@ -64,11 +82,11 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           {
-            title: 'Disaster Alert Notifications',
+            title: String(tScreens('dashboard.emergency_contacts')) || 'Disaster Alert Notifications',
             message: 'This app needs permission to send you important disaster alerts.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
+            buttonNeutral: String(tCommon('app.cancel')) || 'Ask Me Later',
+            buttonNegative: String(tCommon('app.cancel')) || 'Cancel',
+            buttonPositive: String(tCommon('app.ok')) || 'OK',
           }
         );
         const hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
@@ -538,20 +556,34 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                 <Text style={styles.avatarIcon}>👤</Text>
               </View>
               <View style={styles.userInfo}>
-                <Text style={styles.welcomeText}>Welcome back,</Text>
-                <Text style={styles.userNameText}>{userName}</Text>
-                <Text style={styles.roleText}>{userRole}</Text>
+                <Text style={[styles.welcomeText, getTextDirection()]}>
+                  {String(tScreens('dashboard.welcome')).replace('{{name}}', '')}
+                </Text>
+                <Text style={[styles.userNameText, getTextDirection()]}>{userName}</Text>
+                <Text style={[styles.roleText, getTextDirection()]}>{userRole}</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutText}>➡️</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                style={styles.languageButton} 
+                onPress={() => setShowLanguageSelector(true)}
+              >
+                <Text style={styles.languageButtonText}>
+                  {currentLanguage.toUpperCase()} 🌐
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutText}>➡️</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
         {/* Current Location Section */}
         <View style={styles.locationSection}>
-          <Text style={styles.sectionTitle}>📍 Current Location</Text>
+          <Text style={[styles.sectionTitle, getTextDirection()]}>
+            📍 {String(tScreens('dashboard.current_location'))}
+          </Text>
           {location ? (
             <View style={styles.locationContent}>
               <View style={styles.coordinateRow}>
@@ -564,7 +596,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
               </View>
             </View>
           ) : (
-            <Text style={styles.loadingText}>Getting location...</Text>
+            <Text style={[styles.loadingText, getTextDirection()]}>
+              {String(tCommon('app.loading'))}...
+            </Text>
           )}
         </View>
 
@@ -572,7 +606,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         <View style={styles.statusRow}>
           {/* Weather Card */}
           <View style={styles.statusCard}>
-            <Text style={styles.statusCardTitle}>☀️ Weather</Text>
+            <Text style={[styles.statusCardTitle, getTextDirection()]}>
+              ☀️ {String(tScreens('dashboard.weather'))}
+            </Text>
             {weather ? (
               <View style={styles.weatherContent}>
                 <Text style={styles.mainWeatherText}>{weather.temperature}</Text>
@@ -583,26 +619,32 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                 </View>
               </View>
             ) : (
-              <Text style={styles.loadingText}>Loading...</Text>
+              <Text style={[styles.loadingText, getTextDirection()]}>
+                {String(tCommon('app.loading'))}...
+              </Text>
             )}
           </View>
 
           {/* Risk Status Card */}
           <View style={styles.statusCard}>
-            <Text style={styles.statusCardTitle}>🛡️ Risk Status</Text>
+            <Text style={[styles.statusCardTitle, getTextDirection()]}>
+              🛡️ {String(tScreens('dashboard.risk_status'))}
+            </Text>
             <View style={styles.riskContent}>
               <View style={[styles.riskBadge, { backgroundColor: getRiskColor(riskStatus) }]}>
-                <Text style={styles.riskText}>{riskStatus}</Text>
+                <Text style={styles.riskText}>{getSeverityText(riskStatus.toLowerCase())}</Text>
               </View>
-              <Text style={styles.riskDescription}>Current area risk level</Text>
+              <Text style={[styles.riskDescription, getTextDirection()]}>Current area risk level</Text>
               {riskStatus === 'High' && (
                 <View style={styles.highRiskWarning}>
-                  <Text style={styles.warningText}>⚠️ Stay Alert!</Text>
+                  <Text style={[styles.warningText, getTextDirection()]}>⚠️ Stay Alert!</Text>
                   <TouchableOpacity 
                     style={styles.viewDetailsButton}
                     onPress={() => navigation.navigate('RiskMap')}
                   >
-                    <Text style={styles.viewDetailsText}>View Details</Text>
+                    <Text style={styles.viewDetailsText}>
+                      {String(tScreens('dashboard.view_all'))}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -612,14 +654,18 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+          <Text style={[styles.sectionTitle, getTextDirection()]}>
+            ⚡ {String(tScreens('dashboard.quick_actions'))}
+          </Text>
           <View style={styles.actionsGrid}>
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
               onPress={() => handleQuickAction('sos')}
             >
               <Text style={styles.actionIcon}>🚨</Text>
-              <Text style={styles.actionText}>Emergency SOS</Text>
+              <Text style={[styles.actionText, getTextDirection()]}>
+                {String(tScreens('sos.emergency_alert'))}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -627,7 +673,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
               onPress={() => handleQuickAction('report')}
             >
               <Text style={styles.actionIcon}>📝</Text>
-              <Text style={styles.actionText}>Report Incident</Text>
+              <Text style={[styles.actionText, getTextDirection()]}>
+                {String(tScreens('report.title'))}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -635,7 +683,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
               onPress={() => handleQuickAction('riskmap')}
             >
               <Text style={styles.actionIcon}>🗺️</Text>
-              <Text style={styles.actionText}>View Map</Text>
+              <Text style={[styles.actionText, getTextDirection()]}>
+                {String(tScreens('risk_map.title'))}
+              </Text>
             </TouchableOpacity>
 
              <TouchableOpacity
@@ -643,7 +693,19 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                   onPress={() => handleQuickAction('chat')}
                 >
                   <Text style={styles.actionIcon}>💬</Text>
-                  <Text style={styles.actionText}>Emergency Chat</Text>
+                  <Text style={[styles.actionText, getTextDirection()]}>
+                    {String(tScreens('chat.title'))}
+                  </Text>
+                </TouchableOpacity>
+
+             <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#8b5cf6' }]}
+                  onPress={() => navigation.navigate('MultilingualTest')}
+                >
+                  <Text style={styles.actionIcon}>🌐</Text>
+                  <Text style={[styles.actionText, getTextDirection()]}>
+                    Language Test
+                  </Text>
                 </TouchableOpacity>
 
                 {/* Added Consent/Privacy Action */}
@@ -708,6 +770,12 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+      
+      {/* Language Selector Modal */}
+      <LanguageSelector 
+        visible={showLanguageSelector}
+        onClose={() => setShowLanguageSelector(false)}
+      />
     </>
   );
 };
@@ -764,6 +832,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#bfdbfe',
     textTransform: 'capitalize',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  languageButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  languageButtonText: {
+    fontSize: 12,
+    color: '#ffffff',
+    fontWeight: '500',
   },
   logoutButton: {
     width: 40,

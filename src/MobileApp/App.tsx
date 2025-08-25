@@ -10,6 +10,7 @@ import ReportScreen from './screens/ReportScreen';
 import ChatScreen from './screens/ChatScreen';
 import RiskMapScreen from './screens/RiskMapScreen';
 import ConsentManagementScreen from './screens/ConsentManagementScreen';
+import MultilingualTestScreen from './screens/MultilingualTestScreen';
 import NotificationService from './services/NotificationService';
 
 // Import i18n configuration and providers
@@ -93,6 +94,15 @@ const AppNavigator: React.FC = () => {
           options={{ 
             title: 'Data Sharing Consent', // Keep this in English for now
             headerStyle: { backgroundColor: '#6f42c1' },
+            headerTintColor: 'white'
+          }}
+        />
+        <Stack.Screen 
+          name="MultilingualTest" 
+          component={MultilingualTestScreen}
+          options={{ 
+            title: 'Language Test',
+            headerStyle: { backgroundColor: '#17a2b8' },
             headerTintColor: 'white'
           }}
         />
