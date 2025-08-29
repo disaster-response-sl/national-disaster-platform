@@ -15,10 +15,13 @@ import {
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthService from '../services/AuthService';
+import { useLanguage } from '../services/LanguageService';
+import { getTextStyle } from '../services/FontService';
 
 const { width, height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
+  const { t, language } = useLanguage();
   const [individualId, setIndividualId] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,7 +31,7 @@ const LoginScreen = ({ navigation }) => {
     console.log('Login attempt with:', { individualId, otp });
 
     if (!individualId || !otp) {
-      Alert.alert('Error', 'Please enter NIC and OTP');
+      Alert.alert(t('login.error'), t('login.enterCredentials'));
       return;
     }
 
@@ -47,7 +50,7 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('userId', user._id);
       await AsyncStorage.setItem('role', user.role);
 
-      Alert.alert('Login Success', `Welcome, ${user.name}`);
+      Alert.alert(t('login.loginSuccess'), t('login.welcomeUser', { name: user.name }));
       navigation.navigate('Dashboard');
     } catch (err) {
       console.error('Login error:', err);
@@ -63,15 +66,15 @@ const LoginScreen = ({ navigation }) => {
           msg.includes('unauthorized')
         ) {
           Alert.alert(
-            'Incorrect Credentials',
-            'The username or password you entered is incorrect. Please re-enter your credentials.'
+            t('login.error'),
+            t('login.invalidCredentials')
           );
         } else {
-          Alert.alert('Login Failed', err.response.data.message);
+          Alert.alert(t('login.error'), err.response.data.message);
         }
       } else {
         console.error('Network error:', err.message);
-        Alert.alert('Error', 'Could not connect to server');
+        Alert.alert(t('login.error'), t('login.networkError'));
       }
     } finally {
       setLoading(false);
@@ -98,25 +101,36 @@ const LoginScreen = ({ navigation }) => {
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.appTitle}>SafeLanka</Text>
-            <Text style={styles.subtitle}>Secure Emergency Response System</Text>
+            <Text style={[styles.appTitle, getTextStyle(language)]}>
+              {t('login.title')}
+            </Text>
+            <Text style={[styles.subtitle, getTextStyle(language)]}>
+              {t('login.subtitle')}
+            </Text>
           </View>
 
           {/* Login Form Section */}
           <View style={styles.formSection}>
             <View style={styles.formContainer}>
-              <Text style={styles.formTitle}>Sign In</Text>
-              <Text style={styles.formSubtitle}>Enter your credentials to access your account</Text>
+              <Text style={[styles.formTitle, getTextStyle(language)]}>
+                {t('login.signIn')}
+              </Text>
+              <Text style={[styles.formSubtitle, getTextStyle(language)]}>
+                {t('login.signInSubtitle')}
+              </Text>
 
               {/* Individual ID Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Individual ID</Text>
+                <Text style={[styles.inputLabel, getTextStyle(language)]}>
+                  {t('login.individualId')}
+                </Text>
                 <TextInput
                   style={[
                     styles.input,
+                    getTextStyle(language),
                     focusedInput === 'individualId' && styles.inputFocused
                   ]}
-                  placeholder="Enter your Individual ID"
+                  placeholder={t('login.individualIdPlaceholder')}
                   placeholderTextColor="#94a3b8"
                   value={individualId}
                   onChangeText={setIndividualId}
@@ -128,13 +142,16 @@ const LoginScreen = ({ navigation }) => {
 
               {/* OTP Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>One-Time Password</Text>
+                <Text style={[styles.inputLabel, getTextStyle(language)]}>
+                  {t('login.otp')}
+                </Text>
                 <TextInput
                   style={[
                     styles.input,
+                    getTextStyle(language),
                     focusedInput === 'otp' && styles.inputFocused
                   ]}
-                  placeholder="Enter OTP"
+                  placeholder={t('login.otpPlaceholder')}
                   placeholderTextColor="#94a3b8"
                   value={otp}
                   onChangeText={setOtp}
@@ -152,8 +169,8 @@ const LoginScreen = ({ navigation }) => {
                 disabled={loading}
                 activeOpacity={0.8}
               >
-                <Text style={styles.loginButtonText}>
-                  {loading ? 'Signing In...' : 'Sign In'}
+                <Text style={[styles.loginButtonText, getTextStyle(language)]}>
+                  {loading ? t('login.signingIn') : t('login.signIn')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -162,17 +179,27 @@ const LoginScreen = ({ navigation }) => {
           {/* Demo Info Section */}
           <View style={styles.demoSection}>
             <View style={styles.demoContainer}>
-              <Text style={styles.demoTitle}>Demo Accounts</Text>
+              <Text style={[styles.demoTitle, getTextStyle(language)]}>
+                {t('login.demoAccounts')}
+              </Text>
               <View style={styles.demoAccountsContainer}>
                 <View style={styles.demoAccount}>
-                  <Text style={styles.demoAccountType}>Citizen</Text>
-                  <Text style={styles.demoAccountId}>citizen001</Text>
+                  <Text style={[styles.demoAccountType, getTextStyle(language)]}>
+                    {t('login.citizen')}
+                  </Text>
+                  <Text style={[styles.demoAccountId, getTextStyle(language)]}>
+                    citizen001
+                  </Text>
                 </View>
 
               </View>
               <View style={styles.otpInfo}>
-                <Text style={styles.otpLabel}>Demo OTP:</Text>
-                <Text style={styles.otpValue}>123456</Text>
+                <Text style={[styles.otpLabel, getTextStyle(language)]}>
+                  {t('login.demoOtp')}
+                </Text>
+                <Text style={[styles.otpValue, getTextStyle(language)]}>
+                  123456
+                </Text>
               </View>
             </View>
           </View>

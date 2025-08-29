@@ -16,10 +16,13 @@ import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
+import { useLanguage } from '../services/LanguageService';
+import { getTextStyle } from '../services/FontService';
 
 const { width, height } = Dimensions.get('window');
 
-const SosScreen = ({ navigation }) => {
+const SosScreen = ({ navigation }: any) => {
+  const { t, language } = useLanguage();
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState('high');
@@ -55,19 +58,19 @@ const SosScreen = ({ navigation }) => {
   const handleSendSOS = () => {
     if (!message.trim()) {
       Alert.alert(
-        "Emergency Description Required",
-        "Please describe your emergency situation so responders can help you better.",
-        [{ text: 'OK', style: 'default' }]
+        t('sos.emergencyRequired'),
+        t('sos.emergencyRequiredMessage'),
+        [{ text: t('common.ok'), style: 'default' }]
       );
       return;
     }
 
     Alert.alert(
-      "Send Emergency SOS?",
-      "This will immediately alert emergency responders to your location. Are you sure you want to proceed?",
+      t('sos.sendSos'),
+      t('sos.sendSosMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Send SOS', style: 'destructive', onPress: proceedWithSOS }
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('sos.sendSosButton'), style: 'destructive', onPress: proceedWithSOS }
       ]
     );
   };
@@ -93,11 +96,11 @@ const SosScreen = ({ navigation }) => {
           });
 
           Alert.alert(
-            "🚨 SOS Signal Sent Successfully",
-            "Emergency responders have been notified of your location. Help is on the way. Stay calm and follow any safety instructions.",
+            t('sos.sosSuccess'),
+            t('sos.sosSuccessMessage'),
             [
               {
-                text: 'OK',
+                text: t('common.ok'),
                 onPress: () => {
                   setMessage('');
                   navigation.goBack();
@@ -105,12 +108,12 @@ const SosScreen = ({ navigation }) => {
               }
             ]
           );
-        } catch (err) {
+        } catch (err: any) {
           console.error(err);
           Alert.alert(
-            "SOS Send Failed",
-            err?.response?.data?.message || "Unable to send emergency signal. Please try again or call emergency services directly.",
-            [{ text: 'Retry', onPress: () => setSending(false) }]
+            t('sos.sosFailed'),
+            err?.response?.data?.message || t('sos.sosFailedMessage'),
+            [{ text: t('sos.retry'), onPress: () => setSending(false) }]
           );
         } finally {
           setSending(false);
@@ -128,7 +131,7 @@ const SosScreen = ({ navigation }) => {
     );
   };
 
-  const getPriorityColor = (level) => {
+  const getPriorityColor = (level: string) => {
     switch (level) {
       case 'high':
         return '#ef4444';
@@ -141,16 +144,16 @@ const SosScreen = ({ navigation }) => {
     }
   };
 
-  const getPriorityDescription = (level) => {
+  const getPriorityDescription = (level: string) => {
     switch (level) {
       case 'high':
-        return 'Life-threatening emergency';
+        return t('sos.lifeThreatening');
       case 'medium':
-        return 'Urgent but not life-threatening';
+        return t('sos.urgentHelp');
       case 'low':
-        return 'Non-urgent emergency';
+        return t('sos.nonUrgent');
       default:
-        return 'Life-threatening emergency';
+        return t('sos.lifeThreatening');
     }
   };
 
@@ -163,26 +166,51 @@ const SosScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Header Section */}
+        <View style={styles.header}>
+          <Text style={[styles.title, getTextStyle(language)]}>
+            {t('sos.title')}
+          </Text>
+          <Text style={[styles.subtitle, getTextStyle(language)]}>
+            {t('sos.subtitle')}
+          </Text>
+        </View>
 
+        {/* Important Information */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Text style={styles.infoIcon}>�</Text>
+            <Text style={[styles.infoTitle, getTextStyle(language)]}>
+              {t('sos.importantInfo')}
+            </Text>
+          </View>
+          <Text style={[styles.infoDescription, getTextStyle(language)]}>
+            {t('sos.importantInfoMessage')}
+          </Text>
+        </View>
 
         {/* Emergency Information Card */}
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
             <Text style={styles.infoIcon}>📍</Text>
-            <Text style={styles.infoTitle}>Your Location Will Be Shared</Text>
+            <Text style={[styles.infoTitle, getTextStyle(language)]}>
+              {t('location.current')}
+            </Text>
           </View>
-          <Text style={styles.infoDescription}>
-            Emergency responders will receive your exact GPS coordinates along with your message.
+          <Text style={[styles.infoDescription, getTextStyle(language)]}>
+            {t('sos.importantInfoMessage')}
           </Text>
         </View>
 
         {/* Emergency Description */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Emergency Description</Text>
+          <Text style={[styles.sectionTitle, getTextStyle(language)]}>
+            {t('sos.describeEmergency')}
+          </Text>
           <View style={[styles.inputContainer, focusedInput && styles.inputFocused]}>
             <TextInput
-              style={styles.input}
-              placeholder="Describe your emergency situation (e.g., medical emergency, accident, fire, etc.)"
+              style={[styles.input, getTextStyle(language)]}
+              placeholder={t('sos.describeEmergency')}
               placeholderTextColor="#94a3b8"
               value={message}
               onChangeText={setMessage}
@@ -197,12 +225,16 @@ const SosScreen = ({ navigation }) => {
 
         {/* Priority Level */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Emergency Priority</Text>
+          <Text style={[styles.sectionTitle, getTextStyle(language)]}>
+            {t('sos.priorityLevel')}
+          </Text>
           <View style={styles.priorityContainer}>
             <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(priority) }]}>
-              <Text style={styles.priorityText}>{priority.toUpperCase()}</Text>
+              <Text style={[styles.priorityText, getTextStyle(language)]}>
+                {t(`sos.${priority}`).toUpperCase()}
+              </Text>
             </View>
-            <Text style={styles.priorityDescription}>
+            <Text style={[styles.priorityDescription, getTextStyle(language)]}>
               {getPriorityDescription(priority)}
             </Text>
           </View>
@@ -216,17 +248,17 @@ const SosScreen = ({ navigation }) => {
               dropdownIconColor="#64748b"
             >
               <Picker.Item
-                label="🔴 High Priority - Life Threatening"
+                label={`🔴 ${t('sos.high')} - ${t('sos.lifeThreatening')}`}
                 value="high"
                 color="#1f2937"
               />
               <Picker.Item
-                label="🟡 Medium Priority - Urgent"
+                label={`🟡 ${t('sos.medium')} - ${t('sos.urgentHelp')}`}
                 value="medium"
                 color="#1f2937"
               />
               <Picker.Item
-                label="🟢 Low Priority - Non-urgent"
+                label={`🟢 ${t('sos.low')} - ${t('sos.nonUrgent')}`}
                 value="low"
                 color="#1f2937"
               />
@@ -236,12 +268,22 @@ const SosScreen = ({ navigation }) => {
 
         {/* Emergency Instructions */}
         <View style={styles.instructionsCard}>
-          <Text style={styles.instructionsTitle}>💡 Emergency Tips</Text>
+          <Text style={[styles.instructionsTitle, getTextStyle(language)]}>
+            {t('sos.safetyInstructions')}
+          </Text>
           <View style={styles.instructionsList}>
-            <Text style={styles.instructionItem}>• Stay calm and in a safe location</Text>
-            <Text style={styles.instructionItem}>• Keep your phone charged and nearby</Text>
-            <Text style={styles.instructionItem}>• Follow instructions from responders</Text>
-            <Text style={styles.instructionItem}>• Don't move if injured unless necessary</Text>
+            <Text style={[styles.instructionItem, getTextStyle(language)]}>
+              {t('sos.instruction1')}
+            </Text>
+            <Text style={[styles.instructionItem, getTextStyle(language)]}>
+              {t('sos.instruction2')}
+            </Text>
+            <Text style={[styles.instructionItem, getTextStyle(language)]}>
+              {t('sos.instruction3')}
+            </Text>
+            <Text style={[styles.instructionItem, getTextStyle(language)]}>
+              {t('sos.instruction4')}
+            </Text>
           </View>
         </View>
 
@@ -263,8 +305,8 @@ const SosScreen = ({ navigation }) => {
                 <Text style={styles.sosButtonIcon}>
                   {sending ? '📡' : '🚨'}
                 </Text>
-                <Text style={styles.sosButtonText}>
-                  {sending ? 'SENDING EMERGENCY SIGNAL...' : 'SEND EMERGENCY SOS'}
+                <Text style={[styles.sosButtonText, getTextStyle(language)]}>
+                  {sending ? t('sos.sending') : t('sos.sendSosButton')}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -272,27 +314,45 @@ const SosScreen = ({ navigation }) => {
 
           {sending && (
             <View style={styles.sendingStatus}>
-              <Text style={styles.sendingText}>📍 Getting your location...</Text>
-              <Text style={styles.sendingSubtext}>Please wait while we send your emergency signal</Text>
+              <Text style={[styles.sendingText, getTextStyle(language)]}>
+                {t('sos.stayCalm')}
+              </Text>
+              <Text style={[styles.sendingSubtext, getTextStyle(language)]}>
+                {t('sos.sending')}
+              </Text>
             </View>
           )}
         </View>
 
         {/* Emergency Contacts */}
         <View style={styles.emergencyContactsCard}>
-          <Text style={styles.emergencyContactsTitle}>📞 Alternative Emergency Contacts</Text>
+          <Text style={[styles.emergencyContactsTitle, getTextStyle(language)]}>
+            {t('sos.emergencyContacts')}
+          </Text>
           <View style={styles.contactsList}>
             <TouchableOpacity style={styles.contactItem}>
-              <Text style={styles.contactLabel}>Police Emergency</Text>
-              <Text style={styles.contactNumber}>119</Text>
+              <Text style={[styles.contactLabel, getTextStyle(language)]}>
+                {t('sos.police')}
+              </Text>
+              <Text style={[styles.contactNumber, getTextStyle(language)]}>
+                119
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactItem}>
-              <Text style={styles.contactLabel}>Fire & Ambulance</Text>
-              <Text style={styles.contactNumber}>110</Text>
+              <Text style={[styles.contactLabel, getTextStyle(language)]}>
+                {t('sos.fire')}
+              </Text>
+              <Text style={[styles.contactNumber, getTextStyle(language)]}>
+                110
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactItem}>
-              <Text style={styles.contactLabel}>Disaster Management</Text>
-              <Text style={styles.contactNumber}>117</Text>
+              <Text style={[styles.contactLabel, getTextStyle(language)]}>
+                {t('sos.medical')}
+              </Text>
+              <Text style={[styles.contactNumber, getTextStyle(language)]}>
+                117
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

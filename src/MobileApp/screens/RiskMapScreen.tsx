@@ -23,6 +23,8 @@ import Geolocation from '@react-native-community/geolocation';
 import LeafletMap, { LeafletDisasterPoint } from '../components/LeafletMap';
 import NDXService from '../services/NDXService';
 import { API_BASE_URL } from '../config/api';
+import { useLanguage } from '../services/LanguageService';
+import { getTextStyle } from '../services/FontService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,6 +46,7 @@ interface RiskMapScreenProps {
 }
 
 const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
+  const { t, language } = useLanguage();
   const [disasters, setDisasters] = useState<Disaster[]>([]);
   const [showAllDisasters, setShowAllDisasters] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -335,8 +338,12 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         <View style={styles.loadingContainer}>
           <View style={styles.loadingContent}>
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingTitle}>Loading Risk Map</Text>
-            <Text style={styles.loadingText}>Fetching disaster data and location...</Text>
+            <Text style={[styles.loadingTitle, getTextStyle(language)]}>
+              {t('riskMap.loading')}
+            </Text>
+            <Text style={[styles.loadingText, getTextStyle(language)]}>
+              {t('riskMap.subtitle')}
+            </Text>
           </View>
         </View>
       </>
