@@ -168,14 +168,7 @@ const LoginScreen = ({ navigation }) => {
                   <Text style={styles.demoAccountType}>Citizen</Text>
                   <Text style={styles.demoAccountId}>citizen001</Text>
                 </View>
-                <View style={styles.demoAccount}>
-                  <Text style={styles.demoAccountType}>Emergency Responder</Text>
-                  <Text style={styles.demoAccountId}>responder001</Text>
-                </View>
-                <View style={styles.demoAccount}>
-                  <Text style={styles.demoAccountType}>Administrator</Text>
-                  <Text style={styles.demoAccountId}>admin001</Text>
-                </View>
+
               </View>
               <View style={styles.otpInfo}>
                 <Text style={styles.otpLabel}>Demo OTP:</Text>
