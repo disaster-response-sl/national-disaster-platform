@@ -26,7 +26,7 @@ export interface NDXDataRequest {
 }
 
 class NDXService {
-  private baseURL = 'http://10.0.2.2:5000/api/ndx';
+  private baseURL = 'http://192.168.1.8:5000/api/ndx';
 
   private async getAuthHeaders() {
     const token = await AsyncStorage.getItem('authToken');

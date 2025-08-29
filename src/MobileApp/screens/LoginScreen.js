@@ -34,8 +34,8 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      console.log('Making API call to:', 'http://10.0.2.2:5000/api/mobile/login');
-      const response = await axios.post('http://10.0.2.2:5000/api/mobile/login', {
+  console.log('Making API call to:', 'http://192.168.1.8:5000/api/mobile/login');
+  const response = await axios.post('http://192.168.1.8:5000/api/mobile/login', {
         individualId: individualId,
         otp: otp
       });

@@ -1,0 +1,73 @@
+{
+  "welcome": {
+    "back": "Welcome back,",
+    "user": "SafeLanka User"
+  },
+  "location": {
+    "current": "📍 Current Location",
+    "getting": "Getting location...",
+    "latitude": "Latitude:",
+    "longitude": "Longitude:",
+    "error": "Location Error",
+    "errorMessage": "Unable to get GPS location. Please check your location settings and try again.",
+    "outsideSriLanka": "GPS shows location outside Sri Lanka",
+    "validLocation": "Valid Sri Lankan location detected"
+  },
+  "weather": {
+    "title": "☀️ Weather",
+    "loading": "Loading..."
+  },
+  "risk": {
+    "title": "🛡️ Risk Status",
+    "description": "Current area risk level",
+    "high": "High",
+    "medium": "Medium", 
+    "low": "Low",
+    "stayAlert": "⚠️ Stay Alert!",
+    "viewDetails": "View Details"
+  },
+  "actions": {
+    "title": "⚡ Quick Actions",
+    "emergencySos": "Emergency SOS",
+    "reportIncident": "Report Incident",
+    "viewMap": "View Map",
+    "emergencyChat": "Emergency Chat",
+    "privacySettings": "Privacy Settings"
+  },
+  "alerts": {
+    "title": "🚨 Recent Alerts",
+    "flood": "Flood Alert",
+    "landslide": "Landslide Alert",
+    "earthquake": "Earthquake Alert",
+    "fire": "Fire Alert",
+    "cyclone": "Cyclone Alert"
+  },
+  "testing": {
+    "title": "🧪 Testing Tools",
+    "changeLocation": "📍 Change Location",
+    "testNotification": "🔔 Test Notification",
+    "demoAlert": "🚨 Demo Background Alert"
+  },
+  "logout": {
+    "confirm": "Confirm Logout",
+    "message": "Are you sure you want to logout?",
+    "cancel": "Cancel",
+    "logout": "Logout"
+  },
+  "notifications": {
+    "highRisk": "HIGH RISK ALERT",
+    "mediumRisk": "Medium Risk Alert",
+    "testAlert": "Test Alert",
+    "testMessage": "This is a test notification to verify the notification system is working.",
+    "permission": "Disaster Alert Notifications",
+    "permissionMessage": "This app needs permission to send you important disaster alerts.",
+    "askLater": "Ask Me Later",
+    "ok": "OK"
+  },
+  "language": {
+    "change": "🌐 Language",
+    "english": "English",
+    "sinhala": "සිංහල",
+    "tamil": "தமிழ்"
+  }
+}

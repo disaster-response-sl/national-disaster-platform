@@ -82,7 +82,7 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
   const fetchChatHistory = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const response = await axios.get('http://10.0.2.2:5000/api/mobile/chat-logs', {
+  const response = await axios.get('http://192.168.1.8:5000/api/mobile/chat-logs', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -108,7 +108,7 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
   const processMessageWithGemini = async (userMessage: string) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const response = await axios.post('http://10.0.2.2:5000/api/mobile/chat/gemini', {
+  const response = await axios.post('http://192.168.1.8:5000/api/mobile/chat/gemini', {
         query: userMessage,
         context: 'AI Safety Assistant for emergency preparedness and crisis response'
       }, {
