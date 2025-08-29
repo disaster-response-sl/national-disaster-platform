@@ -12,7 +12,7 @@ const getBaseURL = () => {
   }
   
   // Default for Android emulator
-  return 'http://10.0.2.2:5000/api';
+  return 'http://192.168.1.8:5000/api';
 };
 
 export const API_BASE_URL = getBaseURL();

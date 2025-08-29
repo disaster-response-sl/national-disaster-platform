@@ -18,6 +18,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import NotificationService from '../services/NotificationService';
 import BackgroundNotificationService from '../services/BackgroundNotificationService';
+import { useLanguage } from '../services/LanguageService';
+import { getTextStyle } from '../services/FontService';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const { width } = Dimensions.get('window');
 
@@ -46,6 +49,7 @@ interface NavigationProps {
 }
 
 const DashboardScreen = ({ navigation }: NavigationProps) => {
+  const { t, language } = useLanguage();
   const [location, setLocation] = useState<Location | null>(null);
   const [locationName, setLocationName] = useState<string>('Unknown');
   const [weather, setWeather] = useState<Weather | null>(null);
@@ -64,11 +68,11 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           {
-            title: 'Disaster Alert Notifications',
-            message: 'This app needs permission to send you important disaster alerts.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
+            title: t('notifications.permission'),
+            message: t('notifications.permissionMessage'),
+            buttonNeutral: t('notifications.askLater'),
+            buttonNegative: t('logout.cancel'),
+            buttonPositive: t('notifications.ok'),
           }
         );
         const hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
@@ -152,12 +156,12 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Confirm Logout',
-      'Are you sure you want to logout?',
+      t('logout.confirm'),
+      t('logout.message'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('logout.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('logout.logout'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -215,10 +219,10 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         console.log('🧪 GPS failed, showing location selection');
         
         Alert.alert(
-          'Location Error',
-          'Unable to get GPS location. Please check your location settings and try again.',
+          t('location.error'),
+          t('location.errorMessage'),
           [
-            { text: 'OK', onPress: () => {} }
+            { text: t('notifications.ok'), onPress: () => {} }
           ]
         );
       },
@@ -289,7 +293,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
       console.log('🔍 Assessing risk for location:', lat, lng);
       
-      const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
+  const response = await axios.get('http://192.168.1.8:5000/api/mobile/disasters', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -381,7 +385,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
           const distance = calculateDistance(lat, lng, nearestDisaster.location.lat, nearestDisaster.location.lng);
           
           sendLocalNotification(
-            'HIGH RISK ALERT',
+            t('notifications.highRisk'),
             `You are ${distance.toFixed(1)}km from a ${nearestDisaster.type} (${nearestDisaster.severity} severity). Multiple disasters detected: ${disasterTypes}. Please stay alert and follow safety guidelines.`,
             'high'
           );
@@ -402,7 +406,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             const distance = calculateDistance(lat, lng, nearestDisaster.location.lat, nearestDisaster.location.lng);
             
             sendLocalNotification(
-              'Medium Risk Alert',
+              t('notifications.mediumRisk'),
               `You are ${distance.toFixed(1)}km from a ${nearestDisaster.type} (${nearestDisaster.severity} severity). Please stay informed about local conditions.`,
               'medium'
             );
@@ -432,7 +436,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         await AsyncStorage.setItem('authToken', token);
       }
 
-      const response = await axios.get('http://10.0.2.2:5000/api/mobile/disasters', {
+  const response = await axios.get('http://192.168.1.8:5000/api/mobile/disasters', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -458,7 +462,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const fetchAvailableResources = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const response = await axios.get('http://10.0.2.2:5000/api/mobile/resources', {
+  const response = await axios.get('http://192.168.1.8:5000/api/mobile/resources', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -538,33 +542,50 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                 <Text style={styles.avatarIcon}>👤</Text>
               </View>
               <View style={styles.userInfo}>
-                <Text style={styles.welcomeText}>Welcome back,</Text>
-                <Text style={styles.userNameText}>{userName}</Text>
-                <Text style={styles.roleText}>{userRole}</Text>
+                <Text style={[styles.welcomeText, getTextStyle(language, 14)]}>
+                  {t('welcome.back')}
+                </Text>
+                <Text style={[styles.userNameText, getTextStyle(language, 18)]}>
+                  {t('welcome.user')}
+                </Text>
+                <Text style={[styles.roleText, getTextStyle(language, 12)]}>
+                  {userRole}
+                </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutText}>➡️</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <LanguageSwitcher compact={true} />
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutText}>➡️</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
         {/* Current Location Section */}
         <View style={styles.locationSection}>
-          <Text style={styles.sectionTitle}>📍 Current Location</Text>
+          <Text style={[styles.sectionTitle, getTextStyle(language, 16)]}>
+            {t('location.current')}
+          </Text>
           {location ? (
             <View style={styles.locationContent}>
               <View style={styles.coordinateRow}>
-                <Text style={styles.coordinateLabel}>Latitude:</Text>
+                <Text style={[styles.coordinateLabel, getTextStyle(language, 14)]}>
+                  {t('location.latitude')}
+                </Text>
                 <Text style={styles.coordinateValue}>{location.lat.toFixed(6)}</Text>
               </View>
               <View style={styles.coordinateRow}>
-                <Text style={styles.coordinateLabel}>Longitude:</Text>
+                <Text style={[styles.coordinateLabel, getTextStyle(language, 14)]}>
+                  {t('location.longitude')}
+                </Text>
                 <Text style={styles.coordinateValue}>{location.lng.toFixed(6)}</Text>
               </View>
             </View>
           ) : (
-            <Text style={styles.loadingText}>Getting location...</Text>
+            <Text style={[styles.loadingText, getTextStyle(language, 14)]}>
+              {t('location.getting')}
+            </Text>
           )}
         </View>
 
@@ -572,7 +593,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         <View style={styles.statusRow}>
           {/* Weather Card */}
           <View style={styles.statusCard}>
-            <Text style={styles.statusCardTitle}>☀️ Weather</Text>
+            <Text style={[styles.statusCardTitle, getTextStyle(language, 14)]}>
+              {t('weather.title')}
+            </Text>
             {weather ? (
               <View style={styles.weatherContent}>
                 <Text style={styles.mainWeatherText}>{weather.temperature}</Text>
@@ -583,26 +606,38 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                 </View>
               </View>
             ) : (
-              <Text style={styles.loadingText}>Loading...</Text>
+              <Text style={[styles.loadingText, getTextStyle(language, 14)]}>
+                {t('weather.loading')}
+              </Text>
             )}
           </View>
 
           {/* Risk Status Card */}
           <View style={styles.statusCard}>
-            <Text style={styles.statusCardTitle}>🛡️ Risk Status</Text>
+            <Text style={[styles.statusCardTitle, getTextStyle(language, 14)]}>
+              {t('risk.title')}
+            </Text>
             <View style={styles.riskContent}>
               <View style={[styles.riskBadge, { backgroundColor: getRiskColor(riskStatus) }]}>
-                <Text style={styles.riskText}>{riskStatus}</Text>
+                <Text style={[styles.riskText, getTextStyle(language, 14)]}>
+                  {t(`risk.${riskStatus.toLowerCase()}`)}
+                </Text>
               </View>
-              <Text style={styles.riskDescription}>Current area risk level</Text>
+              <Text style={[styles.riskDescription, getTextStyle(language, 11)]}>
+                {t('risk.description')}
+              </Text>
               {riskStatus === 'High' && (
                 <View style={styles.highRiskWarning}>
-                  <Text style={styles.warningText}>⚠️ Stay Alert!</Text>
+                  <Text style={[styles.warningText, getTextStyle(language, 10)]}>
+                    {t('risk.stayAlert')}
+                  </Text>
                   <TouchableOpacity 
                     style={styles.viewDetailsButton}
                     onPress={() => navigation.navigate('RiskMap')}
                   >
-                    <Text style={styles.viewDetailsText}>View Details</Text>
+                    <Text style={[styles.viewDetailsText, getTextStyle(language, 10)]}>
+                      {t('risk.viewDetails')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -612,14 +647,18 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+          <Text style={[styles.sectionTitle, getTextStyle(language, 16)]}>
+            {t('actions.title')}
+          </Text>
           <View style={styles.actionsGrid}>
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
               onPress={() => handleQuickAction('sos')}
             >
               <Text style={styles.actionIcon}>🚨</Text>
-              <Text style={styles.actionText}>Emergency SOS</Text>
+              <Text style={[styles.actionText, getTextStyle(language, 16)]}>
+                {t('actions.emergencySos')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -627,7 +666,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
               onPress={() => handleQuickAction('report')}
             >
               <Text style={styles.actionIcon}>📝</Text>
-              <Text style={styles.actionText}>Report Incident</Text>
+              <Text style={[styles.actionText, getTextStyle(language, 16)]}>
+                {t('actions.reportIncident')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -635,7 +676,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
               onPress={() => handleQuickAction('riskmap')}
             >
               <Text style={styles.actionIcon}>🗺️</Text>
-              <Text style={styles.actionText}>View Map</Text>
+              <Text style={[styles.actionText, getTextStyle(language, 16)]}>
+                {t('actions.viewMap')}
+              </Text>
             </TouchableOpacity>
 
              <TouchableOpacity
@@ -643,7 +686,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                   onPress={() => handleQuickAction('chat')}
                 >
                   <Text style={styles.actionIcon}>💬</Text>
-                  <Text style={styles.actionText}>Emergency Chat</Text>
+                  <Text style={[styles.actionText, getTextStyle(language, 16)]}>
+                    {t('actions.emergencyChat')}
+                  </Text>
                 </TouchableOpacity>
 
                 {/* Added Consent/Privacy Action */}
@@ -652,7 +697,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                   onPress={() => handleQuickAction('consent')}
                 >
                   <Text style={styles.actionIcon}>🔐</Text>
-                  <Text style={styles.actionText}>Privacy Settings</Text>
+                  <Text style={[styles.actionText, getTextStyle(language, 16)]}>
+                    {t('actions.privacySettings')}
+                  </Text>
                 </TouchableOpacity>
           </View>
         </View>
@@ -660,17 +707,21 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         {/* Recent Alerts */}
         {recentAlerts.length > 0 && (
           <View style={styles.alertsSection}>
-            <Text style={styles.sectionTitle}>🚨 Recent Alerts</Text>
+            <Text style={[styles.sectionTitle, getTextStyle(language, 16)]}>
+              {t('alerts.title')}
+            </Text>
             <View style={styles.alertsList}>
               {recentAlerts.slice(0, 2).map((alert) => (
                 <View key={alert.id} style={styles.alertItem}>
                   <View style={styles.alertContent}>
-                    <Text style={styles.alertType}>{alert.type}</Text>
+                    <Text style={[styles.alertType, getTextStyle(language, 14)]}>
+                      {alert.type}
+                    </Text>
                     <Text style={styles.alertLocation}>{alert.location}</Text>
                   </View>
                   <View style={styles.alertSeverity}>
                     <Text style={[styles.severityText, { color: getRiskColor(alert.severity) }]}>
-                      {alert.severity}
+                      {t(`risk.${alert.severity.toLowerCase()}`)}
                     </Text>
                   </View>
                 </View>
@@ -681,30 +732,41 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
         {/* Location Selection Button for Testing */}
         <View style={styles.debugSection}>
-          <Text style={styles.sectionTitle}>🧪 Testing Tools</Text>
+          <Text style={[styles.sectionTitle, getTextStyle(language, 16)]}>
+            {t('testing.title')}
+          </Text>
           <View style={styles.debugButtons}>
             <TouchableOpacity 
               style={styles.debugButton}
               onPress={() => getCurrentLocation()}
             >
-              <Text style={styles.debugButtonText}>📍 Change Location</Text>
+              <Text style={[styles.debugButtonText, getTextStyle(language, 12)]}>
+                {t('testing.changeLocation')}
+              </Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.debugButton}
-              onPress={() => sendLocalNotification('Test Alert', 'This is a test notification to verify the notification system is working.', 'medium')}
+              onPress={() => sendLocalNotification(t('notifications.testAlert'), t('notifications.testMessage'), 'medium')}
             >
-              <Text style={styles.debugButtonText}>🔔 Test Notification</Text>
+              <Text style={[styles.debugButtonText, getTextStyle(language, 12)]}>
+                {t('testing.testNotification')}
+              </Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.debugButton}
               onPress={() => BackgroundNotificationService.sendDemoNotification()}
             >
-              <Text style={styles.debugButtonText}>🚨 Demo Background Alert</Text>
+              <Text style={[styles.debugButtonText, getTextStyle(language, 12)]}>
+                {t('testing.demoAlert')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Language Switcher Section */}
+        <LanguageSwitcher style={{ marginHorizontal: 16, marginBottom: 12 }} />
 
         <View style={styles.bottomPadding} />
       </ScrollView>

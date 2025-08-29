@@ -34,8 +34,8 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      console.log('Making API call to:', 'http://10.0.2.2:5000/api/mobile/login');
-      const response = await axios.post('http://10.0.2.2:5000/api/mobile/login', {
+  console.log('Making API call to:', 'http://192.168.1.8:5000/api/mobile/login');
+  const response = await axios.post('http://192.168.1.8:5000/api/mobile/login', {
         individualId: individualId,
         otp: otp
       });
@@ -168,14 +168,7 @@ const LoginScreen = ({ navigation }) => {
                   <Text style={styles.demoAccountType}>Citizen</Text>
                   <Text style={styles.demoAccountId}>citizen001</Text>
                 </View>
-                <View style={styles.demoAccount}>
-                  <Text style={styles.demoAccountType}>Emergency Responder</Text>
-                  <Text style={styles.demoAccountId}>responder001</Text>
-                </View>
-                <View style={styles.demoAccount}>
-                  <Text style={styles.demoAccountType}>Administrator</Text>
-                  <Text style={styles.demoAccountId}>admin001</Text>
-                </View>
+
               </View>
               <View style={styles.otpInfo}>
                 <Text style={styles.otpLabel}>Demo OTP:</Text>

@@ -82,7 +82,7 @@ const SosScreen = ({ navigation }) => {
         try {
           const token = await AsyncStorage.getItem('authToken');
           const userId = await AsyncStorage.getItem('userId');
-          const response = await axios.post('http://10.0.2.2:5000/api/mobile/sos', {
+          const response = await axios.post('http://192.168.1.8:5000/api/mobile/sos', {
             location: { lat: latitude, lng: longitude },
             message,
             priority

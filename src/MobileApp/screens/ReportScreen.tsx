@@ -91,7 +91,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
         try {
           const token = await AsyncStorage.getItem('authToken');
 
-          const response = await axios.post('http://10.0.2.2:5000/api/mobile/reports', {
+          const response = await axios.post('http://192.168.1.8:5000/api/mobile/reports', {
             type: reportType,
             description,
             location: { lat: latitude, lng: longitude }
