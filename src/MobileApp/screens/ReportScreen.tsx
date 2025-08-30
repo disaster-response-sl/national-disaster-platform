@@ -16,10 +16,13 @@ import { Picker } from '@react-native-picker/picker';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { useLanguage } from '../services/LanguageService';
+import { getTextStyle } from '../services/FontService';
 
 const { width } = Dimensions.get('window');
 
 const ReportScreen = ({ navigation }: { navigation: any }) => {
+  const { t, language } = useLanguage();
   const [reportType, setReportType] = useState('food');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
