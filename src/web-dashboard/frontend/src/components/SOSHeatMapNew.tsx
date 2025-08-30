@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Filter, Loader2, AlertTriangle } from 'lucide-react';
 import MainLayout from './MainLayout';
 
 // Fix for default markers in react-leaflet
@@ -35,9 +35,88 @@ interface SosSignal {
   updated_at: string;
 }
 
+interface Filters {
+  status?: string;
+  priority?: string;
+  emergency_type?: string;
+}
+
 // Sri Lanka center coordinates
 const SRI_LANKA_CENTER: [number, number] = [7.8731, 80.7718];
 const DEFAULT_ZOOM = 8;
+
+// Filter Panel Component
+const FilterPanel: React.FC<{
+  filters: Filters;
+  onFiltersChange: (filters: Filters) => void;
+  loading: boolean;
+}> = ({ filters, onFiltersChange, loading }) => {
+  const handleFilterChange = (key: keyof Filters, value: string) => {
+    onFiltersChange({ ...filters, [key]: value || undefined });
+  };
+
+  return (
+    <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64 max-w-[calc(100vw-2rem)] md:w-64 border-2 border-blue-500">
+      <h3 className="text-lg font-semibold mb-4 flex items-center">
+        <Filter className="w-5 h-5 mr-2 text-blue-600" />
+        Filters
+      </h3>
+
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select
+            value={filters.status || ''}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={loading}
+          >
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="responding">Responding</option>
+            <option value="resolved">Resolved</option>
+            <option value="false_alarm">False Alarm</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <select
+            value={filters.priority || ''}
+            onChange={(e) => handleFilterChange('priority', e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={loading}
+          >
+            <option value="">All Priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Emergency Type</label>
+          <select
+            value={filters.emergency_type || ''}
+            onChange={(e) => handleFilterChange('emergency_type', e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={loading}
+          >
+            <option value="">All Types</option>
+            <option value="medical">Medical</option>
+            <option value="fire">Fire</option>
+            <option value="accident">Accident</option>
+            <option value="crime">Crime</option>
+            <option value="natural_disaster">Natural Disaster</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // SOS Signals Layer Component
 const SosSignalsLayer: React.FC<{ sosSignals: SosSignal[]; loading: boolean }> = ({ sosSignals, loading }) => {
@@ -126,11 +205,7 @@ const SOSHeatMap: React.FC = () => {
   const [sosLoading, setSosLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20); // Show 20 SOS signals per page
-  const [filters, setFilters] = useState<{
-    status?: string;
-    priority?: string;
-    emergency_type?: string;
-  }>({});
+  const [filters, setFilters] = useState<Filters>({});
 
   // Fetch SOS data function
   const fetchSosData = useCallback(async () => {
@@ -172,12 +247,6 @@ const SOSHeatMap: React.FC = () => {
     setSosSignals(filteredSosSignals.slice(startIndex, endIndex));
   }, [filteredSosSignals, itemsPerPage, currentPage]);
 
-  // Handle filter changes
-  const handleFilterChange = useCallback((key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value || undefined }));
-    setCurrentPage(1); // Reset to first page when filtering
-  }, []);
-
   // Handle page changes
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -207,8 +276,19 @@ const SOSHeatMap: React.FC = () => {
 
           {/* Map */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[calc(100vh-200px)] relative">
+            {/* Debug: Check if FilterPanel is rendering */}
+            <div className="absolute top-2 left-2 z-[2000] bg-red-500 text-white px-2 py-1 text-xs rounded">
+              FilterPanel Debug
+            </div>
+
+            <FilterPanel
+              filters={filters}
+              onFiltersChange={setFilters}
+              loading={sosLoading}
+            />
+
             {/* SOS Statistics Panel */}
-            <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-80">
+            <div className="absolute top-4 right-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-80">
               <h3 className="text-lg font-semibold mb-3 flex items-center">
                 <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
                 SOS Statistics
@@ -265,58 +345,6 @@ const SOSHeatMap: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Filters Panel */}
-            <div className="absolute top-4 right-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-80">
-              <h3 className="text-lg font-semibold mb-3">Filters</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={filters.status || ''}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="acknowledged">Acknowledged</option>
-                    <option value="responding">Responding</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="false_alarm">False Alarm</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                  <select
-                    value={filters.priority || ''}
-                    onChange={(e) => handleFilterChange('priority', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">All Priorities</option>
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Emergency Type</label>
-                  <select
-                    value={filters.emergency_type || ''}
-                    onChange={(e) => handleFilterChange('emergency_type', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">All Types</option>
-                    <option value="medical">Medical</option>
-                    <option value="fire">Fire</option>
-                    <option value="accident">Accident</option>
-                    <option value="crime">Crime</option>
-                    <option value="natural_disaster">Natural Disaster</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
             </div>
 
             <MapContainer
