@@ -126,11 +126,11 @@ const NDXDataExchange: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Database className="w-6 h-6 text-indigo-600" />
-        <h2 className="text-xl font-semibold text-gray-800">NDX Data Exchange</h2>
-      </div>
+    <div className="p-6">
+    <div className="flex items-center gap-2 mb-6">
+      <Database className="w-6 h-6 text-indigo-600" />
+      <h2 className="text-xl font-semibold text-gray-800">NDX Data Exchange</h2>
+    </div>
 
       {/* Exchange Form */}
       <div className="mb-8 p-4 bg-gray-50 rounded-lg">

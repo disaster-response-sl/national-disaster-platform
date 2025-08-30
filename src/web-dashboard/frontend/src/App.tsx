@@ -6,6 +6,9 @@ import Dashboard from './components/Dashboard';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
 import MapPage from './components/MapPage';
+import ResourceManagement from './components/ResourceManagement';
+import Settings from './components/Settings';
+import NDXPage from './components/NDXPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -46,6 +49,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MapPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/resources" 
+                element={
+                  <ProtectedRoute>
+                    <ResourceManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/ndx" 
+                element={
+                  <ProtectedRoute>
+                    <NDXPage />
                   </ProtectedRoute>
                 } 
               />

@@ -1,0 +1,179 @@
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { LogOut, Shield, Users, AlertTriangle, Activity, MapPin, Home, Map, Package, Settings as SettingsIcon, Layers } from 'lucide-react';
+import NotificationBell from './NotificationBell';
+
+interface MainLayoutProps {
+  children: React.ReactNode;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-800';
+      case 'responder': return 'bg-blue-100 text-blue-800';
+      case 'citizen': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin': return <Shield className="w-4 h-4" />;
+      case 'responder': return <Activity className="w-4 h-4" />;
+      case 'citizen': return <Users className="w-4 h-4" />;
+      default: return <Users className="w-4 h-4" />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Disaster Response Dashboard
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <NotificationBell />
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    {user?.name || user?.individualId}
+                  </div>
+                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
+                    {getRoleIcon(user?.role || '')}
+                    {user?.role?.toUpperCase()}
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Layout with Sidebar */}
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen">
+          <nav className="mt-8 px-4">
+            <div className="space-y-2">
+              <Link
+                to="/dashboard"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/dashboard'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <Home className="w-5 h-5 mr-3" />
+                Overview
+              </Link>
+              <Link
+                to="/sos"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/sos'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <AlertTriangle className="w-5 h-5 mr-3" />
+                SOS Monitor
+              </Link>
+              <Link
+                to="/disasters"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/disasters'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <MapPin className="w-5 h-5 mr-3" />
+                Disaster Management
+              </Link>
+              <Link
+                to="/map"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/map'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <Map className="w-5 h-5 mr-3" />
+                Reports Heatmap
+              </Link>
+              <Link
+                to="/resources"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/resources'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <Package className="w-5 h-5 mr-3" />
+                Resource Management
+              </Link>
+              <Link
+                to="/ndx"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/ndx'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <Layers className="w-5 h-5 mr-3" />
+                NDX
+              </Link>
+              <Link
+                to="/settings"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/settings'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <SettingsIcon className="w-5 h-5 mr-3" />
+                Settings
+              </Link>
+            </div>
+          </nav>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MainLayout;

@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  Upload, 
-  Download, 
-  FileText, 
-  ArrowLeft, 
-  CheckCircle, 
-  XCircle, 
-  RefreshCw 
+import {
+  Upload,
+  Download,
+  FileText,
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  RefreshCw
 } from 'lucide-react';
-import ImportExportService, { 
-  ImportResponse, 
-  DisasterRecord, 
-  ExportFilters 
-} from '../services/importExportService';
-
-interface ImportExportPageProps {
+import ImportExportService, {
+  ImportResponse,
+  DisasterRecord,
+  ExportFilters
+} from '../services/importExportService';interface ImportExportPageProps {
   onBack: () => void;
 }
 
@@ -192,7 +190,7 @@ const ImportExportPage: React.FC<ImportExportPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

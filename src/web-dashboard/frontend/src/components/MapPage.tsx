@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-// @ts-ignore
 import 'leaflet.heat';
 import axios from 'axios';
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 import { Filter, Loader2 } from 'lucide-react';
+import MainLayout from './MainLayout';
 
 // Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: () => string })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -26,7 +26,7 @@ interface Report {
   description?: string;
   timestamp: string;
   affected_people?: number;
-  resource_requirements?: any;
+  resource_requirements?: Record<string, unknown>;
 }
 
 interface HeatmapPoint {
@@ -41,7 +41,7 @@ interface ResourceAnalysis {
   lat: number;
   lng: number;
   totalAffected: number;
-  resources?: any;
+  resources?: Record<string, unknown>;
   totalReports?: number;
 }
 
@@ -49,6 +49,11 @@ interface Filters {
   type?: string;
   status?: string;
   priority?: string;
+}
+
+interface Disaster {
+  type: string;
+  [key: string]: unknown;
 }
 
 // Sri Lanka center coordinates
@@ -101,7 +106,7 @@ const HeatmapLayer: React.FC<{ heatmapData: HeatmapPoint[]; loading: boolean }> 
   useEffect(() => {
     if (loading || !heatmapData.length) return;
 
-    // @ts-ignore
+    // @ts-expect-error leaflet.heat plugin type definitions may be incomplete
     const heatLayer = L.heatLayer(
       heatmapData.map(point => [point.lat, point.lng, point.intensity]),
       {
@@ -243,7 +248,7 @@ const MapPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch data function
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -265,67 +270,71 @@ const MapPage: React.FC = () => {
       setReports(reportsRes.data.data || []);
       setHeatmapData(heatmapRes.data.data || []);
       setResourceData(resourceRes.data.data || []);
-      setDisasterTypes(disastersRes.data.data ? [...new Set((disastersRes.data.data as any[]).map((d: any) => d.type))] : []);
+      setDisasterTypes(disastersRes.data.data ? [...new Set((disastersRes.data.data as Disaster[]).map((d: Disaster) => d.type))] : []);
     } catch (err) {
       console.error('Error fetching map data:', err);
       setError('Failed to load map data. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   // Fetch data on mount and when filters change
   useEffect(() => {
     fetchData();
-  }, [filters]);
+  }, [fetchData]);
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg md:text-xl font-semibold text-gray-900">Disaster Response Map</h1>
-          {loading && (
-            <div className="flex items-center text-sm text-gray-600">
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Loading data...
+    <MainLayout>
+      <div className="p-6 h-full">
+        <div className="max-w-7xl mx-auto h-full">
+          {/* Page Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold text-gray-900">Disaster Response Map</h1>
+              {loading && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading data...
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </header>
-
-      {/* Map Container */}
-      <div className="flex-1 relative">
-        {error && (
-          <div className="absolute top-4 right-4 z-[1000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
           </div>
-        )}
 
-        <FilterPanel
-          filters={filters}
-          onFiltersChange={setFilters}
-          disasterTypes={disasterTypes}
-          loading={loading}
-        />
+          {/* Map Container */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[calc(100vh-200px)] relative">
+            {error && (
+              <div className="absolute top-4 right-4 z-[1000] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
 
-        <MapContainer
-          center={SRI_LANKA_CENTER}
-          zoom={DEFAULT_ZOOM}
-          style={{ height: '100%', width: '100%' }}
-          className="z-0"
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
+            <FilterPanel
+              filters={filters}
+              onFiltersChange={setFilters}
+              disasterTypes={disasterTypes}
+              loading={loading}
+            />
 
-          <ReportsLayer reports={reports} loading={loading} />
-          <HeatmapLayer heatmapData={heatmapData} loading={loading} />
-          <ResourceAnalysisLayer resourceData={resourceData} loading={loading} />
-        </MapContainer>
+            <MapContainer
+              center={SRI_LANKA_CENTER}
+              zoom={DEFAULT_ZOOM}
+              style={{ height: '100%', width: '100%' }}
+              className="z-0 rounded-lg"
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+
+              <ReportsLayer reports={reports} loading={loading} />
+              <HeatmapLayer heatmapData={heatmapData} loading={loading} />
+              <ResourceAnalysisLayer resourceData={resourceData} loading={loading} />
+            </MapContainer>
+          </div>
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 
