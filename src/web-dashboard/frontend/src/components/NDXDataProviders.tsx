@@ -20,13 +20,12 @@ const NDXDataProviders: React.FC = () => {
       const response = await ndxService.getProviders();
       if (response.success) {
         setProviders(response.providers);
-        toast.success('Data providers loaded successfully');
       } else {
         setError('Failed to load data providers');
         toast.error('Failed to load data providers');
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Error loading data providers';
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error loading data providers';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

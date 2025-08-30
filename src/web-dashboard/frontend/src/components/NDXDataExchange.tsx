@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ndxService } from '../services/ndxService';
-import { Database, Download, MapPin, Calendar, AlertTriangle } from 'lucide-react';
+import { Database, Download, MapPin, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ExchangeRequest {
@@ -57,48 +57,6 @@ const NDXDataExchange: React.FC = () => {
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Error during data exchange';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickDisasterInfo = async () => {
-    setLoading(true);
-    try {
-      const response: ExchangeResult = await ndxService.getDisasterInfo(exchangeRequest.location);
-      if (response.success) {
-        setExchangeData(response.data);
-        setLastExchange(new Date().toLocaleString());
-        toast.success(`Quick disaster info retrieved! ${response.data.length} records found`);
-        // Update the consent ID from the response for future use
-        setExchangeRequest(prev => ({ ...prev, consentId: response.consentId }));
-      } else {
-        toast.error('Failed to get disaster information');
-      }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error getting disaster info';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickWeatherAlerts = async () => {
-    setLoading(true);
-    try {
-      const response: ExchangeResult = await ndxService.getWeatherAlerts('Colombo');
-      if (response.success) {
-        setExchangeData(response.data);
-        setLastExchange(new Date().toLocaleString());
-        toast.success(`Weather alerts retrieved! ${response.data.length} records found`);
-        // Update the consent ID from the response for future use
-        setExchangeRequest(prev => ({ ...prev, consentId: response.consentId }));
-      } else {
-        toast.error('Failed to get weather alerts');
-      }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error getting weather alerts';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -204,24 +162,6 @@ const NDXDataExchange: React.FC = () => {
           >
             <Download className="w-4 h-4" />
             {loading ? 'Exchanging...' : 'Exchange Data'}
-          </button>
-          
-          <button
-            onClick={handleQuickDisasterInfo}
-            disabled={loading}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            Quick Disaster Info
-          </button>
-          
-          <button
-            onClick={handleQuickWeatherAlerts}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <Calendar className="w-4 h-4" />
-            Quick Weather Alerts
           </button>
         </div>
       </div>
