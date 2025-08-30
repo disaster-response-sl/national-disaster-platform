@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
 import MapsPage from './components/MapsPage';
+import MapPage from './components/MapPage';
 import ResourceManagement from './components/ResourceManagement';
 import Settings from './components/Settings';
 import NDXPage from './components/NDXPage';
@@ -49,6 +50,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MapsPage onBack={() => window.history.back()} />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/map" 
+                element={
+                  <ProtectedRoute>
+                    <MapPage />
                   </ProtectedRoute>
                 } 
               />
