@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import NotificationService from '../services/NotificationService';
 import BackgroundNotificationService from '../services/BackgroundNotificationService';
+import { API_BASE_URL } from '../config/api';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
 import LanguageSwitcher from '../components/LanguageSwitcher';
@@ -226,7 +227,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
           ]
         );
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+  { enableHighAccuracy: true, timeout: 40000, maximumAge: 10000 }
     );
   };
 
@@ -240,14 +241,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const showMoreLocations = (locations: any) => {
     Alert.alert(
-      'More Locations',
-      'Select a location:',
+      t('location.moreTitle'),
+      t('location.moreMessage'),
       [
         { text: 'Kandy', onPress: () => useTestLocation(locations.kandy) },
         { text: 'Galle', onPress: () => useTestLocation(locations.galle) },
         { text: 'Jaffna', onPress: () => useTestLocation(locations.jaffna) },
         { text: 'Trincomalee', onPress: () => useTestLocation(locations.trincomalee) },
-        { text: 'Cancel', style: 'cancel' }
+        { text: t('common.cancel'), style: 'cancel' }
       ]
     );
   };
@@ -293,7 +294,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
       console.log('🔍 Assessing risk for location:', lat, lng);
       
-  const response = await axios.get('http://192.168.1.8:5000/api/mobile/disasters', {
+      const response = await axios.get(`${API_BASE_URL}/mobile/disasters`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -436,7 +437,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         await AsyncStorage.setItem('authToken', token);
       }
 
-  const response = await axios.get('http://192.168.1.8:5000/api/mobile/disasters', {
+      const response = await axios.get(`${API_BASE_URL}/mobile/disasters`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -462,7 +463,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const fetchAvailableResources = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-  const response = await axios.get('http://192.168.1.8:5000/api/mobile/resources', {
+      const response = await axios.get(`${API_BASE_URL}/mobile/resources`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

@@ -13,6 +13,7 @@ import {
   Dimensions
 } from 'react-native';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthService from '../services/AuthService';
 import { useLanguage } from '../services/LanguageService';
@@ -37,8 +38,8 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-  console.log('Making API call to:', 'http://192.168.1.8:5000/api/mobile/login');
-  const response = await axios.post('http://192.168.1.8:5000/api/mobile/login', {
+  console.log('Making API call to:', `${API_BASE_URL}/mobile/login`);
+  const response = await axios.post(`${API_BASE_URL}/mobile/login`, {
         individualId: individualId,
         otp: otp
       });
@@ -96,7 +97,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
               <Image
-                source={require('../assets/logo.png')}
+                source={require('../assets/logo_no_bg.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />

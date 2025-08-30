@@ -105,23 +105,23 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
         }
 
         Alert.alert(
-          '🔐 Consent Request',
-          `Request consent for ${provider.name} to access ${dataType} data for emergency response purposes?`,
+          t('consent.alertRequestTitle'),
+          t('consent.alertRequestMessage', { provider: provider.name, dataType }),
           [
             {
-              text: 'Approve Now',
+              text: t('consent.approveNow'),
               style: 'default',
               onPress: () => handleApproveConsent(result.consentId!),
             },
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
           ]
         );
       } else {
-        Alert.alert('Request Failed', result.message || 'Unable to request consent. Please try again.');
+        Alert.alert(t('consent.requestFailed'), result.message || t('consent.requestFailedMessage'));
       }
     } catch (error) {
       console.error('Error requesting consent:', error);
-      Alert.alert('Request Error', 'Failed to submit consent request. Please check your connection.');
+      Alert.alert(t('consent.requestError'), t('consent.requestErrorMessage'));
     }
   };
 
@@ -143,25 +143,25 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
           const storedConsents = await NDXService.getStoredConsents();
           setConsents(storedConsents);
         } else {
-          Alert.alert('✅ Consent Approved', 'Your consent has been approved but could not be retrieved for local storage.');
+          Alert.alert(t('consent.approvedTitle'), t('consent.approvedMessage'));
         }
       } else {
-        Alert.alert('Approval Failed', result.message || 'Unable to approve consent. Please try again.');
+        Alert.alert(t('consent.approvalFailed'), result.message || t('consent.approvalFailedMessage'));
       }
-    } catch (error) {
+      } catch (error) {
       console.error('Error approving consent:', error);
-      Alert.alert('Approval Error', 'Failed to approve consent. Please check your connection.');
+      Alert.alert(t('consent.approvalError'), t('consent.approvalErrorMessage'));
     }
   };
 
   const handleRevokeConsent = async (consentId: string) => {
     Alert.alert(
-      '⚠️ Revoke Consent',
-      'Revoking this consent will stop data sharing with this provider. This may affect emergency response services. Are you sure?',
+      t('consent.revokeTitle'),
+      t('consent.revokeMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Revoke Consent',
+          text: t('consent.revokeConsent'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -175,11 +175,11 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                 const storedConsents = await NDXService.getStoredConsents();
                 setConsents(storedConsents);
               } else {
-                Alert.alert('Revocation Failed', result.message || 'Unable to revoke consent. Please try again.');
+                Alert.alert(t('consent.revocationFailed'), result.message || t('consent.revocationFailedMessage'));
               }
             } catch (error) {
               console.error('Error revoking consent:', error);
-              Alert.alert('Revocation Error', 'Failed to revoke consent. Please check your connection.');
+              Alert.alert(t('consent.revocationError'), t('consent.revocationErrorMessage'));
             }
           },
         },
@@ -345,7 +345,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
 
           {/* Quick Actions */}
           <View style={styles.quickActionsSection}>
-            <Text style={styles.sectionTitle}>🚀 Quick Actions</Text>
+            <Text style={styles.sectionTitle}>{t('consent.quickActions')}</Text>
             <View style={styles.quickActionsGrid}>
               <TouchableOpacity
                 style={[styles.quickActionButton, { backgroundColor: '#ef4444' }]}
@@ -359,8 +359,8 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                 }}
               >
                 <Text style={styles.quickActionIcon}>🚨</Text>
-                <Text style={styles.quickActionText}>Emergency Data</Text>
-                <Text style={styles.quickActionSubtext}>Disaster alerts & response</Text>
+                <Text style={styles.quickActionText}>{t('consent.quickActionsItems.emergency.title')}</Text>
+                <Text style={styles.quickActionSubtext}>{t('consent.quickActionsItems.emergency.desc')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -375,18 +375,16 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                 }}
               >
                 <Text style={styles.quickActionIcon}>🌦️</Text>
-                <Text style={styles.quickActionText}>Weather Data</Text>
-                <Text style={styles.quickActionSubtext}>Weather alerts & forecasts</Text>
+                <Text style={styles.quickActionText}>{t('consent.quickActionsItems.weather.title')}</Text>
+                <Text style={styles.quickActionSubtext}>{t('consent.quickActionsItems.weather.desc')}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Available Providers Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏛️ Available Data Providers</Text>
-            <Text style={styles.sectionDescription}>
-              Government agencies and services that can share data to help during emergencies
-            </Text>
+            <Text style={styles.sectionTitle}>{t('consent.availableProviders')}</Text>
+            <Text style={styles.sectionDescription}>{t('consent.providersDescription')}</Text>
 
             {providers.length > 0 ? (
               providers.map((provider) => (
@@ -399,14 +397,14 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                       <View style={styles.providerInfo}>
                         <Text style={styles.providerName}>{provider.name}</Text>
                         <Text style={styles.providerDescription}>
-                          {provider.apis.length} data service{provider.apis.length !== 1 ? 's' : ''} available
+                          {t('consent.providerServices', { count: provider.apis.length })}
                         </Text>
                       </View>
                     </View>
                   </View>
 
                   <View style={styles.apisList}>
-                    <Text style={styles.apisTitle}>Available Services:</Text>
+                    <Text style={styles.apisTitle}>{t('consent.availableServices')}</Text>
                     <View style={styles.apiButtons}>
                       {provider.apis.map((api) => (
                         <TouchableOpacity
@@ -415,7 +413,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                           onPress={() => handleRequestConsent(provider, api)}
                           activeOpacity={0.8}
                         >
-                          <Text style={styles.apiButtonText}>Request {api}</Text>
+                          <Text style={styles.apiButtonText}>{t('consent.requestApi', { api })}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -425,33 +423,26 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
             ) : (
               <View style={styles.noDataContainer}>
                 <Text style={styles.noDataIcon}>🏛️</Text>
-                <Text style={styles.noDataText}>No Providers Available</Text>
-                <Text style={styles.noDataSubtext}>Data providers are currently unavailable</Text>
+                <Text style={styles.noDataText}>{t('consent.noProviders')}</Text>
+                <Text style={styles.noDataSubtext}>{t('consent.noProvidersMessage')}</Text>
               </View>
             )}
           </View>
 
           {/* Active Consents Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 Your Data Sharing Consents</Text>
-            <Text style={styles.sectionDescription}>
-              Manage your active data sharing permissions with government services
-            </Text>
+            <Text style={styles.sectionTitle}>{t('consent.activeConsents')}</Text>
+            <Text style={styles.sectionDescription}>{t('consent.consentsDescription')}</Text>
 
             {Object.keys(consents).length === 0 ? (
               <View style={styles.noDataContainer}>
                 <Text style={styles.noDataIcon}>🔐</Text>
-                <Text style={styles.noDataText}>No Active Consents</Text>
-                <Text style={styles.noDataSubtext}>
-                  You haven't granted any data sharing permissions yet
-                </Text>
+                <Text style={styles.noDataText}>{t('consent.noActiveConsents')}</Text>
+                <Text style={styles.noDataSubtext}>{t('consent.noActiveConsentsMessage')}</Text>
                 <TouchableOpacity style={styles.helpButton} onPress={() => {
-                  Alert.alert(
-                    'About Data Consents',
-                    'Data consents allow government services to access your information during emergencies to provide better assistance. All data sharing is secure and temporary.'
-                  );
+                  Alert.alert(t('consent.aboutTitle'), t('consent.aboutMessage'));
                 }}>
-                  <Text style={styles.helpButtonText}>Learn More</Text>
+                  <Text style={styles.helpButtonText}>{t('consent.learnMore')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -479,7 +470,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                     <View style={styles.consentDetailRow}>
                       <Text style={styles.consentDetailIcon}>🎯</Text>
                       <View style={styles.consentDetailContent}>
-                        <Text style={styles.consentDetailLabel}>Purpose:</Text>
+                        <Text style={styles.consentDetailLabel}>{t('consent.detailPurpose')}</Text>
                         <Text style={styles.consentDetailValue}>{consent.purpose}</Text>
                       </View>
                     </View>
@@ -487,7 +478,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                     <View style={styles.consentDetailRow}>
                       <Text style={styles.consentDetailIcon}>📅</Text>
                       <View style={styles.consentDetailContent}>
-                        <Text style={styles.consentDetailLabel}>Created:</Text>
+                        <Text style={styles.consentDetailLabel}>{t('consent.detailCreated')}</Text>
                         <Text style={styles.consentDetailValue}>{formatDate(consent.createdAt)}</Text>
                       </View>
                     </View>
@@ -495,7 +486,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                     <View style={styles.consentDetailRow}>
                       <Text style={styles.consentDetailIcon}>⏰</Text>
                       <View style={styles.consentDetailContent}>
-                        <Text style={styles.consentDetailLabel}>Expires:</Text>
+                        <Text style={styles.consentDetailLabel}>{t('consent.detailExpires')}</Text>
                         <Text style={styles.consentDetailValue}>{formatDate(consent.expiresAt)}</Text>
                         {consent.status === 'APPROVED' && (
                           <Text style={styles.timeRemaining}>
@@ -513,7 +504,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
                       activeOpacity={0.8}
                     >
                       <Text style={styles.revokeButtonIcon}>🚫</Text>
-                      <Text style={styles.revokeButtonText}>Revoke Consent</Text>
+                      <Text style={styles.revokeButtonText}>{t('consent.revokeConsent')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>

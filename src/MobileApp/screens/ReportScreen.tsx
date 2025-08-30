@@ -18,12 +18,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
+import { API_BASE_URL } from '../config/api';
 
 const { width } = Dimensions.get('window');
 
 const ReportScreen = ({ navigation }: { navigation: any }) => {
   const { t, language } = useLanguage();
-  const [reportType, setReportType] = useState('food');
+  const [reportType, setReportType] = useState<'food'|'shelter'|'danger'|'medical'>('food');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState(false);
@@ -58,28 +59,28 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
   const handleSubmitReport = () => {
     if (!description.trim()) {
       Alert.alert(
-        'Missing Information',
-        'Please provide a detailed description of the incident to help responders understand the situation.',
-        [{ text: 'OK', style: 'default' }]
+        t('report.missingInfoTitle'),
+        t('report.missingInfo'),
+        [{ text: t('common.ok'), style: 'default' }]
       );
       return;
     }
 
     if (description.trim().length < 10) {
       Alert.alert(
-        'Description Too Short',
-        'Please provide more details (at least 10 characters) to help responders better understand the situation.',
-        [{ text: 'OK', style: 'default' }]
+        t('report.shortDescTitle'),
+        t('report.shortDesc'),
+        [{ text: t('common.ok'), style: 'default' }]
       );
       return;
     }
 
     Alert.alert(
-      'Submit Report?',
-      'This will send your incident report to emergency responders along with your location. Do you want to proceed?',
+      t('report.submitTitle'),
+      t('report.submitMsg'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Submit Report', style: 'default', onPress: proceedWithSubmission }
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('report.submitBtn'), style: 'default', onPress: proceedWithSubmission }
       ]
     );
   };
@@ -94,7 +95,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
         try {
           const token = await AsyncStorage.getItem('authToken');
 
-          const response = await axios.post('http://192.168.1.8:5000/api/mobile/reports', {
+          const response = await axios.post(`${API_BASE_URL}/mobile/reports`, {
             type: reportType,
             description,
             location: { lat: latitude, lng: longitude }
@@ -106,11 +107,11 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
 
           if (response.data.success) {
             Alert.alert(
-              '✅ Report Submitted Successfully',
-              'Your incident report has been sent to emergency responders. They will review and respond accordingly.',
+              t('report.successTitle'),
+              t('report.successMsg'),
               [
                 {
-                  text: 'OK',
+                  text: t('common.ok'),
                   onPress: () => {
                     setDescription('');
                     setReportType('food');
@@ -120,14 +121,14 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
               ]
             );
           } else {
-            Alert.alert('Submission Failed', response.data.message || 'Failed to submit report. Please try again.');
+            Alert.alert(t('report.failTitle'), response.data.message || t('report.failMsg'));
           }
         } catch (err) {
           console.error('Report submission error:', err);
           Alert.alert(
-            'Submission Error',
-            'Unable to submit your report. Please check your connection and try again.',
-            [{ text: 'Retry', onPress: () => setLoading(false) }]
+            t('report.errorTitle'),
+            t('report.errorMsg'),
+            [{ text: t('common.retry'), onPress: () => setLoading(false) }]
           );
         } finally {
           setLoading(false);
@@ -135,9 +136,9 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
       },
       error => {
         Alert.alert(
-          'Location Required',
-          'We need your location to send the report to nearby responders. Please enable GPS and try again.',
-          [{ text: 'Retry', onPress: () => setLoading(false) }]
+          t('location.required'),
+          t('location.requiredMessage'),
+          [{ text: t('common.retry'), onPress: () => setLoading(false) }]
         );
         setLoading(false);
       },
@@ -145,7 +146,7 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
-  const getReportTypeInfo = (type: string) => {
+  const getReportTypeInfo = (type: 'food'|'shelter'|'danger'|'medical') => {
     const typeInfo = {
       food: {
         icon: '🍽️',
@@ -193,13 +194,13 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
             <View style={styles.locationCard}>
               <View style={styles.locationHeader}>
                 <Text style={styles.locationIcon}>📍</Text>
-                <Text style={styles.locationTitle}>Report Location</Text>
+                <Text style={styles.locationTitle}>{t('report.currentLocation')}</Text>
               </View>
               <Text style={styles.locationText}>
-                Lat: {location.lat.toFixed(6)}, Lng: {location.lng.toFixed(6)}
+                {t('location.latitude')} {location.lat.toFixed(6)}, {t('location.longitude')} {location.lng.toFixed(6)}
               </Text>
               <Text style={styles.locationNote}>
-                This location will be included with your report
+                {t('report.locationNote')}
               </Text>
             </View>
           )}
@@ -254,15 +255,15 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
 
           {/* Description Section */}
           <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Incident Description</Text>
+            <Text style={styles.sectionTitle}>{t('report.describeIncident')}</Text>
             <Text style={styles.descriptionHelper}>
-              Provide detailed information to help responders understand the situation
+              {t('report.describeHelper')}
             </Text>
 
             <View style={[styles.inputContainer, focusedInput && styles.inputFocused]}>
               <TextInput
                 style={styles.textArea}
-                placeholder={`Describe the ${currentTypeInfo.title.toLowerCase()} situation in detail...\n\nExample: Location details, number of people affected, urgency level, specific needs, etc.`}
+                placeholder={t('report.describeHelper')}
                 placeholderTextColor="#94a3b8"
                 value={description}
                 onChangeText={setDescription}
@@ -282,12 +283,12 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
 
           {/* Guidelines Section */}
           <View style={styles.guidelinesCard}>
-            <Text style={styles.guidelinesTitle}>📋 Reporting Guidelines</Text>
+            <Text style={styles.guidelinesTitle}>📋 {t('report.guidelines')}</Text>
             <View style={styles.guidelinesList}>
-              <Text style={styles.guidelineItem}>• Be specific about location and situation</Text>
-              <Text style={styles.guidelineItem}>• Include number of people affected if known</Text>
-              <Text style={styles.guidelineItem}>• Mention any immediate dangers or urgent needs</Text>
-              <Text style={styles.guidelineItem}>• Provide contact information if you can assist</Text>
+              <Text style={styles.guidelineItem}>{t('report.guideline1')}</Text>
+              <Text style={styles.guidelineItem}>{t('report.guideline3')}</Text>
+              <Text style={styles.guidelineItem}>{t('report.guideline2')}</Text>
+              <Text style={styles.guidelineItem}>{t('report.guideline4')}</Text>
             </View>
           </View>
 
@@ -304,15 +305,15 @@ const ReportScreen = ({ navigation }: { navigation: any }) => {
                   {loading ? '📡' : '📤'}
                 </Text>
                 <Text style={styles.submitButtonText}>
-                  {loading ? 'SUBMITTING REPORT...' : 'SUBMIT INCIDENT REPORT'}
+                  {loading ? t('report.submitting') : t('report.submitReport')}
                 </Text>
               </View>
             </TouchableOpacity>
 
             {loading && (
               <View style={styles.loadingStatus}>
-                <Text style={styles.loadingText}>📍 Getting your location...</Text>
-                <Text style={styles.loadingSubtext}>Please wait while we prepare your report</Text>
+                <Text style={styles.loadingText}>{t('location.getting')}</Text>
+                <Text style={styles.loadingSubtext}>{t('report.validatingInfo')}</Text>
               </View>
             )}
           </View>

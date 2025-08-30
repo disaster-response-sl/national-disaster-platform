@@ -1,9 +1,11 @@
 // services/AuthService.js
+
+import { API_BASE_URL } from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class AuthService {
   constructor() {
-  this.baseURL = 'http://192.168.1.8:5000/api/mobile';
+  this.baseURL = `${API_BASE_URL}/mobile`;
 
   }
 
