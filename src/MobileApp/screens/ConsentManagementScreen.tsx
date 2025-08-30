@@ -14,6 +14,8 @@ import {
   Animated
 } from 'react-native';
 import NDXService, { NDXProvider, NDXConsent } from '../services/NDXService';
+import { useLanguage } from '../services/LanguageService';
+import { getTextStyle } from '../services/FontService';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +24,7 @@ interface ConsentManagementScreenProps {
 }
 
 const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navigation }) => {
+  const { t, language } = useLanguage();
   const [providers, setProviders] = useState<NDXProvider[]>([]);
   const [consents, setConsents] = useState<Record<string, NDXConsent>>({});
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
       }
     } catch (error) {
       console.error('Error loading consent data:', error);
-      Alert.alert('Connection Error', 'Unable to load consent data. Please check your connection and try again.');
+      Alert.alert(t('common.error'), t('consent.consentFailedMessage'));
       
       // Fallback to stored consents
       const storedConsents = await NDXService.getStoredConsents();
@@ -134,7 +137,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
           // Store the consent locally
           await NDXService.storeConsentLocally(consentResult.consent);
           
-          Alert.alert('✅ Consent Approved', 'Your data sharing consent has been approved successfully.');
+          Alert.alert(t('consent.consentGranted'), t('consent.consentGrantedMessage'));
           
           // Refresh consents from local storage
           const storedConsents = await NDXService.getStoredConsents();
@@ -165,7 +168,7 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
               const result = await NDXService.revokeConsent(consentId);
 
               if (result.success) {
-                Alert.alert('🔐 Consent Revoked', 'Your consent has been revoked successfully.');
+                Alert.alert(t('consent.consentRevoked'), t('consent.consentRevokedMessage'));
                 // Remove from local storage
                 await NDXService.removeStoredConsent(consentId);
                 // Refresh consents
@@ -270,8 +273,12 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
         <View style={styles.loadingContainer}>
           <View style={styles.loadingContent}>
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingTitle}>Loading Privacy Settings</Text>
-            <Text style={styles.loadingText}>Fetching your data sharing preferences...</Text>
+            <Text style={[styles.loadingTitle, getTextStyle(language)]}>
+              {t('consent.loading')}
+            </Text>
+            <Text style={[styles.loadingText, getTextStyle(language)]}>
+              {t('consent.loadingSubtitle')}
+            </Text>
           </View>
         </View>
       </>
@@ -307,8 +314,12 @@ const ConsentManagementScreen: React.FC<ConsentManagementScreenProps> = ({ navig
               <View style={styles.headerIconContainer}>
                 <Text style={styles.headerIcon}>🔐</Text>
               </View>
-              <Text style={styles.title}>Privacy & Consent</Text>
-              <Text style={styles.subtitle}>Manage your data sharing permissions</Text>
+              <Text style={[styles.title, getTextStyle(language)]}>
+                {t('consent.title')}
+              </Text>
+              <Text style={[styles.subtitle, getTextStyle(language)]}>
+                {t('consent.subtitle')}
+              </Text>
             </View>
           </View>
 

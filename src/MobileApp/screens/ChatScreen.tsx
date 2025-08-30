@@ -17,6 +17,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { useLanguage } from '../services/LanguageService';
+import { getTextStyle } from '../services/FontService';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +39,7 @@ interface QuickQuestion {
 }
 
 const ChatScreen = ({ navigation }: { navigation: any }) => {
+  const { t, language } = useLanguage();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,14 +49,14 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
 
   // Pre-defined quick questions for AI Safety Assistant
   const quickQuestions: QuickQuestion[] = [
-    { id: '1', text: 'What should I do in an earthquake?', category: 'emergency' },
-    { id: '2', text: 'How to prepare for a hurricane?', category: 'safety' },
-    { id: '3', text: 'What emergency supplies do I need?', category: 'information' },
-    { id: '4', text: 'How to stay safe during a flood?', category: 'safety' },
-    { id: '5', text: 'What are evacuation procedures?', category: 'emergency' },
-    { id: '6', text: 'How to help others in crisis?', category: 'support' },
-    { id: '7', text: 'What are the warning signs of danger?', category: 'safety' },
-    { id: '8', text: 'How to communicate during emergencies?', category: 'information' },
+    { id: '1', text: t('chat.quickQuestionsList.earthquake'), category: 'emergency' },
+    { id: '2', text: t('chat.quickQuestionsList.hurricane'), category: 'safety' },
+    { id: '3', text: t('chat.quickQuestionsList.supplies'), category: 'information' },
+    { id: '4', text: t('chat.quickQuestionsList.flood'), category: 'emergency' },
+    { id: '5', text: t('chat.quickQuestionsList.evacuation'), category: 'safety' },
+    { id: '6', text: t('chat.quickQuestionsList.helpOthers'), category: 'support' },
+    { id: '7', text: t('chat.quickQuestionsList.warningSigns'), category: 'information' },
+    { id: '8', text: t('chat.quickQuestionsList.communication'), category: 'emergency' },
   ];
 
   useEffect(() => {
@@ -70,11 +73,11 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
       setMessages([{
         id: 'welcome',
         query: '',
-        response: 'Hello! I\'m your AI Safety Assistant. I\'m here to help you with emergency preparedness, safety guidelines, and crisis response. I can provide real-time safety recommendations and emergency guidance. How can I assist you today?',
+        response: t('chat.welcomeMessage'),
         timestamp: new Date().toISOString(),
         type: 'assistant',
         safetyLevel: 'low',
-        recommendations: ['Use quick questions below for common scenarios', 'Ask about specific emergency situations', 'Request safety checklists and procedures']
+        recommendations: [t('chat.recommendations')]
       }]);
     }
   }, []);
@@ -255,8 +258,12 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
   const renderQuickQuestions = () => (
     <View style={styles.quickQuestionsContainer}>
       <View style={styles.quickQuestionsHeader}>
-        <Text style={styles.quickQuestionsTitle}>💬 Quick Questions</Text>
-        <Text style={styles.quickQuestionsSubtitle}>Get instant help with common emergency scenarios</Text>
+        <Text style={[styles.quickQuestionsTitle, getTextStyle(language)]}>
+          {t('chat.quickQuestions')}
+        </Text>
+        <Text style={[styles.quickQuestionsSubtitle, getTextStyle(language)]}>
+          {t('chat.quickQuestionsSubtitle')}
+        </Text>
       </View>
       <ScrollView
         horizontal
@@ -272,7 +279,9 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
             activeOpacity={0.8}
           >
             <Text style={styles.quickQuestionIcon}>{getCategoryIcon(question.category)}</Text>
-            <Text style={styles.quickQuestionText}>{question.text}</Text>
+            <Text style={[styles.quickQuestionText, getTextStyle(language)]}>
+              {question.text}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -294,10 +303,14 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
                 <Text style={styles.aiIcon}>🤖</Text>
               </View>
               <View style={styles.aiInfo}>
-                <Text style={styles.aiTitle}>AI Safety Assistant</Text>
+                <Text style={[styles.aiTitle, getTextStyle(language)]}>
+                  {t('chat.title')}
+                </Text>
                 <View style={styles.statusContainer}>
                   <View style={styles.onlineIndicator} />
-                  <Text style={styles.statusText}>Online & Ready to Help</Text>
+                  <Text style={[styles.statusText, getTextStyle(language)]}>
+                    {t('chat.online')}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -329,7 +342,9 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
                         <Text style={styles.assistantAvatarText}>🤖</Text>
                       </View>
                       <View style={styles.assistantInfo}>
-                        <Text style={styles.assistantName}>AI Safety Assistant</Text>
+                        <Text style={[styles.assistantName, getTextStyle(language)]}>
+                          {t('chat.aiName')}
+                        </Text>
                         {msg.safetyLevel && (
                           <View style={[styles.safetyBadge, { backgroundColor: getSafetyLevelColor(msg.safetyLevel) }]}>
                             <Text style={styles.safetyLevelText}>
@@ -372,11 +387,15 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
                   <View style={styles.assistantAvatar}>
                     <Text style={styles.assistantAvatarText}>🤖</Text>
                   </View>
-                  <Text style={styles.assistantName}>AI Safety Assistant</Text>
+                  <Text style={[styles.assistantName, getTextStyle(language)]}>
+                    {t('chat.aiName')}
+                  </Text>
                 </View>
                 <View style={styles.typingIndicator}>
                   <ActivityIndicator size="small" color="#3b82f6" />
-                  <Text style={styles.typingText}>Analyzing your question...</Text>
+                  <Text style={[styles.typingText, getTextStyle(language)]}>
+                    {t('common.loading')}
+                  </Text>
                 </View>
               </View>
             )}
@@ -386,8 +405,8 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
           <View style={styles.inputSection}>
             <View style={[styles.inputContainer, inputFocused && styles.inputContainerFocused]}>
               <TextInput
-                style={styles.input}
-                placeholder="Ask me about emergencies, safety, or get help..."
+                style={[styles.input, getTextStyle(language)]}
+                placeholder={t('chat.typeMessage')}
                 placeholderTextColor="#94a3b8"
                 value={message}
                 onChangeText={setMessage}
