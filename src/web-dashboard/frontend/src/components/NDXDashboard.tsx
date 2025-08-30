@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Database, Shield, Download, Upload } from 'lucide-react';
+import { Database, Shield, Download, Upload, Users } from 'lucide-react';
 import NDXDataProviders from './NDXDataProviders';
 import NDXConsentManagement from './NDXConsentManagement';
 import NDXDataExchange from './NDXDataExchange';
 import ImportExportPage from './ImportExportPage';
+import DemoConsentSystem from './DemoConsentSystem';
 // import NDXIntegrationSummary from './NDXIntegrationSummary';
 
 const NDXDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'providers' | 'consent' | 'exchange' | 'import-export'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'consent' | 'demo-consent' | 'exchange' | 'import-export'>('providers');
 
   const tabs = [
     {
@@ -21,6 +22,12 @@ const NDXDashboard: React.FC = () => {
       label: 'Consent Management',
       icon: <Shield className="w-5 h-5" />,
       description: 'Manage data exchange consent'
+    },
+    {
+      id: 'demo-consent' as const,
+      label: 'Demo Consent System',
+      icon: <Users className="w-5 h-5" />,
+      description: 'Simulate citizen consent approval/denial'
     },
     {
       id: 'exchange' as const,
@@ -42,6 +49,8 @@ const NDXDashboard: React.FC = () => {
         return <NDXDataProviders />;
       case 'consent':
         return <NDXConsentManagement />;
+      case 'demo-consent':
+        return <DemoConsentSystem />;
       case 'exchange':
         return <NDXDataExchange />;
       case 'import-export':
@@ -76,15 +85,6 @@ const NDXDashboard: React.FC = () => {
 
         {/* Tab Content */}
         <div className="p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {tabs.find(t => t.id === activeTab)?.label}
-            </h2>
-            <p className="text-gray-600 text-sm">
-              {tabs.find(t => t.id === activeTab)?.description}
-            </p>
-          </div>
-
           {renderActiveComponent()}
         </div>
       </div>

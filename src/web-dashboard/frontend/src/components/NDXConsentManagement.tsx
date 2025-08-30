@@ -1,285 +1,114 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ndxService } from '../services/ndxService';
-import { Shield, CheckCircle, XCircle, Clock, RefreshCw, ArrowRightLeft } from 'lucide-react';
+import {
+  Shield,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Search,
+  Filter,
+  RefreshCw,
+  Eye,
+  Trash2,
+  Download,
+  Calendar,
+  Target,
+  ArrowRightLeft
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConsentRequestForm from './ConsentRequestForm';
 
-interface ConsentRequest {
+interface Consent {
+  _id: string;
   dataProvider: string;
   dataType: string;
   purpose: string;
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'REVOKED' | 'EXPIRED';
   consentDuration: number;
   location: { lat: number; lng: number };
-}
-
-interface ConsentStatus {
-  consentId: string;
-  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REVOKED';
-  dataProvider?: string;
-  dataType?: string;
-  approvedAt?: string;
-  message?: string;
-  exchangedData?: any[];
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  requester: string;
+  approver?: string;
+  exchangedData?: { _id?: string; severity?: string; type?: string; description?: string; location?: { lat: number; lng: number }; timestamp?: string }[];
   lastExchangeAt?: string;
 }
 
 const NDXConsentManagement: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [consentRequests, setConsentRequests] = useState<ConsentStatus[]>([]);
+  const [consents, setConsents] = useState<Consent[]>([]);
+  const [filteredConsents, setFilteredConsents] = useState<Consent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({});
 
-  // Validation helper functions
-  const validateConsentId = (consentId: string): { isValid: boolean; error?: string } => {
-    if (!consentId || typeof consentId !== 'string') {
-      return { isValid: false, error: 'Consent ID is required' };
-    }
-    if (consentId.trim().length === 0) {
-      return { isValid: false, error: 'Consent ID cannot be empty' };
-    }
-    if (!consentId.startsWith('consent_')) {
-      return { isValid: false, error: 'Invalid consent ID format' };
-    }
-    if (consentId.length < 15) {
-      return { isValid: false, error: 'Consent ID is too short' };
-    }
-    return { isValid: true };
-  };
-
-  const isNetworkError = (error: any): boolean => {
-    return (
-      !navigator.onLine ||
-      error.code === 'NETWORK_ERROR' ||
-      error.code === 'ERR_NETWORK' ||
-      error.message?.includes('Network Error') ||
-      error.message?.includes('fetch')
-    );
-  };
-
-  // Auto-refresh consent statuses every 30 seconds
-  useEffect(() => {
-    const refreshAllStatuses = async () => {
-      if (consentRequests.length === 0) return;
-      
-      try {
-        const updates = await Promise.allSettled(
-          consentRequests.map(async (consent) => {
-            try {
-              const response = await ndxService.getConsentStatus(consent.consentId);
-              return { 
-                consentId: consent.consentId, 
-                status: response.status, 
-                success: response.success,
-                error: null 
-              };
-            } catch (error: any) {
-              // Handle individual consent check failures
-              let errorType = 'unknown';
-              if (error.code === 'NETWORK_ERROR' || !navigator.onLine) {
-                errorType = 'network';
-              } else if (error.response?.status === 401) {
-                errorType = 'auth';
-              } else if (error.response?.status === 404) {
-                errorType = 'not_found';
-              } else if (error.response?.status >= 500) {
-                errorType = 'server';
-              }
-              
-              return { 
-                consentId: consent.consentId, 
-                status: null, 
-                success: false,
-                error: errorType 
-              };
-            }
-          })
-        );
-
-        let hasUpdates = false;
-        let authErrors = 0;
-        let networkErrors = 0;
-        let notFoundErrors = 0;
-
-        setConsentRequests(prev => {
-          const updated = prev.map(consent => {
-            const update = updates.find((u) => 
-              u.status === 'fulfilled' && u.value.consentId === consent.consentId
-            );
-            
-            if (update && update.status === 'fulfilled') {
-              const result = update.value;
-              
-              // Count errors for summary
-              if (result.error === 'auth') authErrors++;
-              else if (result.error === 'network') networkErrors++;
-              else if (result.error === 'not_found') notFoundErrors++;
-              
-              // Only update if successful and status changed
-              if (result.success && result.status && result.status !== consent.status) {
-                hasUpdates = true;
-                return { ...consent, status: result.status };
-              }
-            }
-            return consent;
-          });
-          return updated;
-        });
-
-        // Show appropriate feedback based on results
-        if (authErrors > 0) {
-          toast.error('Authentication expired. Please login again.', { duration: 5000 });
-        } else if (networkErrors === consentRequests.length) {
-          toast.error('Network connection lost. Auto-refresh paused.', { duration: 4000 });
-        } else if (hasUpdates) {
-          toast.success('Consent statuses updated automatically', { duration: 2000 });
-        }
-        
-      } catch (error: any) {
-        // Global auto-refresh failure
-        if (!navigator.onLine) {
-          console.warn('Auto-refresh paused: No network connection');
-        } else {
-          console.warn('Auto-refresh failed:', error);
-        }
-      }
-    };
-
-    const interval = setInterval(refreshAllStatuses, 30000); // 30 seconds
-    return () => clearInterval(interval);
-  }, [consentRequests]);
-
-  const handleRequestConsent = async (requestData: ConsentRequest) => {
-    setLoading(true);
+  const loadConsents = useCallback(async () => {
     try {
-      const response = await ndxService.requestConsent(requestData);
+      setLoading(true);
+      const response = await ndxService.getConsents();
       if (response.success) {
-        const newConsent: ConsentStatus = {
-          consentId: response.consentId,
-          status: response.status,
-          dataProvider: requestData.dataProvider,
-          dataType: requestData.dataType,
-          message: response.message || 'Consent request created successfully'
-        };
-        setConsentRequests(prev => [...prev, newConsent]);
-        toast.success('Consent request created successfully');
-        return { success: true, consentId: response.consentId };
-      } else {
-        toast.error('Failed to create consent request');
-        return { success: false, error: 'Failed to create consent request' };
+        setConsents(response.consents || []);
+        setFilteredConsents(response.consents || []);
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error creating consent request';
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to load consents';
       toast.error(errorMessage);
-      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleApproveConsent = async (consentId: string) => {
-    // Validate that consent exists and is in pending state
-    const consentToApprove = consentRequests.find(c => c.consentId === consentId);
-    if (!consentToApprove) {
-      toast.error('Consent not found');
-      return;
+  const filterConsents = useCallback(() => {
+    let filtered = consents;
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(consent =>
+        consent.purpose.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        consent.dataProvider.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        consent.dataType.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
-    if (consentToApprove.status !== 'PENDING_APPROVAL') {
-      toast.error(`Cannot approve consent with status: ${consentToApprove.status}`);
-      return;
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(consent => consent.status === statusFilter);
     }
 
+    setFilteredConsents(filtered);
+  }, [consents, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    loadConsents();
+  }, [loadConsents]);
+
+  useEffect(() => {
+    filterConsents();
+  }, [filterConsents]);
+
+  const handleStatusChange = async (consentId: string, newStatus: 'APPROVED' | 'REJECTED' | 'REVOKED') => {
     setActionLoading(prev => ({ ...prev, [consentId]: true }));
     try {
-      const response = await ndxService.approveConsent(consentId);
-      if (response.success) {
-        setConsentRequests(prev => 
-          prev.map(consent => 
-            consent.consentId === consentId 
-              ? { 
-                  ...consent, 
-                  status: 'APPROVED',
-                  approvedAt: new Date().toISOString(),
-                  message: response.message || 'Consent approved successfully'
-                }
-              : consent
-          )
-        );
-        toast.success(response.message || 'Consent approved successfully');
+      let response;
+      if (newStatus === 'APPROVED') {
+        response = await ndxService.approveConsent(consentId);
+      } else if (newStatus === 'REJECTED') {
+        response = await ndxService.rejectConsent(consentId);
       } else {
-        const errorMsg = response.message || response.error || 'Failed to approve consent';
-        toast.error(errorMsg);
+        response = await ndxService.revokeConsent(consentId);
       }
-    } catch (error: any) {
-      let errorMessage = 'Error approving consent';
-      
-      if (error.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please login again.';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to approve this consent.';
-      } else if (error.response?.status === 404) {
-        errorMessage = 'Consent not found on server.';
-      } else if (error.response?.status === 409) {
-        errorMessage = 'Consent has already been processed.';
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [consentId]: false }));
-    }
-  };
 
-  const handleRevokeConsent = async (consentId: string) => {
-    // Validate that consent exists and can be revoked
-    const consentToRevoke = consentRequests.find(c => c.consentId === consentId);
-    if (!consentToRevoke) {
-      toast.error('Consent not found');
-      return;
-    }
-
-    if (consentToRevoke.status !== 'APPROVED') {
-      toast.error(`Cannot revoke consent with status: ${consentToRevoke.status}`);
-      return;
-    }
-
-    setActionLoading(prev => ({ ...prev, [consentId]: true }));
-    try {
-      const response = await ndxService.revokeConsent(consentId);
       if (response.success) {
-        setConsentRequests(prev => 
-          prev.map(consent => 
-            consent.consentId === consentId 
-              ? { 
-                  ...consent, 
-                  status: 'REVOKED',
-                  message: response.message || 'Consent revoked successfully'
-                }
-              : consent
-          )
-        );
-        toast.success(response.message || 'Consent revoked successfully');
+        toast.success(`Consent ${newStatus.toLowerCase()} successfully`);
+        loadConsents();
       } else {
-        const errorMsg = response.message || response.error || 'Failed to revoke consent';
-        toast.error(errorMsg);
+        toast.error(`Failed to ${newStatus.toLowerCase()} consent`);
       }
-    } catch (error: any) {
-      let errorMessage = 'Error revoking consent';
-      
-      if (error.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please login again.';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to revoke this consent.';
-      } else if (error.response?.status === 404) {
-        errorMessage = 'Consent not found on server.';
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || `Failed to ${newStatus.toLowerCase()} consent`;
       toast.error(errorMessage);
     } finally {
       setActionLoading(prev => ({ ...prev, [consentId]: false }));
@@ -287,493 +116,333 @@ const NDXConsentManagement: React.FC = () => {
   };
 
   const handleExchangeData = async (consentId: string) => {
-    // Validate that consent exists and is in approved state
-    const consentToExchange = consentRequests.find(c => c.consentId === consentId);
-    if (!consentToExchange) {
-      toast.error('Consent not found');
-      return;
-    }
-
-    if (consentToExchange.status !== 'APPROVED') {
-      toast.error(`Cannot exchange data with consent status: ${consentToExchange.status}`);
-      return;
-    }
-
     setActionLoading(prev => ({ ...prev, [consentId]: true }));
     try {
       const response = await ndxService.exchangeData({
         consentId,
         dataProvider: 'disaster-management',
         dataType: 'disasters',
-        purpose: 'exchange-test',
-        location: { lat: 6.9271, lng: 79.8612 }
+        purpose: 'exchange-test'
       });
-      
+
       if (response.success) {
         toast.success(`Data exchange successful! Retrieved ${response.data?.length || 0} records`);
-        
-        // Update consent with exchange info
-        setConsentRequests(prev => 
-          prev.map(consent => 
-            consent.consentId === consentId 
-              ? { 
-                  ...consent, 
-                  exchangedData: response.data,
-                  lastExchangeAt: new Date().toISOString(),
-                  message: `Data exchanged successfully - ${response.data?.length || 0} records retrieved`
-                }
-              : consent
-          )
-        );
+        loadConsents();
       } else {
         toast.error(response.message || 'Failed to exchange data');
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error exchanging data';
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error exchanging data';
       toast.error(errorMessage);
     } finally {
       setActionLoading(prev => ({ ...prev, [consentId]: false }));
     }
   };
 
-  const handleCheckStatus = async (consentId: string) => {
-    // Validate consent ID before making request
-    const validation = validateConsentId(consentId);
-    if (!validation.isValid) {
-      toast.error(`Invalid consent ID: ${validation.error}`);
-      return;
-    }
-
-    // Check network connectivity
-    if (!navigator.onLine) {
-      toast.error('No network connection. Please check your internet connection.');
-      return;
-    }
-
-    setActionLoading(prev => ({ ...prev, [`status_${consentId}`]: true }));
-    try {
-      const response = await ndxService.getConsentStatus(consentId);
-      
-      if (response.success) {
-        setConsentRequests(prev => 
-          prev.map(consent => 
-            consent.consentId === consentId 
-              ? { ...consent, status: response.status }
-              : consent
-          )
-        );
-        toast.success(`Status updated: ${response.status}`, { duration: 3000 });
-      } else {
-        const errorMsg = response.message || response.error || 'Failed to check status';
-        toast.error(`Status check failed: ${errorMsg}`);
-      }
-    } catch (error: any) {
-      let errorMessage = 'Error checking status';
-      
-      if (isNetworkError(error)) {
-        errorMessage = 'Network connection failed. Please check your internet connection.';
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Authentication expired. Please login again.';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to check this consent status.';
-      } else if (error.response?.status === 404) {
-        errorMessage = 'Consent not found on server. It may have been deleted.';
-      } else if (error.response?.status === 429) {
-        errorMessage = 'Too many requests. Please wait a moment and try again.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = 'Server is currently unavailable. Please try again later.';
-      } else if (error.response?.data?.message) {
-        errorMessage = `Server error: ${error.response.data.message}`;
-      } else if (error.message) {
-        errorMessage = `Request failed: ${error.message}`;
-      }
-      
-      toast.error(errorMessage, { duration: 5000 });
-      
-      // If consent not found, suggest removing it from the list
-      if (error.response?.status === 404) {
-        setTimeout(() => {
-          toast.error('Consider removing this consent from your list as it no longer exists.', { 
-            duration: 4000,
-            id: `remove-suggestion-${consentId}` 
-          });
-        }, 1000);
-      }
-    } finally {
-      setActionLoading(prev => ({ ...prev, [`status_${consentId}`]: false }));
-    }
-  };
-
-  const handleRefreshAll = async () => {
-    if (consentRequests.length === 0) {
-      toast.success('No consent requests to refresh');
-      return;
-    }
-
-    // Check network connectivity first
-    if (!navigator.onLine) {
-      toast.error('No network connection. Please check your internet connection.');
-      return;
-    }
-
-    setActionLoading(prev => ({ ...prev, 'refresh_all': true }));
-    try {
-      const updates = await Promise.allSettled(
-        consentRequests.map(async (consent) => {
-          try {
-            const response = await ndxService.getConsentStatus(consent.consentId);
-            return { 
-              consentId: consent.consentId, 
-              status: response.status, 
-              success: response.success,
-              error: null 
-            };
-          } catch (error: any) {
-            // Handle individual consent check failures
-            let errorType = 'unknown';
-            let errorMessage = 'Unknown error';
-            
-            if (error.code === 'NETWORK_ERROR' || error.code === 'ERR_NETWORK') {
-              errorType = 'network';
-              errorMessage = 'Network error';
-            } else if (error.response?.status === 401) {
-              errorType = 'auth';
-              errorMessage = 'Authentication failed';
-            } else if (error.response?.status === 403) {
-              errorType = 'forbidden';
-              errorMessage = 'Access forbidden';
-            } else if (error.response?.status === 404) {
-              errorType = 'not_found';
-              errorMessage = 'Consent not found';
-            } else if (error.response?.status === 429) {
-              errorType = 'rate_limit';
-              errorMessage = 'Too many requests';
-            } else if (error.response?.status >= 500) {
-              errorType = 'server';
-              errorMessage = 'Server error';
-            } else if (error.message) {
-              errorMessage = error.message;
-            }
-            
-            return { 
-              consentId: consent.consentId, 
-              status: null, 
-              success: false,
-              error: errorType,
-              errorMessage 
-            };
-          }
-        })
-      );
-
-      let updatedCount = 0;
-      let errorCount = 0;
-      let authErrors = 0;
-      let networkErrors = 0;
-      let notFoundErrors = 0;
-      let serverErrors = 0;
-      
-      setConsentRequests(prev => {
-        const updated = prev.map(consent => {
-          const update = updates.find((u) => 
-            u.status === 'fulfilled' && u.value.consentId === consent.consentId
-          );
-          
-          if (update && update.status === 'fulfilled') {
-            const result = update.value;
-            
-            // Count errors by type
-            if (!result.success) {
-              errorCount++;
-              switch (result.error) {
-                case 'auth': authErrors++; break;
-                case 'network': networkErrors++; break;
-                case 'not_found': notFoundErrors++; break;
-                case 'server': serverErrors++; break;
-              }
-              return consent; // Don't update on error
-            }
-            
-            // Update successful results
-            if (result.success && result.status && result.status !== consent.status) {
-              updatedCount++;
-              return { ...consent, status: result.status };
-            }
-          }
-          return consent;
-        });
-        return updated;
-      });
-
-      // Provide detailed feedback based on results
-      if (authErrors > 0) {
-        toast.error('Authentication expired. Please login again.');
-      } else if (networkErrors > 0 && networkErrors === consentRequests.length) {
-        toast.error('All requests failed due to network issues. Please check your connection.');
-      } else if (serverErrors > 0 && serverErrors === consentRequests.length) {
-        toast.error('Server is currently unavailable. Please try again later.');
-      } else if (errorCount > 0 && updatedCount === 0) {
-        toast.error(`Failed to refresh ${errorCount} consent${errorCount > 1 ? 's' : ''}. Some may no longer exist.`);
-      } else if (errorCount > 0 && updatedCount > 0) {
-        toast.success(`${updatedCount} consent${updatedCount > 1 ? 's' : ''} updated. ${errorCount} failed to refresh.`);
-      } else if (updatedCount > 0) {
-        toast.success(`${updatedCount} consent status${updatedCount > 1 ? 'es' : ''} updated`);
-      } else {
-        toast.success('All consent statuses are up to date');
-      }
-    } catch (error: any) {
-      // Handle global refresh failure
-      let errorMessage = 'Failed to refresh consent statuses';
-      
-      if (error.code === 'NETWORK_ERROR' || !navigator.onLine) {
-        errorMessage = 'Network connection failed. Please check your internet connection.';
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Authentication expired. Please login again.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = 'Server is currently unavailable. Please try again later.';
-      } else if (error.message) {
-        errorMessage = `Refresh failed: ${error.message}`;
-      }
-      
-      toast.error(errorMessage);
-    } finally {
-      setActionLoading(prev => ({ ...prev, 'refresh_all': false }));
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'APPROVED': return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'REVOKED': return <XCircle className="w-5 h-5 text-red-600" />;
-      case 'PENDING_APPROVAL': return <Clock className="w-5 h-5 text-yellow-600" />;
-      default: return <Clock className="w-5 h-5 text-gray-600" />;
+      case 'APPROVED':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'REJECTED':
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'PENDING_APPROVAL':
+        return <Clock className="w-4 h-4 text-yellow-600" />;
+      case 'REVOKED':
+        return <AlertTriangle className="w-4 h-4 text-gray-600" />;
+      case 'EXPIRED':
+        return <AlertTriangle className="w-4 h-4 text-orange-600" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-600" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'APPROVED': return 'bg-green-100 text-green-800 border-green-200';
-      case 'REVOKED': return 'bg-red-100 text-red-800 border-red-200';
-      case 'PENDING_APPROVAL': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'REJECTED':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'PENDING_APPROVAL':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'REVOKED':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'EXPIRED':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getActionButtonTitle = (consent: ConsentStatus, action: 'approve' | 'revoke') => {
-    if (action === 'approve') {
-      if (consent.status === 'APPROVED') return 'Consent is already approved';
-      if (consent.status === 'REVOKED') return 'Cannot approve revoked consent';
-      return 'Approve this consent request';
-    } else {
-      if (consent.status === 'PENDING_APPROVAL') return 'Approve consent first before revoking';
-      if (consent.status === 'REVOKED') return 'Consent is already revoked';
-      return 'Revoke this approved consent';
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
+
+  const isExpiringSoon = (expiresAt: string) => {
+    const expiryDate = new Date(expiresAt);
+    const now = new Date();
+    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+  };
+
+  const exportConsents = () => {
+    const csvData = filteredConsents.map(consent => ({
+      'Consent ID': consent._id,
+      'Data Provider': consent.dataProvider,
+      'Data Type': consent.dataType,
+      'Purpose': consent.purpose,
+      'Status': consent.status,
+      'Created': formatDate(consent.createdAt),
+      'Expires': formatDate(consent.expiresAt),
+      'Location': consent.location ? `${consent.location.lat.toFixed(4)}, ${consent.location.lng.toFixed(4)}` : 'N/A'
+    }));
+
+    const csvString = [
+      Object.keys(csvData[0]).join(','),
+      ...csvData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `consents-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (showRequestForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Request New Consent</h2>
+          <button
+            onClick={() => setShowRequestForm(false)}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            ← Back to Consents
+          </button>
+        </div>
+        <ConsentRequestForm onSubmit={async (data) => {
+          try {
+            const response = await ndxService.requestConsent(data);
+            if (response.success) {
+              setShowRequestForm(false);
+              loadConsents();
+              return { success: true, consentId: response.consentId };
+            } else {
+              return { success: false, error: 'Failed to create consent request' };
+            }
+          } catch (error: unknown) {
+            const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error creating consent request';
+            return { success: false, error: errorMessage };
+          }
+        }} />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-    <div className="flex items-center gap-2 mb-6">
-      <Shield className="w-6 h-6 text-purple-600" />
-      <h2 className="text-xl font-semibold text-gray-800">NDX Consent Management</h2>
-    </div>
-
-      {/* Request New Consent */}
-      <div className="mb-8">
-        <ConsentRequestForm onSubmit={handleRequestConsent} loading={loading} />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Shield className="w-8 h-8 text-blue-600" />
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Consent Management</h2>
+            <p className="text-gray-600">Manage data exchange consents and permissions</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={loadConsents}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowRequestForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Shield className="w-4 h-4" />
+            Request Consent
+          </button>
+        </div>
       </div>
 
-      {/* Consent Requests List */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-800">Consent Requests</h3>
-          {consentRequests.length > 0 && (
+      {/* Filters and Actions */}
+      <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 flex-1">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search consents..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Status</option>
+                <option value="PENDING_APPROVAL">Pending</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="REVOKED">Revoked</option>
+                <option value="EXPIRED">Expired</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
             <button
-              onClick={handleRefreshAll}
-              disabled={actionLoading['refresh_all']}
-              className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              title="Refresh all consent statuses"
+              onClick={exportConsents}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
-              {actionLoading['refresh_all'] ? (
-                <>
-                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-3 h-3" />
-                  Refresh All
-                </>
-              )}
+              <Download className="w-4 h-4" />
+              Export
             </button>
-          )}
+          </div>
         </div>
-        {consentRequests.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No consent requests yet. Create one above.
+      </div>
+
+      {/* Consents Table */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-4" />
+            <p className="text-gray-600">Loading consents...</p>
+          </div>
+        ) : filteredConsents.length === 0 ? (
+          <div className="p-8 text-center">
+            <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No consents found</h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || statusFilter !== 'all'
+                ? 'Try adjusting your search or filter criteria'
+                : 'Get started by requesting your first data exchange consent'
+              }
+            </p>
+            {!searchTerm && statusFilter === 'all' && (
+              <button
+                onClick={() => setShowRequestForm(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Request Consent
+              </button>
+            )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {consentRequests.map((consent) => (
-              <div key={consent.consentId} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(consent.status)}
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(consent.status)}`}>
-                      {consent.status}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleCheckStatus(consent.consentId)}
-                      disabled={actionLoading[`status_${consent.consentId}`]}
-                      className="flex items-center gap-1 p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                      title={actionLoading[`status_${consent.consentId}`] ? "Checking status..." : "Check current status"}
-                    >
-                      {actionLoading[`status_${consent.consentId}`] ? (
-                        <div className="w-4 h-4 border border-gray-600 border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                      <span className="text-xs font-medium">
-                        {actionLoading[`status_${consent.consentId}`] ? "Checking..." : "Check Status"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="text-sm text-gray-600 mb-3">
-                  <p><strong>Consent ID:</strong> {consent.consentId}</p>
-                  <p><strong>Provider:</strong> {consent.dataProvider}</p>
-                  <p><strong>Data Type:</strong> {consent.dataType}</p>
-                  {consent.status === 'APPROVED' && consent.approvedAt && (
-                    <p><strong>Approved At:</strong> {new Date(consent.approvedAt).toLocaleString()}</p>
-                  )}
-                  {consent.message && (
-                    <p><strong>Message:</strong> {consent.message}</p>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  {consent.status === 'PENDING_APPROVAL' && (
-                    <button
-                      onClick={() => handleApproveConsent(consent.consentId)}
-                      disabled={actionLoading[consent.consentId]}
-                      title={getActionButtonTitle(consent, 'approve')}
-                      className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                    >
-                      {actionLoading[consent.consentId] ? (
-                        <>
-                          <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                          Approving...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-3 h-3" />
-                          Approve
-                        </>
-                      )}
-                    </button>
-                  )}
-                  {consent.status === 'APPROVED' && (
-                    <>
-                      <button
-                        onClick={() => handleExchangeData(consent.consentId)}
-                        disabled={actionLoading[consent.consentId]}
-                        title="Exchange data using this approved consent"
-                        className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                      >
-                        {actionLoading[consent.consentId] ? (
-                          <>
-                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                            Exchanging...
-                          </>
-                        ) : (
-                          <>
-                            <ArrowRightLeft className="w-3 h-3" />
-                            Exchange Data
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleRevokeConsent(consent.consentId)}
-                        disabled={actionLoading[consent.consentId]}
-                        title={getActionButtonTitle(consent, 'revoke')}
-                        className="flex items-center gap-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                      >
-                        {actionLoading[consent.consentId] ? (
-                          <>
-                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                            Revoking...
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-3 h-3" />
-                            Revoke
-                          </>
-                        )}
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                {/* Exchanged Data Display */}
-                {consent.exchangedData && consent.exchangedData.length > 0 && (
-                  <div className="mt-4 border-t border-gray-200 pt-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <ArrowRightLeft className="w-4 h-4 text-blue-600" />
-                      <h4 className="text-sm font-semibold text-gray-800">Exchanged Data</h4>
-                      <span className="text-xs text-gray-500">
-                        ({consent.exchangedData.length} records)
-                      </span>
-                      {consent.lastExchangeAt && (
-                        <span className="text-xs text-gray-500 ml-auto">
-                          Last exchange: {new Date(consent.lastExchangeAt).toLocaleString()}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Provider</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Data Type</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Purpose</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Expires</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredConsents.map((consent) => (
+                  <tr key={consent._id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {consent.dataProvider.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </span>
-                      )}
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-3 max-h-60 overflow-y-auto">
-                      <div className="space-y-2">
-                        {consent.exchangedData.map((item: any, index: number) => (
-                          <div key={item._id || index} className="bg-white rounded border p-3 text-sm">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                item.severity === 'high' ? 'bg-red-100 text-red-800' :
-                                item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-green-100 text-green-800'
-                              }`}>
-                                {item.severity?.toUpperCase() || 'UNKNOWN'}
-                              </span>
-                              <span className="font-medium text-gray-800 capitalize">
-                                {item.type || 'Unknown Type'}
-                              </span>
-                            </div>
-                            
-                            {item.description && (
-                              <p className="text-gray-600 mb-2">{item.description}</p>
-                            )}
-                            
-                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                              {item.location && (
-                                <span>
-                                  📍 {item.location.lat?.toFixed(4)}, {item.location.lng?.toFixed(4)}
-                                </span>
-                              )}
-                              {item.timestamp && (
-                                <span>
-                                  🕒 {new Date(item.timestamp).toLocaleString()}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-600">{consent.dataType}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-900">{consent.purpose}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(consent.status)}
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(consent.status)}`}>
+                          {consent.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <div>
+                          <div className="text-sm text-gray-900">
+                            {formatDate(consent.expiresAt)}
+                          </div>
+                          {isExpiringSoon(consent.expiresAt) && (
+                            <div className="text-xs text-orange-600 font-medium">
+                              Expires soon
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {consent.status === 'APPROVED' && (
+                          <>
+                            <button
+                              onClick={() => handleExchangeData(consent._id)}
+                              disabled={actionLoading[consent._id]}
+                              className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                              title="Exchange Data"
+                            >
+                              {actionLoading[consent._id] ? (
+                                <div className="w-4 h-4 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <ArrowRightLeft className="w-4 h-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(consent._id, 'REVOKED')}
+                              disabled={actionLoading[consent._id]}
+                              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors"
+                              title="Revoke Consent"
+                            >
+                              {actionLoading[consent._id] ? (
+                                <div className="w-4 h-4 border border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

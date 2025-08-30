@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ndxService } from '../services/ndxService';
-import { Shield, Send, Clock } from 'lucide-react';
+import { Shield, Send, Clock, Target, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ConsentRequestData {
@@ -8,7 +8,6 @@ interface ConsentRequestData {
   dataType: string;
   purpose: string;
   consentDuration: number;
-  location: { lat: number; lng: number };
 }
 
 interface ConsentResponse {
@@ -27,38 +26,64 @@ const ConsentRequestForm: React.FC<ConsentRequestFormProps> = ({ onSubmit, loadi
   const [loading, setLoading] = useState(false);
   const [consentResponse, setConsentResponse] = useState<ConsentResponse | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  
   const [formData, setFormData] = useState<ConsentRequestData>({
     dataProvider: 'disaster-management',
     dataType: 'disasters',
-    purpose: 'exchange-test',
-    consentDuration: 86400000, // 24 hours in milliseconds
-    location: { lat: 6.9271, lng: 79.8612 } // Colombo default
+    purpose: 'emergency-response',
+    consentDuration: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
   });
+
+  // Predefined templates for common consent requests
+  const consentTemplates = [
+    {
+      name: 'Emergency Response',
+      purpose: 'emergency-response',
+      duration: 24 * 60 * 60 * 1000,
+      description: 'Access disaster data for emergency response coordination'
+    },
+    {
+      name: 'Weather Monitoring',
+      purpose: 'weather-monitoring',
+      duration: 12 * 60 * 60 * 1000,
+      description: 'Monitor weather alerts and conditions'
+    },
+    {
+      name: 'Resource Planning',
+      purpose: 'resource-planning',
+      duration: 7 * 24 * 60 * 60 * 1000,
+      description: 'Access resource availability data for planning'
+    },
+    {
+      name: 'Research & Analysis',
+      purpose: 'research-analysis',
+      duration: 30 * 24 * 60 * 60 * 1000,
+      description: 'Access data for research and analysis purposes'
+    }
+  ];
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    // Validate purpose
     if (!formData.purpose.trim()) {
       newErrors.purpose = 'Purpose is required';
     }
 
-    // Validate duration (minimum 1 hour)
     if (formData.consentDuration < 3600000) {
       newErrors.duration = 'Duration must be at least 1 hour';
     }
 
-    // Validate location
-    if (isNaN(formData.location.lat) || formData.location.lat < -90 || formData.location.lat > 90) {
-      newErrors.latitude = 'Latitude must be between -90 and 90';
-    }
-
-    if (isNaN(formData.location.lng) || formData.location.lng < -180 || formData.location.lng > 180) {
-      newErrors.longitude = 'Longitude must be between -180 and 180';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const applyTemplate = (template: typeof consentTemplates[0]) => {
+    setFormData(prev => ({
+      ...prev,
+      purpose: template.purpose,
+      consentDuration: template.duration
+    }));
+    toast.success(`Applied "${template.name}" template`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,7 +97,6 @@ const ConsentRequestForm: React.FC<ConsentRequestFormProps> = ({ onSubmit, loadi
     setLoading(true);
     
     try {
-      // Use external callback if provided, otherwise use internal service
       if (onSubmit) {
         const response = await onSubmit(formData);
         if (response.success) {
@@ -95,29 +119,23 @@ const ConsentRequestForm: React.FC<ConsentRequestFormProps> = ({ onSubmit, loadi
           toast.error('Failed to create consent request');
         }
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error creating consent request';
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error creating consent request';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (field: keyof ConsentRequestData, value: any) => {
+  const handleInputChange = (field: keyof ConsentRequestData, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleLocationChange = (field: 'lat' | 'lng', value: number) => {
-    setFormData(prev => ({
-      ...prev,
-      location: {
-        ...prev.location,
-        [field]: value
-      }
-    }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   const isSubmitDisabled = externalLoading || loading;
@@ -125,125 +143,140 @@ const ConsentRequestForm: React.FC<ConsentRequestFormProps> = ({ onSubmit, loadi
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center gap-2 mb-6">
-        <Shield className="w-6 h-6 text-purple-600" />
+        <Shield className="w-6 h-6 text-blue-600" />
         <h2 className="text-xl font-semibold text-gray-800">Request Data Exchange Consent</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Quick Templates */}
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+          <Target className="w-4 h-4" />
+          Quick Templates
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {consentTemplates.map((template, index) => (
+            <button
+              key={index}
+              onClick={() => applyTemplate(template)}
+              className="p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+            >
+              <div className="font-medium text-gray-900 text-sm">{template.name}</div>
+              <div className="text-xs text-gray-600 mt-1">{template.description}</div>
+              <div className="text-xs text-blue-600 mt-1">
+                Duration: {template.duration / (24 * 60 * 60 * 1000)} days
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Data Provider & Type */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Data Provider
             </label>
             <select
               value={formData.dataProvider}
               onChange={(e) => handleInputChange('dataProvider', e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
-              <option value="disaster-management">Disaster Management Center</option>
-              <option value="weather-service">Weather Service</option>
-              <option value="health-ministry">Health Ministry</option>
+              <option value="disaster-management">🏥 Disaster Management Center</option>
+              <option value="weather-service">🌤️ Weather Service</option>
+              <option value="health-ministry">⚕️ Health Ministry</option>
+              <option value="transport-ministry">🚗 Transport Ministry</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Data Type
             </label>
             <select
               value={formData.dataType}
               onChange={(e) => handleInputChange('dataType', e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
-              <option value="disasters">Disasters</option>
-              <option value="weather">Weather Data</option>
-              <option value="health">Health Records</option>
+              <option value="disasters">🚨 Disasters & Incidents</option>
+              <option value="weather-alerts">🌧️ Weather Alerts</option>
+              <option value="resources">📦 Resources & Supplies</option>
+              <option value="health-status">🏥 Health Status</option>
+              <option value="road-conditions">🛣️ Road Conditions</option>
             </select>
           </div>
         </div>
 
+        {/* Purpose */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Purpose *
           </label>
           <input
             type="text"
             value={formData.purpose}
             onChange={(e) => handleInputChange('purpose', e.target.value)}
-            placeholder="Enter the purpose for data exchange"
-            className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-              errors.purpose ? 'border-red-300' : 'border-gray-300'
+            placeholder="e.g., emergency-response, research-analysis, resource-planning"
+            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+              errors.purpose ? 'border-red-300 bg-red-50' : 'border-gray-300'
             }`}
           />
           {errors.purpose && (
-            <p className="mt-1 text-sm text-red-600">{errors.purpose}</p>
+            <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.purpose}
+            </p>
           )}
         </div>
 
+        {/* Duration */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Consent Duration (hours) *
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Consent Duration
           </label>
-          <input
-            type="number"
-            min="1"
-            value={formData.consentDuration / 3600000}
-            onChange={(e) => handleInputChange('consentDuration', parseInt(e.target.value) * 3600000)}
-            className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-              errors.duration ? 'border-red-300' : 'border-gray-300'
-            }`}
-          />
-          {errors.duration && (
-            <p className="mt-1 text-sm text-red-600">{errors.duration}</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Latitude *
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={formData.location.lat}
-              onChange={(e) => handleLocationChange('lat', parseFloat(e.target.value))}
-              className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                errors.latitude ? 'border-red-300' : 'border-gray-300'
-              }`}
-            />
-            {errors.latitude && (
-              <p className="mt-1 text-sm text-red-600">{errors.latitude}</p>
-            )}
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 12, 24].map((hours) => (
+              <button
+                key={hours}
+                type="button"
+                onClick={() => handleInputChange('consentDuration', hours * 60 * 60 * 1000)}
+                className={`p-3 border rounded-lg text-sm font-medium transition-colors ${
+                  formData.consentDuration === hours * 60 * 60 * 1000
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 hover:border-blue-300'
+                }`}
+              >
+                {hours} hour{hours > 1 ? 's' : ''}
+              </button>
+            ))}
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Longitude *
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={formData.location.lng}
-              onChange={(e) => handleLocationChange('lng', parseFloat(e.target.value))}
-              className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                errors.longitude ? 'border-red-300' : 'border-gray-300'
-              }`}
-            />
-            {errors.longitude && (
-              <p className="mt-1 text-sm text-red-600">{errors.longitude}</p>
-            )}
+          <div className="grid grid-cols-3 gap-3 mt-2">
+            {[7, 14, 30].map((days) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => handleInputChange('consentDuration', days * 24 * 60 * 60 * 1000)}
+                className={`p-3 border rounded-lg text-sm font-medium transition-colors ${
+                  formData.consentDuration === days * 24 * 60 * 60 * 1000
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 hover:border-blue-300'
+                }`}
+              >
+                {days} day{days > 1 ? 's' : ''}
+              </button>
+            ))}
           </div>
         </div>
 
+        {/* Submit Button */}
         <div className="pt-4">
           <button
             type="submit"
             disabled={isSubmitDisabled}
-            className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
           >
-            <Send className="w-4 h-4" />
-            {isSubmitDisabled ? 'Requesting...' : 'Request Consent'}
+            <Send className="w-5 h-5" />
+            {isSubmitDisabled ? 'Creating Consent Request...' : 'Request Consent'}
           </button>
         </div>
       </form>

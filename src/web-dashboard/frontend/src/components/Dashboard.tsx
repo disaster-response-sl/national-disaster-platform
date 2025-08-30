@@ -54,13 +54,13 @@ const Dashboard: React.FC = () => {
               </Link>
               <Link
                 to="/ndx"
-                className="bg-purple-50 hover:bg-purple-100 p-6 rounded-lg border border-purple-200 transition-colors"
+                className="bg-blue-50 hover:bg-blue-100 p-6 rounded-lg border border-blue-200 transition-colors"
               >
                 <div className="flex items-center">
-                  <Layers className="w-8 h-8 text-purple-600 mr-4" />
+                  <Layers className="w-8 h-8 text-blue-600 mr-4" />
                   <div>
-                    <h3 className="text-lg font-medium text-purple-900">NDX Integration</h3>
-                    <p className="text-purple-600 text-sm">National Data Exchange Platform</p>
+                    <h3 className="text-lg font-medium text-blue-900">NDX Integration</h3>
+                    <p className="text-blue-600 text-sm">National Data Exchange Platform</p>
                   </div>
                 </div>
               </Link>

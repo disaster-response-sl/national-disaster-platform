@@ -9,6 +9,7 @@ import MapPage from './components/MapPage';
 import ResourceManagement from './components/ResourceManagement';
 import Settings from './components/Settings';
 import NDXPage from './components/NDXPage';
+import AnalyticsPage from './components/AnalyticsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -57,6 +58,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ResourceManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/analytics" 
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
                   </ProtectedRoute>
                 } 
               />
