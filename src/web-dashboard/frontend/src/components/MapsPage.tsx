@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import SimpleMap from './SimpleMap';
+import MainLayout from './MainLayout';
 
 interface MapsPageProps {
   onBack: () => void;
@@ -8,11 +9,11 @@ interface MapsPageProps {
 
 const MapsPage: React.FC<MapsPageProps> = ({ onBack }) => {
   return (
-    <div className="h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+    <MainLayout>
+      <div className="p-6">
+        {/* Page Header */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <button
                 onClick={onBack}
@@ -32,13 +33,13 @@ const MapsPage: React.FC<MapsPageProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content - Map */}
-      <main className="h-[calc(100vh-80px)]">
-        <SimpleMap />
-      </main>
-    </div>
+        {/* Main Content - Map */}
+        <div className="h-[calc(100vh-200px)] bg-white rounded-lg shadow">
+          <SimpleMap />
+        </div>
+      </div>
+    </MainLayout>
   );
 };
 

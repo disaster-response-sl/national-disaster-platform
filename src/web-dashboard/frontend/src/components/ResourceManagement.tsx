@@ -6,6 +6,7 @@ import ResourceOverview from './resources/ResourceOverview';
 import ResourceInventory from './resources/ResourceInventory';
 import ResourceList from './resources/ResourceList';
 import AllocationTracking from './resources/AllocationTracking';
+import MainLayout from './MainLayout';
 
 type TabType = 'overview' | 'inventory' | 'list' | 'tracking';
 
@@ -51,7 +52,9 @@ const ResourceManagement: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <MainLayout>
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex flex-wrap space-x-4 sm:space-x-8 px-4 sm:px-6 pt-4">
@@ -79,7 +82,9 @@ const ResourceManagement: React.FC = () => {
       <div className="p-4 sm:p-6">
         {renderTabContent()}
       </div>
-    </div>
+        </div>
+      </div>
+    </MainLayout>
   );
 };
 

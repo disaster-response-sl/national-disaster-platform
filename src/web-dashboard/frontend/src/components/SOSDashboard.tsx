@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  AlertTriangle, 
-  MapPin, 
-  Clock, 
-  User, 
-  XCircle, 
+import {
+  AlertTriangle,
+  MapPin,
+  Clock,
+  User,
+  XCircle,
   AlertCircle,
   RefreshCw,
   Filter,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
+import MainLayout from './MainLayout';
 
 interface SOSSignal {
   _id: string;
@@ -66,7 +67,11 @@ interface SOSCluster {
   radius: number;
 }
 
-const SOSDashboard: React.FC = () => {
+interface SOSDashboardProps {
+  standalone?: boolean; // Whether this is used as a standalone page or sub-component
+}
+
+const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
   const [signals, setSignals] = useState<SOSSignal[]>([]);
   const [stats, setStats] = useState<SOSStats | null>(null);
   const [clusters, setClusters] = useState<SOSCluster[]>([]);
@@ -362,8 +367,541 @@ const SOSDashboard: React.FC = () => {
     return `${diffDays}d ago`;
   };
 
-  return (
-    <div className="space-y-6">
+  return standalone ? (
+    <MainLayout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+            SOS Emergency Dashboard
+          </h1>
+          <button
+            onClick={() => {
+              fetchDashboardData();
+              fetchClusters();
+              fetchAnalytics();
+            }}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* Statistics Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Signals</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <AlertTriangle className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Pending</p>
+                  <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                </div>
+                <div className="p-3 bg-yellow-100 rounded-full">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Responding</p>
+                  <p className="text-2xl font-bold text-orange-600">{stats.responding}</p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-full">
+                  <Activity className="w-6 h-6 text-orange-600" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Critical</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.critical || 0}</p>
+                </div>
+                <div className="p-3 bg-red-100 rounded-full">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Filters:</span>
+            </div>
+            
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="acknowledged">Acknowledged</option>
+              <option value="responding">Responding</option>
+              <option value="resolved">Resolved</option>
+              <option value="false_alarm">False Alarm</option>
+            </select>
+            
+            <select
+              value={filters.priority}
+              onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Priority</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            
+            <select
+              value={filters.timeRange}
+              onChange={(e) => setFilters(prev => ({ ...prev, timeRange: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="1h">Last Hour</option>
+              <option value="6h">Last 6 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+        </div>
+
+        {/* SOS Signals Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">SOS Signals</h2>
+          </div>
+          
+          {loading ? (
+            <div className="p-8 text-center">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+              <p className="mt-2 text-gray-500">Loading SOS signals...</p>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-600">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+              <p>{error}</p>
+            </div>
+          ) : signals.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+              <p>No SOS signals found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Signal Info
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Message
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Priority
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Time
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {signals.map((signal) => (
+                    <tr key={signal._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <User className="w-5 h-5 text-gray-400 mr-2" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {signal.user_id}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              ID: {signal._id.slice(-8)}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">
+                          {signal.message}
+                        </div>
+                        {signal.emergency_type && (
+                          <div className="text-xs text-gray-500 capitalize">
+                            {signal.emergency_type.replace('_', ' ')}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <MapPin className="w-4 h-4 text-gray-400 mr-1" />
+                          <div>
+                            <div>{signal.location.lat.toFixed(6)}, {signal.location.lng.toFixed(6)}</div>
+                            {signal.location.address && (
+                              <div className="text-xs text-gray-500">{signal.location.address}</div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(signal.status)}`}>
+                          {signal.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(signal.priority)}`}>
+                          {signal.priority.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>{getTimeAgo(signal.created_at)}</div>
+                        <div className="text-xs text-gray-500">{formatTime(signal.created_at)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedSignal(signal);
+                              setShowDetails(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            View
+                          </button>
+                          <select
+                            value={signal.status}
+                            onChange={(e) => updateSignalStatus(signal._id, e.target.value)}
+                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="acknowledged">Acknowledged</option>
+                            <option value="responding">Responding</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="false_alarm">False Alarm</option>
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="flex items-center text-sm text-gray-700">
+                <span>
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                  disabled={pagination.page === 1}
+                  className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Previous
+                </button>
+                <span className="text-sm text-gray-700">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                  disabled={pagination.page === pagination.totalPages}
+                  className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Clusters Information */}
+        {clusters.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Signal Clusters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {clusters.map((cluster, index) => (
+                <div key={cluster.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-900">Cluster {index + 1}</span>
+                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      {cluster.signals.length} signals
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      {cluster.center.lat.toFixed(4)}, {cluster.center.lng.toFixed(4)}
+                    </div>
+                    <div className="mt-1">
+                      Radius: {cluster.radius.toFixed(2)} km
+                    </div>
+                    <div className="mt-1">
+                      Priority: <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(cluster.priority)}`}>
+                        {cluster.priority.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Signal Details Modal */}
+        {showDetails && selectedSignal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">SOS Signal Details</h3>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="px-6 py-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Signal ID</label>
+                    <p className="text-sm text-gray-900">{selectedSignal._id}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Individual ID</label>
+                    <p className="text-sm text-gray-900">{selectedSignal.user_id}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Status</label>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedSignal.status)}`}>
+                        {selectedSignal.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                      <select
+                        value={selectedSignal.status}
+                        onChange={(e) => updateSignalStatus(selectedSignal._id, e.target.value as any, 'Status updated via dashboard')}
+                        className="text-xs border border-gray-300 rounded px-2 py-1"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="responding">Responding</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="false_alarm">False Alarm</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Priority</label>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(selectedSignal.priority)}`}>
+                      {selectedSignal.priority.toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Created</label>
+                    <p className="text-sm text-gray-900">{formatTime(selectedSignal.created_at)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Updated</label>
+                    <p className="text-sm text-gray-900">{formatTime(selectedSignal.updated_at)}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Location</label>
+                  <div className="text-sm text-gray-900">
+                    <div>Latitude: {selectedSignal.location.lat}</div>
+                    <div>Longitude: {selectedSignal.location.lng}</div>
+                    {selectedSignal.location.address && (
+                      <div>Address: {selectedSignal.location.address}</div>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Message</label>
+                  <p className="text-sm text-gray-900">{selectedSignal.message}</p>
+                </div>
+                
+                {selectedSignal.emergency_type && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Emergency Type</label>
+                    <p className="text-sm text-gray-900 capitalize">{selectedSignal.emergency_type.replace('_', ' ')}</p>
+                  </div>
+                )}
+                
+                {selectedSignal.assigned_responder && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Assigned Responder</label>
+                    <p className="text-sm text-gray-900">{selectedSignal.assigned_responder}</p>
+                  </div>
+                )}
+                
+                {selectedSignal.escalation_level !== undefined && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Escalation Level</label>
+                    <p className="text-sm text-gray-900">{selectedSignal.escalation_level}</p>
+                  </div>
+                )}
+                
+                {selectedSignal.notes && selectedSignal.notes.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Notes</label>
+                    <div className="space-y-2">
+                      {selectedSignal.notes.map((note, index) => (
+                        <div key={index} className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                          <div className="font-medium">{note.responder_id}</div>
+                          <div>{note.note}</div>
+                          <div className="text-xs text-gray-500">{formatTime(note.timestamp)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="px-6 py-4 border-t border-gray-200 flex gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedResponder('');
+                    setAssignNotes('');
+                    setShowAssignModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={!!selectedSignal.assigned_responder}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  {selectedSignal.assigned_responder ? 'Already Assigned' : 'Assign Responder'}
+                </button>
+                <button
+                  onClick={() => escalateSignal(selectedSignal._id, (selectedSignal.escalation_level || 0) + 1, 'Manual escalation')}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Escalate
+                </button>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assign Responder Modal */}
+        {showAssignModal && selectedSignal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-lg font-semibold mb-4">Assign Responder</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Responder
+                  </label>
+                  <select
+                    value={selectedResponder}
+                    onChange={(e) => setSelectedResponder(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Choose a responder...</option>
+                    <option value="admin_seed">Admin Seed (Emergency Coordinator)</option>
+                    <option value="responder001">Responder 001 (Field Team Alpha)</option>
+                    <option value="responder002">Responder 002 (Medical Team)</option>
+                    <option value="responder003">Responder 003 (Fire Department)</option>
+                    <option value="responder004">Responder 004 (Police Unit)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assignment Notes
+                  </label>
+                  <textarea
+                    value={assignNotes}
+                    onChange={(e) => setAssignNotes(e.target.value)}
+                    placeholder="Add any notes for this assignment..."
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={async () => {
+                    if (selectedResponder) {
+                      await assignResponder(selectedSignal._id, selectedResponder, assignNotes || 'Assigned via dashboard');
+                      setShowAssignModal(false);
+                      setSelectedResponder('');
+                      setAssignNotes('');
+                    }
+                  }}
+                  disabled={!selectedResponder}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Assign Responder
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAssignModal(false);
+                    setSelectedResponder('');
+                    setAssignNotes('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </MainLayout>
+  ) : (
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">

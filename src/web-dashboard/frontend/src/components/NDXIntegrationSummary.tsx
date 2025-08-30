@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle, Layers, Database, Shield, Download, Zap } from 'lucide-react';
+import MainLayout from './MainLayout';
 
 const NDXIntegrationSummary: React.FC = () => {
   const integrationSteps = [
@@ -68,7 +69,8 @@ const NDXIntegrationSummary: React.FC = () => {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <MainLayout>
+      <div className="p-6">
       <div className="flex items-center gap-3 mb-6">
         <Layers className="w-6 h-6 text-green-600" />
         <h2 className="text-xl font-semibold text-gray-800">Data Platform Overview</h2>
@@ -140,7 +142,8 @@ const NDXIntegrationSummary: React.FC = () => {
           Access real-time data, manage permissions, and get instant alerts seamlessly.
         </p>
       </div>
-    </div>
+      </div>
+    </MainLayout>
   );
 };
 

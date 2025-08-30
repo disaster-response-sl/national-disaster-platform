@@ -5,6 +5,10 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
+import MapsPage from './components/MapsPage';
+import ResourceManagement from './components/ResourceManagement';
+import Settings from './components/Settings';
+import NDXPage from './components/NDXPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -37,6 +41,38 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DisasterManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/maps" 
+                element={
+                  <ProtectedRoute>
+                    <MapsPage onBack={() => window.history.back()} />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/resources" 
+                element={
+                  <ProtectedRoute>
+                    <ResourceManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/ndx" 
+                element={
+                  <ProtectedRoute>
+                    <NDXPage />
                   </ProtectedRoute>
                 } 
               />

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  AlertTriangle, 
-  MapPin, 
-  Clock, 
-  Edit3, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Filter,
+  AlertTriangle,
+  MapPin,
+  Clock,
+  Edit3,
+  Trash2,
   Eye,
   RefreshCw
 } from 'lucide-react';
@@ -16,8 +16,7 @@ import { disasterService, Disaster, DisasterFilters } from '../services/disaster
 import CreateDisasterForm from './CreateDisasterForm';
 import EditDisasterForm from './EditDisasterForm';
 import DisasterDetailsModal from './DisasterDetailsModal';
-
-interface DisasterManagementProps {}
+import MainLayout from './MainLayout';interface DisasterManagementProps {}
 
 const DisasterManagement: React.FC<DisasterManagementProps> = () => {
   const [disasters, setDisasters] = useState<Disaster[]>([]);
@@ -152,8 +151,9 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <MainLayout>
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
@@ -506,6 +506,7 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
         />
       )}
     </div>
+    </MainLayout>
   );
 };
 
