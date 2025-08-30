@@ -23,6 +23,7 @@
     "high": "High",
     "medium": "Medium",
     "low": "Low",
+    "critical": "Critical",
     "stayAlert": "⚠️ Stay Alert!",
     "viewDetails": "View Details",
     "status": {
