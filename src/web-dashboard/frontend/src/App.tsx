@@ -5,7 +5,6 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
-import MapsPage from './components/MapsPage';
 import MapPage from './components/MapPage';
 import ResourceManagement from './components/ResourceManagement';
 import Settings from './components/Settings';
@@ -42,14 +41,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DisasterManagement />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/maps" 
-                element={
-                  <ProtectedRoute>
-                    <MapsPage onBack={() => window.history.back()} />
                   </ProtectedRoute>
                 } 
               />

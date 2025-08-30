@@ -120,9 +120,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 Disaster Management
               </Link>
               <Link
-                to="/maps"
+                to="/map"
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/maps'
+                  location.pathname === '/map'
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
