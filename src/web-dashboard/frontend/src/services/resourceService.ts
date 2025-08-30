@@ -79,7 +79,12 @@ export const createResource = async (token: string, resourceData: {
   name: string;
   type: string;
   category: string;
-  quantity: number;
+  quantity: {
+    current: number;
+    unit: string;
+    allocated?: number;
+    reserved?: number;
+  };
   location: {
     lat: number;
     lng: number;
@@ -109,7 +114,12 @@ export const updateResource = async (token: string, id: string, updateData: Part
   name: string;
   type: string;
   category: string;
-  quantity: number;
+  quantity: {
+    current: number;
+    unit: string;
+    allocated?: number;
+    reserved?: number;
+  };
   location: {
     lat: number;
     lng: number;

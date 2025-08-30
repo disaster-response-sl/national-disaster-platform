@@ -41,6 +41,13 @@ export const API_ENDPOINTS = {
   
   // Locations
   LOCATIONS: '/resources/locations',
+  
+  // Map endpoints
+  MAP_REPORTS: '/map/reports',
+  MAP_HEATMAP: '/map/heatmap',
+  MAP_RESOURCE_ANALYSIS: '/map/resource-analysis',
+  MAP_STATISTICS: '/map/statistics',
+  MAP_DISASTERS: '/map/disasters',
 } as const;
 
 export default {

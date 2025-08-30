@@ -158,15 +158,18 @@ const Dashboard: React.FC = () => {
                     </div>
                   </Link>
 
-                  <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+                  <Link 
+                    to="/map"
+                    className="bg-purple-50 hover:bg-purple-100 p-6 rounded-lg border border-purple-200 transition-colors"
+                  >
                     <div className="flex items-center">
-                      <Activity className="w-8 h-8 text-green-600 mr-4" />
+                      <MapPin className="w-8 h-8 text-purple-600 mr-4" />
                       <div>
-                        <h3 className="text-lg font-medium text-green-900">Resources</h3>
-                        <p className="text-green-600 text-sm">Manage disaster response resources</p>
+                        <h3 className="text-lg font-medium text-purple-900">View Map</h3>
+                        <p className="text-purple-600 text-sm">Interactive disaster map with reports and resources</p>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
 
                 <NDXDashboard />
