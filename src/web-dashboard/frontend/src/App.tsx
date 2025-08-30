@@ -5,7 +5,8 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
-import MapPage from './components/MapPage';
+import DisasterHeatMap from './components/DisasterHeatMap';
+import SOSHeatMap from './components/SOSHeatMap';
 import ResourceManagement from './components/ResourceManagement';
 import Settings from './components/Settings';
 import NDXPage from './components/NDXPage';
@@ -47,9 +48,21 @@ function App() {
               />
               <Route 
                 path="/map" 
+                element={<Navigate to="/map/disaster" replace />} 
+              />
+              <Route 
+                path="/map/disaster" 
                 element={
                   <ProtectedRoute>
-                    <MapPage />
+                    <DisasterHeatMap />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/map/sos" 
+                element={
+                  <ProtectedRoute>
+                    <SOSHeatMap />
                   </ProtectedRoute>
                 } 
               />

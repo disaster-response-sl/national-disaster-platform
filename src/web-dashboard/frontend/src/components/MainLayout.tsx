@@ -133,14 +133,40 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <Link
                 to="/map"
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/map'
+                  location.pathname === '/map' || location.pathname === '/map/disaster' || location.pathname === '/map/sos'
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Map className="w-5 h-5 mr-3" />
-                Reports Heatmap
+                Maps
               </Link>
+              {location.pathname.startsWith('/map') && (
+                <div className="ml-6 space-y-1">
+                  <Link
+                    to="/map/disaster"
+                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      location.pathname === '/map/disaster'
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Disaster Heat Map
+                  </Link>
+                  <Link
+                    to="/map/sos"
+                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      location.pathname === '/map/sos'
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    SOS Heat Map
+                  </Link>
+                </div>
+              )}
               <Link
                 to="/resources"
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${

@@ -31,7 +31,7 @@ const LoginPage: React.FC = () => {
       } else {
         toast.error('Invalid credentials');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -52,6 +52,11 @@ const LoginPage: React.FC = () => {
           <p className="text-gray-600">
             Emergency Management Dashboard
           </p>
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Authorized Access Only:</strong> This dashboard is restricted to emergency responders and administrators.
+            </p>
+          </div>
         </div>
 
         {/* Login Card */}
@@ -75,7 +80,7 @@ const LoginPage: React.FC = () => {
                 value={individualId}
                 onChange={(e) => setIndividualId(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter your Individual ID (e.g., admin001)"
+                placeholder="Enter your Individual ID (e.g., responder001, admin001)"
                 disabled={isLoading}
               />
             </div>
@@ -151,19 +156,6 @@ const LoginPage: React.FC = () => {
               >
                 <div className="font-medium text-red-800">👑 Admin Account</div>
                 <div className="text-red-600">admin001 / OTP: 123456</div>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  setIndividualId('citizen001');
-                  setOtp('123456');
-                }}
-                className="w-full text-left p-2 text-xs bg-green-50 hover:bg-green-100 rounded border border-green-200 transition-colors"
-                disabled={isLoading}
-              >
-                <div className="font-medium text-green-800">👤 Citizen Account</div>
-                <div className="text-green-600">citizen001 / OTP: 123456</div>
               </button>
             </div>
             <div className="mt-3 text-xs text-gray-500">
