@@ -46,11 +46,11 @@ const DisasterSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    boundary_coordinates: {
+    zone_boundary: {
       type: [[Number]], // Array of [lat, lng] pairs for polygon
       validate: {
         validator: function(coords) {
-          return coords.length >= 3; // Minimum 3 points for a polygon
+          return coords && coords.length >= 3; // Minimum 3 points for a polygon
         },
         message: 'Zone must have at least 3 coordinate points'
       }

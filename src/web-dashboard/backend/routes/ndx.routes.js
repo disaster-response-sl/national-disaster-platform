@@ -84,6 +84,30 @@ router.post('/consent/approve', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/ndx/consent/reject - Reject consent (simulates citizen rejection)
+router.post('/consent/reject', authenticateToken, async (req, res) => {
+  try {
+    const { individualId } = req.user;
+    const { consentId } = req.body;
+
+    if (!consentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'consentId is required'
+      });
+    }
+
+    const result = await ndxService.rejectConsent(consentId, individualId);
+    res.json(result);
+  } catch (error) {
+    console.error('NDX consent rejection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject consent'
+    });
+  }
+});
+
 // GET /api/ndx/consent/:consentId - Get consent status
 router.get('/consent/:consentId', authenticateToken, async (req, res) => {
   try {

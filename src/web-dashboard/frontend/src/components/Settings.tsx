@@ -62,7 +62,7 @@ const Settings: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Profile Avatar & Basic Info */}
             <div className="lg:col-span-1 flex flex-col items-center text-center">
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4">
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4">
                 {getInitials(user?.name || 'User')}
               </div>
               <h3 className="text-xl font-medium text-gray-900 mb-2">{user?.name || 'User'}</h3>

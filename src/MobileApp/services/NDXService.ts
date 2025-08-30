@@ -130,7 +130,7 @@ class NDXService {
   }
 
   // Get disaster information via NDX (with auto consent)
-  async getDisasterInfo(location: { lat: number; lng: number }): Promise<{ success: boolean; data?: any; consentId?: string; message?: string }> {
+  async getDisasterInfo(location?: { lat: number; lng: number }): Promise<{ success: boolean; data?: any; consentId?: string; message?: string }> {
     try {
       const headers = await this.getAuthHeaders();
       const response = await axios.post(`${this.baseURL}/data/disaster-info`, { location }, { headers });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   AlertTriangle,
   MapPin,
@@ -12,7 +12,9 @@ import {
   ChevronRight,
   UserCheck,
   TrendingUp,
-  Activity
+  Activity,
+  CheckCircle,
+  X
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
@@ -103,7 +105,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
   // Fetch SOS dashboard data
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -156,10 +158,10 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.page, pagination.limit, sortBy, sortOrder, API_BASE_URL]);
 
   // Fetch SOS clusters
-  const fetchClusters = async () => {
+  const fetchClusters = useCallback(async () => {
     try {
       const token = authService.getToken();
       if (!token) return;
@@ -180,10 +182,10 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
     } catch (err) {
       console.error('Error fetching clusters:', err);
     }
-  };
+  }, [API_BASE_URL]);
 
   // Fetch SOS analytics
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       const token = authService.getToken();
       if (!token) return;
@@ -204,7 +206,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
     } catch (err) {
       console.error('Error fetching analytics:', err);
     }
-  };
+  }, [API_BASE_URL, filters.timeRange]);
 
   // Update SOS signal status
   const updateSignalStatus = async (signalId: string, status: string, notes?: string) => {
@@ -315,7 +317,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
     fetchDashboardData();
     fetchClusters();
     fetchAnalytics();
-  }, [filters, pagination.page, sortBy, sortOrder]);
+  }, [filters, pagination.page, sortBy, sortOrder, fetchDashboardData, fetchClusters, fetchAnalytics]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -326,7 +328,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [filters, pagination.page, sortBy, sortOrder]);
+  }, [filters, pagination.page, sortBy, sortOrder, fetchDashboardData, fetchClusters, fetchAnalytics]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -392,51 +394,51 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
 
         {/* Statistics Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Signals</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-600 truncate">Total Signals</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <AlertTriangle className="w-6 h-6 text-blue-600" />
+                <div className="p-2 bg-blue-100 rounded-full ml-2 flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-blue-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-600 truncate">Pending</p>
                   <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
                 </div>
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <Clock className="w-6 h-6 text-yellow-600" />
+                <div className="p-2 bg-yellow-100 rounded-full ml-2 flex-shrink-0">
+                  <Clock className="w-5 h-5 text-yellow-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Responding</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-600 truncate">Responding</p>
                   <p className="text-2xl font-bold text-orange-600">{stats.responding}</p>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <Activity className="w-6 h-6 text-orange-600" />
+                <div className="p-2 bg-orange-100 rounded-full ml-2 flex-shrink-0">
+                  <Activity className="w-5 h-5 text-orange-600" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Critical</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-600 truncate">Critical</p>
                   <p className="text-2xl font-bold text-red-600">{stats.critical || 0}</p>
                 </div>
-                <div className="p-3 bg-red-100 rounded-full">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
+                <div className="p-2 bg-red-100 rounded-full ml-2 flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
                 </div>
               </div>
             </div>
@@ -445,8 +447,8 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 items-start sm:items-center">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Filter className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">Filters:</span>
             </div>
@@ -454,7 +456,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
             <select
               value={filters.status}
               onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 flex-1 sm:flex-none"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -467,7 +469,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
             <select
               value={filters.priority}
               onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 flex-1 sm:flex-none"
             >
               <option value="all">All Priority</option>
               <option value="critical">Critical</option>
@@ -479,7 +481,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
             <select
               value={filters.timeRange}
               onChange={(e) => setFilters(prev => ({ ...prev, timeRange: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 flex-1 sm:flex-none"
             >
               <option value="1h">Last Hour</option>
               <option value="6h">Last 6 Hours</option>
@@ -492,7 +494,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
 
         {/* SOS Signals Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">SOS Signals</h2>
           </div>
           
@@ -516,25 +518,25 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                       Signal Info
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-0 flex-1">
                       Message
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 hidden sm:table-cell">
                       Location
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                       Priority
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 hidden md:table-cell">
                       Time
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                       Actions
                     </th>
                   </tr>
@@ -542,75 +544,78 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {signals.map((signal) => (
                     <tr key={signal._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <User className="w-5 h-5 text-gray-400 mr-2" />
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
+                          <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                               {signal.user_id}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-xs text-gray-500 truncate">
                               ID: {signal._id.slice(-8)}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <td className="px-3 sm:px-6 py-4 min-w-0">
+                        <div className="text-xs sm:text-sm text-gray-900 max-w-xs truncate">
                           {signal.message}
                         </div>
                         {signal.emergency_type && (
-                          <div className="text-xs text-gray-500 capitalize">
+                          <div className="text-xs text-gray-500 capitalize truncate">
                             {signal.emergency_type.replace('_', ' ')}
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <MapPin className="w-4 h-4 text-gray-400 mr-1" />
-                          <div>
-                            <div>{signal.location.lat.toFixed(6)}, {signal.location.lng.toFixed(6)}</div>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                        <div className="flex items-center text-xs sm:text-sm text-gray-900">
+                          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1 flex-shrink-0" />
+                          <div className="truncate">
+                            <div className="truncate">{signal.location.lat.toFixed(4)}, {signal.location.lng.toFixed(4)}</div>
                             {signal.location.address && (
-                              <div className="text-xs text-gray-500">{signal.location.address}</div>
+                              <div className="text-xs text-gray-500 truncate">{signal.location.address}</div>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(signal.status)}`}>
-                          {signal.status.replace('_', ' ').toUpperCase()}
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-1.5 sm:px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(signal.status)}`}>
+                          <span className="hidden sm:inline">{signal.status.replace('_', ' ').toUpperCase()}</span>
+                          <span className="sm:hidden">{signal.status.charAt(0).toUpperCase()}</span>
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(signal.priority)}`}>
-                          {signal.priority.toUpperCase()}
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-1.5 sm:px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(signal.priority)}`}>
+                          {signal.priority.charAt(0).toUpperCase()}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div>{getTimeAgo(signal.created_at)}</div>
-                        <div className="text-xs text-gray-500">{formatTime(signal.created_at)}</div>
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                        <div className="text-xs sm:text-sm text-gray-900">
+                          <div className="truncate">{getTimeAgo(signal.created_at)}</div>
+                          <div className="text-xs text-gray-500 truncate">{formatTime(signal.created_at)}</div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
+                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
+                        <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                           <button
                             onClick={() => {
                               setSelectedSignal(signal);
                               setShowDetails(true);
                             }}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 hover:text-blue-900 truncate"
                           >
                             View
                           </button>
                           <select
                             value={signal.status}
                             onChange={(e) => updateSignalStatus(signal._id, e.target.value)}
-                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                            className="text-xs border border-gray-300 rounded px-1 sm:px-2 py-1 w-full sm:w-auto"
                           >
                             <option value="pending">Pending</option>
-                            <option value="acknowledged">Acknowledged</option>
-                            <option value="responding">Responding</option>
-                            <option value="resolved">Resolved</option>
-                            <option value="false_alarm">False Alarm</option>
+                            <option value="acknowledged">Ack</option>
+                            <option value="responding">Resp</option>
+                            <option value="resolved">Res</option>
+                            <option value="false_alarm">False</option>
                           </select>
                         </div>
                       </td>
@@ -719,7 +724,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                       </span>
                       <select
                         value={selectedSignal.status}
-                        onChange={(e) => updateSignalStatus(selectedSignal._id, e.target.value as any, 'Status updated via dashboard')}
+                        onChange={(e) => updateSignalStatus(selectedSignal._id, e.target.value as 'pending' | 'acknowledged' | 'responding' | 'resolved' | 'false_alarm', 'Status updated via dashboard')}
                         className="text-xs border border-gray-300 rounded px-2 py-1"
                       >
                         <option value="pending">Pending</option>
@@ -1129,21 +1134,77 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                             setSelectedSignal(signal);
                             setShowDetails(true);
                           }}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-blue-600 hover:text-blue-900 text-sm"
                         >
                           View
                         </button>
-                        <select
-                          value={signal.status}
-                          onChange={(e) => updateSignalStatus(signal._id, e.target.value)}
-                          className="text-xs border border-gray-300 rounded px-2 py-1"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="acknowledged">Acknowledged</option>
-                          <option value="responding">Responding</option>
-                          <option value="resolved">Resolved</option>
-                          <option value="false_alarm">False Alarm</option>
-                        </select>
+                        
+                        {/* Status Action Buttons */}
+                        <div className="flex items-center gap-1">
+                          {signal.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => updateSignalStatus(signal._id, 'acknowledged', 'Signal acknowledged')}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200 transition-colors"
+                                title="Acknowledge signal"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Ack
+                              </button>
+                              <button
+                                onClick={() => updateSignalStatus(signal._id, 'false_alarm', 'Marked as false alarm')}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+                                title="Mark as false alarm"
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                False
+                              </button>
+                            </>
+                          )}
+                          
+                          {signal.status === 'acknowledged' && (
+                            <>
+                              <button
+                                onClick={() => updateSignalStatus(signal._id, 'responding', 'Started responding')}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full hover:bg-orange-200 transition-colors"
+                                title="Start responding"
+                              >
+                                <Activity className="w-3 h-3 mr-1" />
+                                Respond
+                              </button>
+                              <button
+                                onClick={() => updateSignalStatus(signal._id, 'false_alarm', 'Marked as false alarm')}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+                                title="Mark as false alarm"
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                False
+                              </button>
+                            </>
+                          )}
+                          
+                          {signal.status === 'responding' && (
+                            <button
+                              onClick={() => updateSignalStatus(signal._id, 'resolved', 'Signal resolved')}
+                              className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors"
+                              title="Mark as resolved"
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Resolve
+                            </button>
+                          )}
+                          
+                          {(signal.status === 'resolved' || signal.status === 'false_alarm') && (
+                            <button
+                              onClick={() => updateSignalStatus(signal._id, 'pending', 'Signal reopened')}
+                              className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
+                              title="Reopen signal"
+                            >
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                              Reopen
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -1251,7 +1312,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                     </span>
                     <select
                       value={selectedSignal.status}
-                      onChange={(e) => updateSignalStatus(selectedSignal._id, e.target.value as any, 'Status updated via dashboard')}
+                      onChange={(e) => updateSignalStatus(selectedSignal._id, e.target.value, 'Status updated via dashboard')}
                       className="text-xs border border-gray-300 rounded px-2 py-1"
                     >
                       <option value="pending">Pending</option>

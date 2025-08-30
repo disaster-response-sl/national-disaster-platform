@@ -5,10 +5,12 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
-import MapPage from './components/MapPage';
+import DisasterHeatMap from './components/DisasterHeatMap';
+import SOSHeatMap from './components/SOSHeatMapNew';
 import ResourceManagement from './components/ResourceManagement';
 import Settings from './components/Settings';
 import NDXPage from './components/NDXPage';
+import AnalyticsPage from './components/AnalyticsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -46,9 +48,21 @@ function App() {
               />
               <Route 
                 path="/map" 
+                element={<Navigate to="/map/disaster" replace />} 
+              />
+              <Route 
+                path="/map/disaster" 
                 element={
                   <ProtectedRoute>
-                    <MapPage />
+                    <DisasterHeatMap />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/map/sos" 
+                element={
+                  <ProtectedRoute>
+                    <SOSHeatMap />
                   </ProtectedRoute>
                 } 
               />
@@ -57,6 +71,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ResourceManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/analytics" 
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
                   </ProtectedRoute>
                 } 
               />
