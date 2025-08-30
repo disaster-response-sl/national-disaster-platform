@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import axios from 'axios';
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
-import { Filter, Loader2 } from 'lucide-react';
+import { Filter, Loader2, AlertTriangle } from 'lucide-react';
 import MainLayout from './MainLayout';
 
 // Fix for default markers in react-leaflet
@@ -181,9 +181,9 @@ const FilterPanel: React.FC<{
   };
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64 max-w-[calc(100vw-2rem)] md:w-64">
+    <div className="absolute top-56 right-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64 max-w-[calc(100vw-2rem)] md:w-64">
       <h3 className="text-lg font-semibold mb-4 flex items-center">
-        <Filter className="w-5 h-5 mr-2" />
+        <Filter className="w-5 h-5 mr-2 text-blue-600" />
         Filters
       </h3>
 
@@ -193,7 +193,7 @@ const FilterPanel: React.FC<{
           <select
             value={filters.type || ''}
             onChange={(e) => handleFilterChange('type', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md text-sm"
+            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={loading}
           >
             <option value="">All Types</option>
@@ -208,7 +208,7 @@ const FilterPanel: React.FC<{
           <select
             value={filters.status || ''}
             onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md text-sm"
+            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={loading}
           >
             <option value="">All Status</option>
@@ -223,7 +223,7 @@ const FilterPanel: React.FC<{
           <select
             value={filters.priority || ''}
             onChange={(e) => handleFilterChange('priority', e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md text-sm"
+            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={loading}
           >
             <option value="">All Priorities</option>
@@ -231,6 +231,43 @@ const FilterPanel: React.FC<{
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Disaster Statistics Panel Component
+const DisasterStatisticsPanel: React.FC<{ reports: Report[]; loading: boolean }> = ({ reports, loading }) => {
+  if (loading) return null;
+
+  const totalReports = reports.length;
+  const activeReports = reports.filter(r => r.status === 'active').length;
+  const highPriorityReports = reports.filter(r => r.priority === 'high').length;
+  const totalAffected = reports.reduce((sum, r) => sum + (r.affected_people || 0), 0);
+
+  return (
+    <div className="absolute top-4 right-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-80">
+      <h3 className="text-lg font-semibold mb-3 flex items-center">
+        <AlertTriangle className="w-5 h-5 mr-2 text-orange-500" />
+        Disaster Statistics
+      </h3>
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span>Total Reports:</span>
+          <span className="font-medium">{totalReports}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span>Active Disasters:</span>
+          <span className="font-medium text-orange-600">{activeReports}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span>High Priority:</span>
+          <span className="font-medium text-red-600">{highPriorityReports}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span>Total Affected:</span>
+          <span className="font-medium text-blue-600">{totalAffected.toLocaleString()}</span>
         </div>
       </div>
     </div>
@@ -308,6 +345,8 @@ const DisasterHeatMap: React.FC = () => {
                 {error}
               </div>
             )}
+
+            <DisasterStatisticsPanel reports={reports} loading={loading} />
 
             <FilterPanel
               filters={filters}

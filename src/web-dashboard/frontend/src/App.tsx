@@ -6,7 +6,7 @@ import Dashboard from './components/Dashboard';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
 import DisasterHeatMap from './components/DisasterHeatMap';
-import SOSHeatMap from './components/SOSHeatMap';
+import SOSHeatMap from './components/SOSHeatMapNew';
 import ResourceManagement from './components/ResourceManagement';
 import Settings from './components/Settings';
 import NDXPage from './components/NDXPage';

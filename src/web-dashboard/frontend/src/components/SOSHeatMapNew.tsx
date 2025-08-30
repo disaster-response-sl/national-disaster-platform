@@ -56,7 +56,7 @@ const FilterPanel: React.FC<{
   };
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64 max-w-[calc(100vw-2rem)] md:w-64 border-2 border-blue-500">
+    <div className="absolute top-56 right-4 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64 max-w-[calc(100vw-2rem)] md:w-64">
       <h3 className="text-lg font-semibold mb-4 flex items-center">
         <Filter className="w-5 h-5 mr-2 text-blue-600" />
         Filters
@@ -203,8 +203,6 @@ const SOSHeatMap: React.FC = () => {
   const [allSosSignals, setAllSosSignals] = useState<SosSignal[]>([]);
   const [sosSignals, setSosSignals] = useState<SosSignal[]>([]);
   const [sosLoading, setSosLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20); // Show 20 SOS signals per page
   const [filters, setFilters] = useState<Filters>({});
 
   // Fetch SOS data function
@@ -218,7 +216,6 @@ const SOSHeatMap: React.FC = () => {
       });
       const data = response.data.data || [];
       setAllSosSignals(data);
-      setCurrentPage(1); // Reset to first page
     } catch (err) {
       console.error('Error fetching SOS data:', err);
     } finally {
@@ -236,21 +233,10 @@ const SOSHeatMap: React.FC = () => {
     });
   }, [allSosSignals, filters]);
 
-  // Calculate pagination values
-  const totalCount = filteredSosSignals.length;
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
-
-  // Update displayed signals when filters or page changes
+  // Update displayed signals when filters change
   useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    setSosSignals(filteredSosSignals.slice(startIndex, endIndex));
-  }, [filteredSosSignals, itemsPerPage, currentPage]);
-
-  // Handle page changes
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, []);
+    setSosSignals(filteredSosSignals);
+  }, [filteredSosSignals]);
 
   // Fetch data on mount
   useEffect(() => {
@@ -276,11 +262,6 @@ const SOSHeatMap: React.FC = () => {
 
           {/* Map */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[calc(100vh-200px)] relative">
-            {/* Debug: Check if FilterPanel is rendering */}
-            <div className="absolute top-2 left-2 z-[2000] bg-red-500 text-white px-2 py-1 text-xs rounded">
-              FilterPanel Debug
-            </div>
-
             <FilterPanel
               filters={filters}
               onFiltersChange={setFilters}
@@ -296,7 +277,7 @@ const SOSHeatMap: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Total Signals:</span>
-                  <span className="font-medium">{totalCount}</span>
+                  <span className="font-medium">{filteredSosSignals.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Critical:</span>
@@ -317,34 +298,6 @@ const SOSHeatMap: React.FC = () => {
                   </span>
                 </div>
               </div>
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="mt-4 pt-3 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="flex items-center px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 rounded"
-                    >
-                      ‹ Prev
-                    </button>
-                    <span className="text-sm text-gray-600">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="flex items-center px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 rounded"
-                    >
-                      Next ›
-                    </button>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500 text-center">
-                    Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalCount)} - {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} signals
-                  </div>
-                </div>
-              )}
             </div>
 
             <MapContainer
