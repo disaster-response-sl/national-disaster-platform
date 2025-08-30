@@ -1,5 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, Users, AlertTriangle, Clock, CheckCircle, Database, Activity, MapPin, Package, Layers } from 'lucide-react';
+import {
+  TrendingUp,
+  Users,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  MapPin
+} from 'lucide-react';
+import {
+  BarChart as RechartsBarChart,
+  Bar as RechartsBar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  ScatterChart,
+  Scatter,
+  ComposedChart,
+  Legend
+} from 'recharts';
 import MainLayout from './MainLayout';
 import toast from 'react-hot-toast';
 
@@ -35,19 +62,9 @@ interface SosStats {
   statusDistribution: { [key: string]: number };
 }
 
-interface NdxStats {
-  consents: Array<{
-    consentId: string;
-    status: string;
-    dataProvider: string;
-    dataType: string;
-  }>;
-}
-
 interface AnalyticsData {
   disasterStats: DisasterStats | null;
   sosStats: SosStats | null;
-  ndxStats: NdxStats | null;
   loading: boolean;
 }
 
@@ -60,19 +77,39 @@ interface StatCardProps {
 }
 
 const AnalyticsPage: React.FC = () => {
+  // Force recompile to fix hot reload issue
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     disasterStats: null,
     sosStats: null,
-    ndxStats: null,
     loading: true
   });
   const [timeRange, setTimeRange] = useState('7d');
 
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, [timeRange]);
+  const fetchAnalyticsData = useCallback(async () => {
+    const getStartDate = () => {
+      const now = new Date();
+      const startDate = new Date();
 
-  const fetchAnalyticsData = async () => {
+      switch (timeRange) {
+        case '24h':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case '90d':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        default:
+          startDate.setDate(now.getDate() - 7);
+      }
+
+      return startDate.toISOString().split('T')[0];
+    };
+
     try {
       setAnalyticsData(prev => ({ ...prev, loading: true }));
 
@@ -92,18 +129,9 @@ const AnalyticsPage: React.FC = () => {
       });
       const sosData = await sosResponse.json();
 
-      // Fetch NDX analytics (consents)
-      const ndxResponse = await fetch('/api/ndx/consents', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const ndxData = await ndxResponse.json();
-
       setAnalyticsData({
         disasterStats: disasterData.success ? disasterData.data : null,
         sosStats: sosData.success ? sosData.data : null,
-        ndxStats: ndxData.success ? ndxData : null,
         loading: false
       });
     } catch (error) {
@@ -111,31 +139,11 @@ const AnalyticsPage: React.FC = () => {
       toast.error('Failed to load analytics data');
       setAnalyticsData(prev => ({ ...prev, loading: false }));
     }
-  };
+  }, [timeRange]);
 
-  const getStartDate = () => {
-    const now = new Date();
-    const startDate = new Date();
-
-    switch (timeRange) {
-      case '24h':
-        startDate.setDate(now.getDate() - 1);
-        break;
-      case '7d':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case '90d':
-        startDate.setMonth(now.getMonth() - 3);
-        break;
-      default:
-        startDate.setDate(now.getDate() - 7);
-    }
-
-    return startDate.toISOString().split('T')[0];
-  };
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [timeRange, fetchAnalyticsData]);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -169,19 +177,116 @@ const AnalyticsPage: React.FC = () => {
     </div>
   );
 
-  const PriorityBadge = ({ priority, count }: { priority: string; count: number }) => {
-    const colors = {
-      critical: 'bg-red-100 text-red-800',
-      high: 'bg-orange-100 text-orange-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      low: 'bg-green-100 text-green-800'
-    };
+  // Chart color schemes
+  const PRIORITY_COLORS = {
+    critical: '#ef4444',
+    high: '#f97316',
+    medium: '#eab308',
+    low: '#22c55e'
+  };
 
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
-        {priority}: {count}
-      </span>
-    );
+  const STATUS_COLORS = {
+    active: '#3b82f6',
+    monitoring: '#8b5cf6',
+    resolved: '#10b981',
+    pending: '#f59e0b',
+    acknowledged: '#06b6d4',
+    responding: '#8b5cf6',
+    APPROVED: '#10b981',
+    PENDING_APPROVAL: '#f59e0b',
+    REJECTED: '#ef4444',
+    EXPIRED: '#6b7280'
+  };
+
+  // Transform data for charts
+  const getPriorityChartData = () => {
+    if (!analyticsData.disasterStats?.by_priority) return [];
+    return analyticsData.disasterStats.by_priority.map(item => ({
+      name: item._id.charAt(0).toUpperCase() + item._id.slice(1),
+      value: item.count,
+      color: PRIORITY_COLORS[item._id as keyof typeof PRIORITY_COLORS] || '#6b7280'
+    }));
+  };
+
+  const getStatusChartData = () => {
+    if (!analyticsData.disasterStats?.by_status) return [];
+    return analyticsData.disasterStats.by_status.map(item => ({
+      name: item._id.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      value: item.count,
+      color: STATUS_COLORS[item._id as keyof typeof STATUS_COLORS] || '#6b7280'
+    }));
+  };
+
+  const getSosPriorityChartData = () => {
+    if (!analyticsData.sosStats?.priorityDistribution) return [];
+    return Object.entries(analyticsData.sosStats.priorityDistribution).map(([priority, count]) => ({
+      name: priority.charAt(0).toUpperCase() + priority.slice(1),
+      value: count,
+      color: PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || '#6b7280'
+    }));
+  };
+
+  const getSosStatusChartData = () => {
+    if (!analyticsData.sosStats?.statusDistribution) return [];
+    return Object.entries(analyticsData.sosStats.statusDistribution).map(([status, count]) => ({
+      name: status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      value: count,
+      color: STATUS_COLORS[status as keyof typeof STATUS_COLORS] || '#6b7280'
+    }));
+  };
+
+  const getResourceChartData = () => {
+    if (!analyticsData.disasterStats?.overview) return [];
+    return [
+      { name: 'Personnel', value: analyticsData.disasterStats.overview.total_personnel_required || 0 },
+      { name: 'Vehicles', value: analyticsData.disasterStats.overview.total_vehicles_required || 0 },
+      { name: 'Food Supplies', value: analyticsData.disasterStats.overview.total_food_supplies || 0 },
+      { name: 'Shelters', value: analyticsData.disasterStats.overview.total_temporary_shelters || 0 }
+    ];
+  };
+
+  // Generate mock trend data for line chart (in real app, this would come from API)
+  const getDisasterTrendData = () => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days.map((day) => ({
+      day,
+      disasters: Math.floor(Math.random() * 10) + 1,
+      affected: Math.floor(Math.random() * 1000) + 100,
+      resolved: Math.floor(Math.random() * 8) + 1
+    }));
+  };
+
+  // Generate area chart data for resource allocation trends
+  const getResourceTrendData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    return months.map((month) => ({
+      month,
+      personnel: Math.floor(Math.random() * 500) + 100,
+      vehicles: Math.floor(Math.random() * 100) + 20,
+      supplies: Math.floor(Math.random() * 2000) + 500
+    }));
+  };
+
+  // Generate composed chart data
+  const getComposedPriorityData = () => {
+    if (!analyticsData.disasterStats?.by_priority) return [];
+    return analyticsData.disasterStats.by_priority.map(item => ({
+      name: item._id.charAt(0).toUpperCase() + item._id.slice(1),
+      value: item.count,
+      trend: item.count + Math.floor(Math.random() * 5) - 2, // Mock trend line
+      color: PRIORITY_COLORS[item._id as keyof typeof PRIORITY_COLORS] || '#6b7280'
+    }));
+  };
+
+  // Generate scatter plot data for correlation analysis
+  const getCorrelationData = () => {
+    if (!analyticsData.disasterStats?.by_priority) return [];
+    return analyticsData.disasterStats.by_priority.map((item) => ({
+      x: item.count,
+      y: Math.floor(Math.random() * 10000) + 1000, // Mock affected population
+      priority: item._id.charAt(0).toUpperCase() + item._id.slice(1),
+      color: PRIORITY_COLORS[item._id as keyof typeof PRIORITY_COLORS] || '#6b7280'
+    }));
   };
 
   if (analyticsData.loading) {
@@ -258,52 +363,140 @@ const AnalyticsPage: React.FC = () => {
                 />
               </div>
 
-              {/* Priority Distribution */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Priority Distribution</h3>
-                <div className="flex flex-wrap gap-2">
-                  {analyticsData.disasterStats.by_priority?.map((item) => (
-                    <PriorityBadge key={item._id} priority={item._id} count={item.count} />
-                  ))}
+              {/* Charts Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Priority Distribution */}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Priority Distribution</h3>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsBarChart data={getPriorityChartData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip />
+                        <RechartsBar dataKey="value" fill="#3b82f6" maxBarSize={45} />
+                      </RechartsBarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Status Distribution */}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Status Distribution</h3>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={getStatusChartData()}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {getStatusChartData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
-              {/* Status Distribution */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Status Distribution</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {analyticsData.disasterStats.by_status?.map((item) => (
-                    <div key={item._id} className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">{item.count}</div>
-                      <div className="text-sm text-gray-600 capitalize">{item._id.replace('_', ' ')}</div>
+              {/* Resource Requirements - Full Width */}
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Resource Requirements</h3>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart data={getResourceChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" fontSize={12} />
+                      <YAxis fontSize={12} />
+                      <Tooltip />
+                      <RechartsBar dataKey="value" fill="#10b981" maxBarSize={45} />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Additional Chart Types Section */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Advanced Analytics</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  {/* Disaster Trends - Line Chart */}
+                  <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Disaster Trends (Weekly)</h4>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={getDisasterTrendData()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="day" fontSize={12} />
+                          <YAxis fontSize={12} />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="disasters" stroke="#3b82f6" strokeWidth={2} name="New Disasters" />
+                          <Line type="monotone" dataKey="resolved" stroke="#10b981" strokeWidth={2} name="Resolved" />
+                        </LineChart>
+                      </ResponsiveContainer>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Resource Requirements */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Resource Requirements</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <Package className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                    <div className="text-xl font-bold text-gray-900">{formatNumber(analyticsData.disasterStats.overview?.total_personnel_required || 0)}</div>
-                    <div className="text-sm text-gray-600">Personnel</div>
+                  {/* Resource Allocation Trends - Area Chart */}
+                  <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Resource Allocation Trends</h4>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={getResourceTrendData()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" fontSize={12} />
+                          <YAxis fontSize={12} />
+                          <Tooltip />
+                          <Legend />
+                          <Area type="monotone" dataKey="personnel" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} name="Personnel" />
+                          <Area type="monotone" dataKey="vehicles" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Vehicles" />
+                          <Area type="monotone" dataKey="supplies" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.6} name="Supplies" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <Activity className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                    <div className="text-xl font-bold text-gray-900">{formatNumber(analyticsData.disasterStats.overview?.total_vehicles_required || 0)}</div>
-                    <div className="text-sm text-gray-600">Vehicles</div>
+                </div>
+
+                {/* Composed Chart - Priority Distribution with Trend */}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Priority Distribution with Trend</h4>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={getComposedPriorityData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip />
+                        <RechartsBar dataKey="value" fill="#3b82f6" maxBarSize={45} />
+                        <Line type="monotone" dataKey="trend" stroke="#ef4444" strokeWidth={2} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div className="text-center">
-                    <Database className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                    <div className="text-xl font-bold text-gray-900">{formatNumber(analyticsData.disasterStats.overview?.total_food_supplies || 0)}</div>
-                    <div className="text-sm text-gray-600">Food Supplies</div>
-                  </div>
-                  <div className="text-center">
-                    <MapPin className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                    <div className="text-xl font-bold text-gray-900">{formatNumber(analyticsData.disasterStats.overview?.total_temporary_shelters || 0)}</div>
-                    <div className="text-sm text-gray-600">Shelters</div>
+                </div>
+
+                {/* Scatter Plot - Correlation Analysis */}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Priority vs Impact Correlation</h4>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ScatterChart data={getCorrelationData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" dataKey="x" name="Disaster Count" fontSize={12} />
+                        <YAxis type="number" dataKey="y" name="Affected Population" fontSize={12} />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Legend />
+                        <Scatter name="Priority Correlation" dataKey="y" fill="#8884d8" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
@@ -345,73 +538,47 @@ const AnalyticsPage: React.FC = () => {
                 />
               </div>
 
-              {/* SOS Priority Distribution */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">SOS Priority Distribution</h3>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(analyticsData.sosStats.priorityDistribution || {}).map(([priority, count]) => (
-                    <PriorityBadge key={priority} priority={priority} count={count as number} />
-                  ))}
+              {/* SOS Charts Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* SOS Priority Distribution */}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">SOS Priority Distribution</h3>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsBarChart data={getSosPriorityChartData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip />
+                        <RechartsBar dataKey="value" fill="#f97316" maxBarSize={45} />
+                      </RechartsBarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              </div>
 
-              {/* SOS Status Distribution */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">SOS Status Distribution</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(analyticsData.sosStats.statusDistribution || {}).map(([status, count]) => (
-                    <div key={status} className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">{count as number}</div>
-                      <div className="text-sm text-gray-600 capitalize">{status.replace('_', ' ')}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* NDX Analytics */}
-          {analyticsData.ndxStats && (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-6">
-                <Layers className="w-6 h-6 text-indigo-600" />
-                <h2 className="text-xl font-semibold text-gray-800">NDX Data Exchange Analytics</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard
-                  title="Total Consents"
-                  value={formatNumber(analyticsData.ndxStats.consents?.length || 0)}
-                  icon={Database}
-                  color="border-l-4 border-l-indigo-500"
-                />
-                <StatCard
-                  title="Approved Consents"
-                  value={formatNumber(analyticsData.ndxStats.consents?.filter((c) => c.status === 'APPROVED').length || 0)}
-                  icon={CheckCircle}
-                  color="border-l-4 border-l-green-500"
-                />
-                <StatCard
-                  title="Pending Consents"
-                  value={formatNumber(analyticsData.ndxStats.consents?.filter((c) => c.status === 'PENDING_APPROVAL').length || 0)}
-                  icon={Clock}
-                  color="border-l-4 border-l-yellow-500"
-                />
-              </div>
-
-              {/* Consent Status Breakdown */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Consent Status Breakdown</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {['APPROVED', 'PENDING_APPROVAL', 'REJECTED', 'EXPIRED'].map((status) => {
-                    const count = analyticsData.ndxStats.consents?.filter((c) => c.status === status).length || 0;
-                    return (
-                      <div key={status} className="text-center">
-                        <div className="text-2xl font-bold text-gray-900">{count}</div>
-                        <div className="text-sm text-gray-600 capitalize">{status.replace('_', ' ')}</div>
-                      </div>
-                    );
-                  })}
+                {/* SOS Status Distribution - Donut Chart */}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">SOS Status Distribution</h3>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={getSosStatusChartData()}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {getSosStatusChartData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             </div>
@@ -419,14 +586,14 @@ const AnalyticsPage: React.FC = () => {
 
           {/* Recent Activity Summary */}
           {analyticsData.disasterStats?.recent_activity && (
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Disaster Activity</h3>
-              <div className="space-y-3">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Disaster Activity</h3>
+              <div className="space-y-2">
                 {analyticsData.disasterStats.recent_activity.slice(0, 5).map((activity, index) => (
                   <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                     <div>
-                      <div className="font-medium text-gray-900">{activity.title}</div>
-                      <div className="text-sm text-gray-600">Code: {activity.disaster_code}</div>
+                      <div className="font-medium text-gray-900 text-sm">{activity.title}</div>
+                      <div className="text-xs text-gray-600">Code: {activity.disaster_code}</div>
                     </div>
                     <div className="text-right">
                       <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
