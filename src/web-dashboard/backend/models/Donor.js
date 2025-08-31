@@ -11,12 +11,15 @@ const donorSchema = new mongoose.Schema({
     required: true,
     trim: true,
     lowercase: true,
+
     match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address']
+
   },
   phone: {
     type: String,
     required: true,
     trim: true
+
   },
   donationCount: {
     type: Number,
@@ -33,10 +36,12 @@ const donorSchema = new mongoose.Schema({
   lastDonationDate: {
     type: Date,
     default: Date.now
+
   }
 }, {
   timestamps: true
 });
+
 
 // Create compound index for email uniqueness
 donorSchema.index({ email: 1 }, { unique: true });
@@ -53,5 +58,6 @@ donorSchema.methods.updateStats = async function(donationAmount) {
   
   return await this.save();
 };
+
 
 module.exports = mongoose.model('Donor', donorSchema);

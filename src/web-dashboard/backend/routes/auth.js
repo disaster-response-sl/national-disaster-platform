@@ -47,6 +47,15 @@ router.post('/login', async (req, res) => {
       // Get user data for JWT payload
       const userData = sludiService.mockUsers.find(u => u.individualId === individualId);
       
+      // Check if user has permission to access web dashboard (only responders and admins)
+      if (!userData || (userData.role !== 'responder' && userData.role !== 'admin')) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Only responders and administrators can access the web dashboard.",
+          error: "INSUFFICIENT_PERMISSIONS"
+        });
+      }
+      
       // Generate JWT token with user info
       const appToken = jwt.sign(
         { 

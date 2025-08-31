@@ -1,6 +1,7 @@
 const Donor = require('../models/Donor');
 const Donation = require('../models/Donation');
 
+
 class DonationService {
   // Find or create donor
   async findOrCreateDonor(donorData) {
@@ -29,6 +30,7 @@ class DonationService {
   // Create donation
   async createDonation(donationData) {
     try {
+
       const {
         name,
         email,
@@ -37,6 +39,7 @@ class DonationService {
         orderId,
         transactionId,
         sessionId,
+
         status,
         currency = 'LKR',
         paymentMethod = 'CARD',
@@ -91,9 +94,11 @@ class DonationService {
 
       return donation;
     } catch (error) {
+
       throw error;
     }
   }
+
 
   // Get donations with pagination and filtering
   async getDonations(filters = {}, pagination = {}) {
@@ -225,6 +230,7 @@ class DonationService {
       };
     } catch (error) {
       throw new Error(`Failed to fetch donor history: ${error.message}`);
+
     }
   }
 }

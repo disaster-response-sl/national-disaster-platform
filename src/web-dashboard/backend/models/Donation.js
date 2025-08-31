@@ -9,7 +9,9 @@ const donationSchema = new mongoose.Schema({
   amount: {
     type: Number,
     required: true,
+
     min: [1, 'Amount must be greater than 0']
+
   },
   currency: {
     type: String,
@@ -19,18 +21,22 @@ const donationSchema = new mongoose.Schema({
   orderId: {
     type: String,
     required: true,
+
     trim: true,
+
     unique: true
   },
   transactionId: {
     type: String,
     required: true,
+
     trim: true
   },
   sessionId: {
     type: String,
     required: true,
     trim: true
+
   },
   status: {
     type: String,
@@ -40,6 +46,7 @@ const donationSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
+
     default: 'CARD',
     enum: ['CARD', 'BANK_TRANSFER', 'DIGITAL_WALLET']
   },
@@ -58,10 +65,12 @@ const donationSchema = new mongoose.Schema({
   },
   confirmedAt: {
     type: Date
+
   }
 }, {
   timestamps: true
 });
+
 
 // Create indexes for efficient queries
 donationSchema.index({ orderId: 1 }, { unique: true });

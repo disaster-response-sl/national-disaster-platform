@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ndxService } from '../services/ndxService';
-import { Database, Download, MapPin, Calendar, AlertTriangle } from 'lucide-react';
+import { Database, Download, MapPin, Calendar, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ExchangeRequest {
@@ -8,7 +8,18 @@ interface ExchangeRequest {
   dataProvider: string;
   dataType: string;
   purpose: string;
-  location: { lat: number; lng: number };
+}
+
+interface Consent {
+  _id: string;
+  consentId: string;
+  dataProvider: string;
+  dataType: string;
+  purpose: string;
+  status: string;
+  createdAt: string;
+  expiresAt: string;
+  requester: string;
 }
 
 interface DisasterData {
@@ -29,19 +40,59 @@ interface ExchangeResult {
 
 const NDXDataExchange: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const [consentsLoading, setConsentsLoading] = useState(true);
   const [exchangeData, setExchangeData] = useState<DisasterData[]>([]);
   const [lastExchange, setLastExchange] = useState<string | null>(null);
+  const [approvedConsents, setApprovedConsents] = useState<Consent[]>([]);
+  const [selectedConsentId, setSelectedConsentId] = useState<string>('');
   const [exchangeRequest, setExchangeRequest] = useState<ExchangeRequest>({
     consentId: '',
     dataProvider: 'disaster-management',
     dataType: 'disasters',
-    purpose: 'exchange-test',
-    location: { lat: 6.9271, lng: 79.8612 }
+    purpose: 'exchange-test'
   });
+
+  // Fetch approved consents on component mount
+  useEffect(() => {
+    const fetchApprovedConsents = async () => {
+      try {
+        const response = await ndxService.getConsents();
+        if (response.success && response.consents) {
+          const approved = response.consents.filter((consent: Consent) => consent.status === 'APPROVED');
+          setApprovedConsents(approved);
+        }
+      } catch (error) {
+        console.error('Error fetching consents:', error);
+        toast.error('Failed to load approved consents');
+      } finally {
+        setConsentsLoading(false);
+      }
+    };
+
+    fetchApprovedConsents();
+  }, []); // Remove selectedConsentId from dependencies to avoid infinite loop
+
+  // Handle consent selection
+  const handleConsentSelect = (consentId: string) => {
+    setSelectedConsentId(consentId);
+    const selectedConsent = approvedConsents.find(consent => consent.consentId === consentId);
+    if (selectedConsent) {
+      setExchangeRequest({
+        consentId: selectedConsent.consentId,
+        dataProvider: selectedConsent.dataProvider,
+        dataType: selectedConsent.dataType,
+        purpose: selectedConsent.purpose
+      });
+    } else {
+      // Clear selection if no consent found
+      setSelectedConsentId('');
+      setExchangeRequest(prev => ({ ...prev, consentId: '' }));
+    }
+  };
 
   const handleDataExchange = async () => {
     if (!exchangeRequest.consentId.trim()) {
-      toast.error('Please enter a valid Consent ID');
+      toast.error('Please select an approved consent or enter a consent ID manually');
       return;
     }
 
@@ -55,50 +106,8 @@ const NDXDataExchange: React.FC = () => {
       } else {
         toast.error('Data exchange failed');
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error during data exchange';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickDisasterInfo = async () => {
-    setLoading(true);
-    try {
-      const response: ExchangeResult = await ndxService.getDisasterInfo(exchangeRequest.location);
-      if (response.success) {
-        setExchangeData(response.data);
-        setLastExchange(new Date().toLocaleString());
-        toast.success(`Quick disaster info retrieved! ${response.data.length} records found`);
-        // Update the consent ID from the response for future use
-        setExchangeRequest(prev => ({ ...prev, consentId: response.consentId }));
-      } else {
-        toast.error('Failed to get disaster information');
-      }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error getting disaster info';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickWeatherAlerts = async () => {
-    setLoading(true);
-    try {
-      const response: ExchangeResult = await ndxService.getWeatherAlerts('Colombo');
-      if (response.success) {
-        setExchangeData(response.data);
-        setLastExchange(new Date().toLocaleString());
-        toast.success(`Weather alerts retrieved! ${response.data.length} records found`);
-        // Update the consent ID from the response for future use
-        setExchangeRequest(prev => ({ ...prev, consentId: response.consentId }));
-      } else {
-        toast.error('Failed to get weather alerts');
-      }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error getting weather alerts';
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error during data exchange';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -121,8 +130,44 @@ const NDXDataExchange: React.FC = () => {
       case 'fire': return '🔥';
       case 'storm': return '⛈️';
       case 'drought': return '🏜️';
+      case 'heavy-rain': return '🌧️';
+      case 'wind': return '💨';
+      case 'landslide': return '🏔️';
       default: return '⚠️';
     }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'approved': return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'pending': return <Clock className="w-4 h-4 text-yellow-600" />;
+      case 'rejected': return <AlertCircle className="w-4 h-4 text-red-600" />;
+      default: return <AlertCircle className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
+  const getProviderDisplayName = (provider: string) => {
+    const providerNames: { [key: string]: string } = {
+      'disaster-management': 'Disaster Management Authority',
+      'weather-service': 'Meteorological Department',
+      'health-ministry': 'Ministry of Health',
+      'transport-ministry': 'Ministry of Transport'
+    };
+    return providerNames[provider] || provider;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const isExpired = (expiresAt: string) => {
+    return new Date() > new Date(expiresAt);
   };
 
   return (
@@ -135,93 +180,145 @@ const NDXDataExchange: React.FC = () => {
       {/* Exchange Form */}
       <div className="mb-8 p-4 bg-gray-50 rounded-lg">
         <h3 className="text-lg font-medium text-gray-800 mb-4">Data Exchange Request</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Consent ID</label>
-            <input 
-              type="text" 
-              value={exchangeRequest.consentId}
-              onChange={(e) => setExchangeRequest(prev => ({ ...prev, consentId: e.target.value }))}
-              placeholder="Enter approved consent ID"
-              className="w-full p-2 border border-gray-300 rounded-md"
-            />
+
+        {/* Consent Selection */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Select Approved Consent</label>
+          {consentsLoading ? (
+            <div className="flex items-center gap-2 p-3 bg-white border border-gray-300 rounded-md">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+              <span className="text-sm text-gray-600">Loading approved consents...</span>
+            </div>
+          ) : approvedConsents.length === 0 ? (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm text-yellow-800">No approved consents found. Please request and approve consents first.</span>
+              </div>
+            </div>
+          ) : (
+            <select
+              value={selectedConsentId}
+              onChange={(e) => handleConsentSelect(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md bg-white"
+            >
+              <option value="">-- Select an approved consent --</option>
+              {approvedConsents.map((consent) => (
+                <option key={consent.consentId} value={consent.consentId}>
+                  {consent.consentId} - {getProviderDisplayName(consent.dataProvider)} ({consent.dataType})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Selected Consent Details */}
+        {selectedConsentId && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <h4 className="text-sm font-medium text-blue-800 mb-2">Selected Consent Details:</h4>
+            {(() => {
+              const selectedConsent = approvedConsents.find(c => c.consentId === selectedConsentId);
+              if (!selectedConsent) return null;
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="font-medium text-blue-700">Provider:</span>
+                    <span className="ml-2 text-blue-600">{getProviderDisplayName(selectedConsent.dataProvider)}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-blue-700">Data Type:</span>
+                    <span className="ml-2 text-blue-600 capitalize">{selectedConsent.dataType.replace('-', ' ')}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-blue-700">Purpose:</span>
+                    <span className="ml-2 text-blue-600 capitalize">{selectedConsent.purpose.replace('-', ' ')}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-blue-700">Expires:</span>
+                    <span className={`ml-2 ${isExpired(selectedConsent.expiresAt) ? 'text-red-600' : 'text-green-600'}`}>
+                      {formatDate(selectedConsent.expiresAt)}
+                      {isExpired(selectedConsent.expiresAt) && ' (Expired)'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
+        )}
+
+        {/* Manual Consent ID Input (fallback) */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Or Enter Consent ID Manually
+            {selectedConsentId && <span className="text-xs text-gray-500 ml-2">(Will override dropdown selection)</span>}
+          </label>
+          <input
+            type="text"
+            value={exchangeRequest.consentId}
+            onChange={(e) => {
+              setExchangeRequest(prev => ({ ...prev, consentId: e.target.value }));
+              // Clear dropdown selection when user types manually
+              if (selectedConsentId) {
+                setSelectedConsentId('');
+              }
+            }}
+            placeholder="Enter approved consent ID"
+            className="w-full p-2 border border-gray-300 rounded-md"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Data Provider</label>
-            <select 
+            <select
               value={exchangeRequest.dataProvider}
-              onChange={(e) => setExchangeRequest(prev => ({ ...prev, dataProvider: e.target.value }))}
+              onChange={(e) => {
+                setExchangeRequest(prev => ({ ...prev, dataProvider: e.target.value }));
+                // Clear dropdown selection if user manually changes provider
+                if (selectedConsentId) {
+                  setSelectedConsentId('');
+                }
+              }}
               className="w-full p-2 border border-gray-300 rounded-md"
             >
-              <option value="disaster-management">Disaster Management Center</option>
-              <option value="weather-service">Weather Service</option>
+              <option value="disaster-management">Disaster Management Authority</option>
+              <option value="weather-service">Meteorological Department</option>
+              <option value="health-ministry">Ministry of Health</option>
+              <option value="transport-ministry">Ministry of Transport</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Data Type</label>
-            <select 
+            <select
               value={exchangeRequest.dataType}
-              onChange={(e) => setExchangeRequest(prev => ({ ...prev, dataType: e.target.value }))}
+              onChange={(e) => {
+                setExchangeRequest(prev => ({ ...prev, dataType: e.target.value }));
+                // Clear dropdown selection if user manually changes data type
+                if (selectedConsentId) {
+                  setSelectedConsentId('');
+                }
+              }}
               className="w-full p-2 border border-gray-300 rounded-md"
             >
               <option value="disasters">Disasters</option>
-              <option value="weather">Weather</option>
+              <option value="weather-alerts">Weather Alerts</option>
+              <option value="resources">Resources</option>
+              <option value="medical-supplies">Medical Supplies</option>
+              <option value="road-conditions">Road Conditions</option>
+              <option value="evacuation-routes">Evacuation Routes</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-            <input 
-              type="number" 
-              step="any"
-              value={exchangeRequest.location.lat}
-              onChange={(e) => setExchangeRequest(prev => ({ 
-                ...prev, 
-                location: { ...prev.location, lat: parseFloat(e.target.value) }
-              }))}
-              className="w-full p-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-            <input 
-              type="number" 
-              step="any"
-              value={exchangeRequest.location.lng}
-              onChange={(e) => setExchangeRequest(prev => ({ 
-                ...prev, 
-                location: { ...prev.location, lng: parseFloat(e.target.value) }
-              }))}
-              className="w-full p-2 border border-gray-300 rounded-md"
-            />
-          </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-3">
           <button
             onClick={handleDataExchange}
-            disabled={loading}
+            disabled={loading || !exchangeRequest.consentId.trim()}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             {loading ? 'Exchanging...' : 'Exchange Data'}
-          </button>
-          
-          <button
-            onClick={handleQuickDisasterInfo}
-            disabled={loading}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            Quick Disaster Info
-          </button>
-          
-          <button
-            onClick={handleQuickWeatherAlerts}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <Calendar className="w-4 h-4" />
-            Quick Weather Alerts
           </button>
         </div>
       </div>
@@ -237,7 +334,7 @@ const NDXDataExchange: React.FC = () => {
         
         {exchangeData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            No data exchanged yet. Use the form above to request data.
+            No data exchanged yet. Select an approved consent and use the form above to request data.
           </div>
         ) : (
           <div className="space-y-4">
@@ -251,7 +348,7 @@ const NDXDataExchange: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getTypeIcon(item.type)}</span>
                     <div>
-                      <h4 className="font-medium text-gray-800 capitalize">{item.type}</h4>
+                      <h4 className="font-medium text-gray-800 capitalize">{item.type.replace('-', ' ')}</h4>
                       <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium border ${getSeverityColor(item.severity)}`}>
                         {item.severity.toUpperCase()}
                       </span>

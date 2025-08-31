@@ -52,7 +52,7 @@ const NDXIntegrationSummary: React.FC = () => {
       title: 'Manage Consent',
       description: 'Control data access permissions',
       icon: <Shield className="w-5 h-5" />,
-      color: 'bg-purple-100 text-purple-700 border-purple-200'
+      color: 'bg-blue-100 text-blue-700 border-blue-200'
     },
     {
       title: 'Exchange Data',

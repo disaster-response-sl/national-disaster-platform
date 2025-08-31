@@ -33,6 +33,9 @@ const adminImportExportRoutes = require('./routes/admin/import-export.routes');
 // Import responder routes
 const responderNotificationsRoutes = require('./routes/responder/notifications.routes');
 
+// Import donation routes
+const donationRoutes = require('./routes/donation.routes');
+
 // Import test routes (NO AUTH - for Postman testing)
 const testCrudRoutes = require('./routes/test-crud.routes');
 
@@ -63,6 +66,9 @@ app.use('/api/admin/import-export', adminImportExportRoutes);     // Import/Expo
 
 // Use responder routes
 app.use('/api/responder/notifications', responderNotificationsRoutes);
+
+// Use donation routes
+app.use('/api', donationRoutes);
 
 // Use test routes (NO AUTH - for Postman testing)
 app.use('/api/test', testCrudRoutes);

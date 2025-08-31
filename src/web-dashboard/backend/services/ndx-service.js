@@ -22,6 +22,52 @@ class MockNDXService {
         apis: ['road-conditions', 'evacuation-routes']
       }
     };
+
+    // Initialize with test data
+    this.initializeTestData();
+  }
+
+  // Initialize test data for demo purposes
+  initializeTestData() {
+    const testConsents = [
+      {
+        consentId: 'consent_demo_001',
+        individualId: 'demo_user',
+        dataProvider: 'disaster-management',
+        dataType: 'disasters',
+        purpose: 'emergency-response',
+        status: 'PENDING_APPROVAL',
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        requestId: 'req_demo_001'
+      },
+      {
+        consentId: 'consent_demo_002',
+        individualId: 'demo_user',
+        dataProvider: 'weather-service',
+        dataType: 'weather-alerts',
+        purpose: 'safety-notifications',
+        status: 'PENDING_APPROVAL',
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+        requestId: 'req_demo_002'
+      },
+      {
+        consentId: 'consent_demo_003',
+        individualId: 'demo_user',
+        dataProvider: 'health-ministry',
+        dataType: 'medical-supplies',
+        purpose: 'resource-planning',
+        status: 'APPROVED',
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        expiresAt: new Date(Date.now() + 22 * 60 * 60 * 1000).toISOString(),
+        requestId: 'req_demo_003'
+      }
+    ];
+
+    testConsents.forEach(consent => {
+      this.dataConsents.set(consent.consentId, consent);
+    });
   }
 
   // Request data exchange with consent
@@ -72,11 +118,20 @@ class MockNDXService {
   async approveConsent(consentId, individualId) {
     const consent = this.dataConsents.get(consentId);
     
-    if (!consent || consent.individualId !== individualId) {
+    if (!consent) {
       return {
         success: false,
         error: 'CONSENT_NOT_FOUND',
-        message: 'Consent not found or unauthorized'
+        message: 'Consent not found'
+      };
+    }
+
+    // For demo purposes, allow approval of demo consents by any user
+    if (consent.individualId !== individualId && consent.individualId !== 'demo_user') {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        message: 'Unauthorized to approve this consent'
       };
     }
 
@@ -87,6 +142,37 @@ class MockNDXService {
       success: true,
       status: 'APPROVED',
       message: 'Consent approved successfully'
+    };
+  }
+
+  // Reject consent (simulates citizen rejection)
+  async rejectConsent(consentId, individualId) {
+    const consent = this.dataConsents.get(consentId);
+    
+    if (!consent) {
+      return {
+        success: false,
+        error: 'CONSENT_NOT_FOUND',
+        message: 'Consent not found'
+      };
+    }
+
+    // For demo purposes, allow rejection of demo consents by any user
+    if (consent.individualId !== individualId && consent.individualId !== 'demo_user') {
+      return {
+        success: false,
+        error: 'UNAUTHORIZED',
+        message: 'Unauthorized to reject this consent'
+      };
+    }
+
+    consent.status = 'REJECTED';
+    consent.rejectedAt = new Date().toISOString();
+
+    return {
+      success: true,
+      status: 'REJECTED',
+      message: 'Consent rejected successfully'
     };
   }
 
@@ -263,7 +349,8 @@ class MockNDXService {
     const userConsents = [];
     
     for (const [consentId, consent] of this.dataConsents.entries()) {
-      if (consent.individualId === individualId) {
+      // For demo purposes, return all consents or those matching the user
+      if (consent.individualId === individualId || consent.individualId === 'demo_user') {
         userConsents.push({
           consentId: consent.consentId,
           dataProvider: consent.dataProvider,
@@ -271,7 +358,8 @@ class MockNDXService {
           purpose: consent.purpose,
           status: consent.status,
           createdAt: consent.createdAt,
-          expiresAt: consent.expiresAt
+          expiresAt: consent.expiresAt,
+          individualId: consent.individualId
         });
       }
     }

@@ -133,6 +133,8 @@ export interface AllocationResponse {
     allocated_quantity: number;
     remaining_available: number;
     deployment_id: string;
+    disaster_id: string;
+    disaster_code: string;
   };
 }
 

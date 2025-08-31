@@ -47,6 +47,10 @@ export const API_ENDPOINTS = {
   MAP_HEATMAP: '/map/heatmap',
   MAP_RESOURCE_ANALYSIS: '/map/resource-analysis',
   MAP_DISASTERS: '/map/disasters',
+  
+  // SOS endpoints
+  SOS_SIGNALS: '/mobile/sos-signals',
+  SOS_ANALYTICS: '/admin/sos/analytics',
 } as const;
 
 export default {

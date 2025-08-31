@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { LogOut, Shield, Users, AlertTriangle, Activity, MapPin, Home, Map, Package, Settings as SettingsIcon, Layers } from 'lucide-react';
+import { LogOut, Shield, Users, AlertTriangle, Activity, MapPin, Home, Map, Package, Settings as SettingsIcon, Layers, BarChart3 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
 interface MainLayoutProps {
@@ -20,10 +20,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'responder': return 'bg-blue-100 text-blue-800';
-      case 'citizen': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'admin': return 'bg-red-100 text-red-800 border border-red-200';
+      case 'responder': return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'citizen': return 'bg-green-100 text-green-800 border border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
   };
 
@@ -40,18 +40,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+        <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-white" />
-                </div>
+                <img
+                  src="/logo.png"
+                  alt="ResQ Hub Logo"
+                  className="w-12 h-12 rounded-lg"
+                />
               </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Disaster Response Dashboard
+              <div className="text-gray-900">
+                <h1 className="text-2xl font-bold tracking-tight">
+                  ResQ Hub
                 </h1>
+                <p className="text-sm text-gray-600 font-medium">
+                  National Disaster Management Platform
+                </p>
               </div>
             </div>
 
@@ -62,14 +67,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   <div className="text-sm font-medium text-gray-900">
                     {user?.name || user?.individualId}
                   </div>
-                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
+                  <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
                     {getRoleIcon(user?.role || '')}
                     {user?.role?.toUpperCase()}
                   </div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
@@ -98,6 +103,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 Overview
               </Link>
               <Link
+                to="/analytics"
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/analytics'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <BarChart3 className="w-5 h-5 mr-3" />
+                Analytics
+              </Link>
+              <Link
                 to="/sos"
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                   location.pathname === '/sos'
@@ -122,14 +138,40 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <Link
                 to="/map"
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/map'
+                  location.pathname === '/map' || location.pathname === '/map/disaster' || location.pathname === '/map/sos'
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Map className="w-5 h-5 mr-3" />
-                Reports Heatmap
+                Maps
               </Link>
+              {location.pathname.startsWith('/map') && (
+                <div className="ml-6 space-y-1">
+                  <Link
+                    to="/map/disaster"
+                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      location.pathname === '/map/disaster'
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Disaster Heat Map
+                  </Link>
+                  <Link
+                    to="/map/sos"
+                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      location.pathname === '/map/sos'
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    SOS Heat Map
+                  </Link>
+                </div>
+              )}
               <Link
                 to="/resources"
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${

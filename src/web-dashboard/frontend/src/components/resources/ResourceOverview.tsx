@@ -1,9 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDashboardMetrics } from '../../services/resourceService';
 import { DashboardMetricsResponse } from '../../types/resource';
 import { canCreateResources, canAllocateResources } from '../../utils/permissions';
-import { Package, Users, TrendingUp, Activity, AlertCircle, Plus, Truck, BarChart3 } from 'lucide-react';
+import {
+  Package,
+  Activity,
+  AlertCircle,
+  Plus,
+  Truck,
+  BarChart3,
+  RefreshCw,
+  Clock,
+  CheckCircle
+} from 'lucide-react';
 import ResourceModal from './ResourceModal';
 import QuickAllocationModal from './QuickAllocationModal';
 import GenerateReportModal from './GenerateReportModal';
@@ -22,7 +32,7 @@ const ResourceOverview: React.FC = () => {
     fetchMetrics();
   };
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     if (!token) {
       setError('Authentication required');
       setLoading(false);
@@ -41,26 +51,35 @@ const ResourceOverview: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
+  }, [token]);  useEffect(() => {
     fetchMetrics();
-  }, [token]);
+  }, [fetchMetrics]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading metrics...</span>
+        <span className="ml-2 text-gray-600">Loading resource overview...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64 text-red-600">
-        <AlertCircle className="w-5 h-5 mr-2" />
-        <span>{error}</span>
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <div className="p-4 bg-red-50 rounded-full">
+          <AlertCircle className="w-12 h-12 text-red-600" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900">Failed to Load Data</h3>
+          <p className="text-sm text-gray-600 mt-1">{error}</p>
+          <button
+            onClick={handleRefresh}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -70,85 +89,62 @@ const ResourceOverview: React.FC = () => {
   const breakdown = metrics?.breakdown;
 
   return (
-    <div className="space-y-6">
-      {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {canCreateResources(user) && (
-          <button 
-            onClick={() => setShowResourceModal(true)}
-            className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-blue-300 transition-colors"
-          >
-            <div className="text-center">
-              <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-blue-900">Add New Resource</span>
-            </div>
-          </button>
-        )}
-        {canAllocateResources(user) && (
-          <button 
-            onClick={() => setShowQuickAllocationModal(true)}
-            className="p-4 bg-green-50 hover:bg-green-100 rounded-lg border-2 border-dashed border-green-300 transition-colors"
-          >
-            <div className="text-center">
-              <Truck className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <span className="text-sm font-medium text-green-900">Quick Allocation</span>
-            </div>
-          </button>
-        )}
-        <button 
-          onClick={() => setShowGenerateReportModal(true)}
-          className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border-2 border-dashed border-purple-300 transition-colors"
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Resource Management</h1>
+          <p className="text-gray-600 mt-1">Monitor and manage disaster response resources</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+          title="Refresh data"
         >
-          <div className="text-center">
-            <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-            <span className="text-sm font-medium text-purple-900">Generate Report</span>
-          </div>
+          <RefreshCw className="w-5 h-5" />
         </button>
       </div>
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <div className="flex items-center">
-            <Package className="w-8 h-8 text-blue-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-blue-600">Total Resources</p>
-              <p className="text-2xl font-semibold text-blue-900">
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Resources</p>
+              <p className="text-3xl font-semibold text-gray-900 mt-1">
                 {overview?.total_resources || 0}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-green-50 rounded-lg p-4">
-          <div className="flex items-center">
-            <Users className="w-8 h-8 text-green-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-green-600">Available</p>
-              <p className="text-2xl font-semibold text-green-900">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Available</p>
+              <p className="text-3xl font-semibold text-gray-900 mt-1">
                 {overview?.available_resources || 0}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-yellow-50 rounded-lg p-4">
-          <div className="flex items-center">
-            <Activity className="w-8 h-8 text-yellow-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-yellow-600">Allocated</p>
-              <p className="text-2xl font-semibold text-yellow-900">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Allocated</p>
+              <p className="text-3xl font-semibold text-gray-900 mt-1">
                 {overview?.allocated_resources || 0}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-purple-50 rounded-lg p-4">
-          <div className="flex items-center">
-            <TrendingUp className="w-8 h-8 text-purple-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-purple-600">Utilization</p>
-              <p className="text-2xl font-semibold text-purple-900">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Utilization</p>
+              <p className="text-3xl font-semibold text-gray-900 mt-1">
                 {overview?.utilization_rate ? `${Math.round(overview.utilization_rate)}%` : '0%'}
               </p>
             </div>
@@ -156,32 +152,75 @@ const ResourceOverview: React.FC = () => {
         </div>
       </div>
 
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {canCreateResources(user) && (
+          <button
+            onClick={() => setShowResourceModal(true)}
+            className="flex items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all"
+          >
+            <div className="p-2 bg-blue-50 rounded-lg mr-4">
+              <Plus className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Add Resource</p>
+              <p className="text-sm text-gray-600">Register new equipment</p>
+            </div>
+          </button>
+        )}
+
+        {canAllocateResources(user) && (
+          <button
+            onClick={() => setShowQuickAllocationModal(true)}
+            className="flex items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all"
+          >
+            <div className="p-2 bg-green-50 rounded-lg mr-4">
+              <Truck className="w-5 h-5 text-green-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Quick Allocation</p>
+              <p className="text-sm text-gray-600">Deploy to incidents</p>
+            </div>
+          </button>
+        )}
+
+        <button
+          onClick={() => setShowGenerateReportModal(true)}
+          className="flex items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all"
+        >
+          <div className="p-2 bg-purple-50 rounded-lg mr-4">
+            <BarChart3 className="w-5 h-5 text-purple-600" />
+          </div>
+          <div className="text-left">
+            <p className="font-medium text-gray-900">Generate Report</p>
+            <p className="text-sm text-gray-600">Analytics & insights</p>
+          </div>
+        </button>
+      </div>
+
       {/* Performance Metrics */}
       {performance && (
-        <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
-            Performance Metrics
-          </h3>
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Performance Metrics</h3>
+            <span className="text-sm text-gray-500">Last 30 days</span>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="relative">
-                <svg className="w-16 h-16 mx-auto" viewBox="0 0 36 36">
+              <div className="relative inline-block mb-3">
+                <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
                   <path
-                    d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
-                    stroke="#e5e7eb"
-                    strokeWidth="2"
+                    stroke="#f3f4f6"
+                    strokeWidth="3"
                   />
                   <path
-                    d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
                     stroke="#3b82f6"
-                    strokeWidth="2"
+                    strokeWidth="3"
                     strokeDasharray={`${performance.allocation_efficiency}, 100`}
                   />
                 </svg>
@@ -191,25 +230,41 @@ const ResourceOverview: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mt-2">Allocation Efficiency</p>
+              <p className="text-sm font-medium text-gray-900">Allocation Efficiency</p>
+              <p className="text-xs text-gray-600 mt-1">Resource utilization rate</p>
             </div>
+
             <div className="text-center">
-              <p className="text-sm text-gray-600">Response Time</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {Math.round(performance.response_time)}h
-              </p>
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-50 rounded-full mb-3">
+                <Clock className="w-8 h-8 text-orange-600" />
+              </div>
+              <div className="text-2xl font-semibold text-gray-900">
+                {Math.round(performance.response_time)}
+              </div>
+              <p className="text-sm font-medium text-gray-900 mt-1">Response Time</p>
+              <p className="text-xs text-gray-600">Average hours</p>
             </div>
+
             <div className="text-center">
-              <p className="text-sm text-gray-600">Resource Turnover</p>
-              <p className="text-2xl font-semibold text-gray-900">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-full mb-3">
+                <RefreshCw className="w-8 h-8 text-green-600" />
+              </div>
+              <div className="text-2xl font-semibold text-gray-900">
                 {Math.round(performance.resource_turnover)}%
-              </p>
+              </div>
+              <p className="text-sm font-medium text-gray-900 mt-1">Resource Turnover</p>
+              <p className="text-xs text-gray-600">Monthly rotation</p>
             </div>
+
             <div className="text-center">
-              <p className="text-sm text-gray-600">Success Rate</p>
-              <p className="text-2xl font-semibold text-green-600">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 rounded-full mb-3">
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
+              </div>
+              <div className="text-2xl font-semibold text-emerald-600">
                 {Math.round(performance.deployment_success_rate)}%
-              </p>
+              </div>
+              <p className="text-sm font-medium text-gray-900 mt-1">Success Rate</p>
+              <p className="text-xs text-gray-600">Successful deployments</p>
             </div>
           </div>
         </div>
@@ -219,17 +274,21 @@ const ResourceOverview: React.FC = () => {
       {breakdown && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* By Type */}
-          <div className="bg-white border rounded-lg p-4">
-            <h4 className="text-md font-medium text-gray-900 mb-3">Resources by Type</h4>
-            <div className="space-y-2">
+          <div className="bg-white border border-gray-200 rounded-xl p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Package className="w-5 h-5 mr-2 text-gray-400" />
+              Resources by Type
+            </h4>
+            <div className="space-y-3">
               {breakdown.by_type.map((item, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 capitalize">{item.type}</span>
+                <div key={index} className="flex items-center justify-between py-2">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    <span className="text-sm font-medium text-gray-900 capitalize">{item.type}</span>
+                  </div>
                   <div className="text-right">
-                    <span className="text-sm font-medium">{item.count}</span>
-                    <span className="text-xs text-gray-500 ml-2">
-                      ({item.percentage}%)
-                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{item.count}</span>
+                    <span className="text-xs text-gray-500 ml-2">({item.percentage}%)</span>
                   </div>
                 </div>
               ))}
@@ -237,26 +296,42 @@ const ResourceOverview: React.FC = () => {
           </div>
 
           {/* By Status */}
-          <div className="bg-white border rounded-lg p-4">
-            <h4 className="text-md font-medium text-gray-900 mb-3">Resources by Status</h4>
-            <div className="space-y-2">
-              {breakdown.by_status.map((item, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 capitalize">{item.status}</span>
-                  <div className="text-right">
-                    <span className="text-sm font-medium">{item.count}</span>
-                    <span className="text-xs text-gray-500 ml-2">
-                      ({item.percentage}%)
-                    </span>
+          <div className="bg-white border border-gray-200 rounded-xl p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Activity className="w-5 h-5 mr-2 text-gray-400" />
+              Resources by Status
+            </h4>
+            <div className="space-y-3">
+              {breakdown.by_status.map((item, index) => {
+                const getStatusColor = (status: string) => {
+                  switch (status.toLowerCase()) {
+                    case 'available': return 'bg-green-500';
+                    case 'allocated': return 'bg-yellow-500';
+                    case 'maintenance': return 'bg-red-500';
+                    case 'retired': return 'bg-gray-500';
+                    default: return 'bg-blue-500';
+                  }
+                };
+
+                return (
+                  <div key={index} className="flex items-center justify-between py-2">
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-3 ${getStatusColor(item.status)}`}></div>
+                      <span className="text-sm font-medium text-gray-900 capitalize">{item.status}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-gray-900">{item.count}</span>
+                      <span className="text-xs text-gray-500 ml-2">({item.percentage}%)</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {/* Resource Modal */}
+      {/* Modals */}
       <ResourceModal
         isOpen={showResourceModal}
         onClose={() => setShowResourceModal(false)}
@@ -264,14 +339,12 @@ const ResourceOverview: React.FC = () => {
         mode="create"
       />
 
-      {/* Quick Allocation Modal */}
       <QuickAllocationModal
         isOpen={showQuickAllocationModal}
         onClose={() => setShowQuickAllocationModal(false)}
         onSuccess={handleRefresh}
       />
 
-      {/* Generate Report Modal */}
       <GenerateReportModal
         isOpen={showGenerateReportModal}
         onClose={() => setShowGenerateReportModal(false)}

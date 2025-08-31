@@ -240,8 +240,7 @@ router.post('/populate-test-disasters', authenticateToken, async (req, res) => {
 router.get('/reports', authenticateToken, async (req, res) => {
   try {
     const reports = await Report.find()
-      .sort({ timestamp: -1 })
-      .limit(10);
+      .sort({ timestamp: -1 });
     
     res.json({
       success: true,
@@ -260,8 +259,7 @@ router.get('/reports', authenticateToken, async (req, res) => {
 router.get('/sos-signals', authenticateToken, async (req, res) => {
   try {
     const sosSignals = await SosSignal.find()
-      .sort({ timestamp: -1 })
-      .limit(10);
+      .sort({ timestamp: -1 });
     
     res.json({
       success: true,
@@ -280,8 +278,7 @@ router.get('/sos-signals', authenticateToken, async (req, res) => {
 router.get('/resources', authenticateToken, async (req, res) => {
   try {
     const resources = await Resource.find({ status: 'available' })
-      .sort({ timestamp: -1 })
-      .limit(10);
+      .sort({ timestamp: -1 });
     
     res.json({
       success: true,

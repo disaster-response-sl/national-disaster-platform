@@ -1,3 +1,4 @@
+
 // Validation middleware for donation endpoints
 
 const validateDonationConfirmation = (req, res, next) => {
@@ -40,6 +41,7 @@ const validateDonationConfirmation = (req, res, next) => {
 
   if (!status || typeof status !== 'string' || !['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED'].includes(status.toUpperCase())) {
     errors.push('Valid status is required (PENDING, SUCCESS, FAILED, CANCELLED)');
+
   }
 
   if (errors.length > 0) {
@@ -55,6 +57,7 @@ const validateDonationConfirmation = (req, res, next) => {
   req.body.email = email.trim().toLowerCase();
   req.body.phone = phone.trim();
   req.body.amount = Number(amount);
+
   req.body.orderId = orderId.trim();
   req.body.transactionId = transactionId.trim();
   req.body.sessionId = sessionId.trim();
@@ -62,6 +65,7 @@ const validateDonationConfirmation = (req, res, next) => {
 
   next();
 };
+
 
 const validatePaymentSession = (req, res, next) => {
   const { order, billing } = req.body;
@@ -113,11 +117,13 @@ const validateQueryParams = (req, res, next) => {
 
   // Validate page
   if (page && (!Number.isInteger(Number(page)) || Number(page) < 1)) {
+
     return res.status(400).json({
       success: false,
       error: 'Page must be a positive integer'
     });
   }
+
 
   // Validate limit
   if (limit && (!Number.isInteger(Number(limit)) || Number(limit) < 1 || Number(limit) > 100)) {
@@ -228,4 +234,5 @@ module.exports = {
   validateQueryParams,
   sanitizeResponse,
   handleError
+
 };

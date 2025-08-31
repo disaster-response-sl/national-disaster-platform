@@ -9,7 +9,8 @@ import {
   Edit3,
   Trash2,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Copy
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { disasterService, Disaster, DisasterFilters } from '../services/disasterService';
@@ -104,6 +105,15 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
       loadDisasters();
     } catch (err) {
       toast.error('Failed to delete disaster');
+    }
+  };
+
+  const handleCopyDisasterId = async (disasterId: string) => {
+    try {
+      await navigator.clipboard.writeText(disasterId);
+      toast.success('Disaster ID copied to clipboard');
+    } catch (err) {
+      toast.error('Failed to copy disaster ID');
     }
   };
 
@@ -291,7 +301,7 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Disaster
+                      Disaster (ID)
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Location
@@ -320,8 +330,19 @@ const DisasterManagement: React.FC<DisasterManagementProps> = () => {
                             <div className="text-sm font-medium text-gray-900">
                               {disaster.title}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {disaster.disaster_code}
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
+                                ID: {disaster.disaster_code || 'N/A'}
+                              </span>
+                              {disaster.disaster_code && (
+                                <button
+                                  onClick={() => handleCopyDisasterId(disaster.disaster_code!)}
+                                  className="text-gray-400 hover:text-gray-600 p-1"
+                                  title="Copy Disaster ID"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              )}
                             </div>
                             <div className="text-sm text-gray-500 capitalize">
                               {disaster.type}
