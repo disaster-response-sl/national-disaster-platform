@@ -5,8 +5,6 @@ import { DashboardMetricsResponse } from '../../types/resource';
 import { canCreateResources, canAllocateResources } from '../../utils/permissions';
 import {
   Package,
-  Users,
-  TrendingUp,
   Activity,
   AlertCircle,
   Plus,
@@ -117,9 +115,6 @@ const ResourceOverview: React.FC = () => {
                 {overview?.total_resources || 0}
               </p>
             </div>
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <Package className="w-6 h-6 text-blue-600" />
-            </div>
           </div>
         </div>
 
@@ -130,9 +125,6 @@ const ResourceOverview: React.FC = () => {
               <p className="text-3xl font-semibold text-gray-900 mt-1">
                 {overview?.available_resources || 0}
               </p>
-            </div>
-            <div className="p-3 bg-green-50 rounded-lg">
-              <Users className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -145,9 +137,6 @@ const ResourceOverview: React.FC = () => {
                 {overview?.allocated_resources || 0}
               </p>
             </div>
-            <div className="p-3 bg-yellow-50 rounded-lg">
-              <Activity className="w-6 h-6 text-yellow-600" />
-            </div>
           </div>
         </div>
 
@@ -158,9 +147,6 @@ const ResourceOverview: React.FC = () => {
               <p className="text-3xl font-semibold text-gray-900 mt-1">
                 {overview?.utilization_rate ? `${Math.round(overview.utilization_rate)}%` : '0%'}
               </p>
-            </div>
-            <div className="p-3 bg-purple-50 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
