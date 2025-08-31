@@ -8,11 +8,11 @@ import {
 } from 'react-native';
 import { useLanguage } from '../services/LanguageService';
 
-interface DonationScreenProps {
+interface DonationMenuScreenProps {
   navigation: any;
 }
 
-const DonationScreen: React.FC<DonationScreenProps> = ({ navigation }) => {
+const DonationMenuScreen: React.FC<DonationMenuScreenProps> = ({ navigation }) => {
   const { t } = useLanguage();
 
   const navigateToMPGSDonation = () => {
@@ -193,4 +193,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DonationScreen;
+export default DonationMenuScreen;

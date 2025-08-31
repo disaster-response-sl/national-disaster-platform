@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Image } from 'react-native';
 import {
   View,
   Text,
@@ -32,7 +33,11 @@ const PAYMENT_CONFIG = {
   returnUrl: 'https://nationaldrp.online/payment/callback'
 };
 
-const MPGSDonationScreen: React.FC = () => {
+interface MPGSDonationScreenProps {
+  navigation: any;
+}
+
+const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -400,23 +405,51 @@ const MPGSDonationScreen: React.FC = () => {
 
       if (data.success) {
         setShowPayment(false);
-        Alert.alert(
-          '✅ Payment Successful',
-          `Thank you for your donation of LKR ${formData.amount}!\n\nTransaction ID: ${data.transactionId}`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setFormData({
-                  name: '',
-                  email: '',
-                  phone: '',
-                  amount: '2500',
-                });
+        // Confirm donation in backend
+        fetch(`${API_BASE_URL}/donation/confirm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.trim().toLowerCase(),
+            phone: formData.phone.trim(),
+            amount: Number(formData.amount),
+            orderId: data.orderId,
+            transactionId: data.transactionId,
+            sessionId: data.sessionId,
+            status: data.result || 'SUCCESS',
+            paymentMethod: 'CARD',
+            description: 'Disaster Relief Donation',
+          })
+        })
+        .then(() => {
+          Alert.alert(
+            '✅ Payment Successful',
+            `Thank you for your donation of LKR ${formData.amount}!\n\nTransaction ID: ${data.transactionId}`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  setFormData({
+                    name: '',
+                    email: '',
+                    phone: '',
+                    amount: '2500',
+                  });
+                  if (typeof navigation !== 'undefined' && navigation.navigate) {
+                    navigation.navigate('Dashboard');
+                  }
+                },
               },
-            },
-          ]
-        );
+            ]
+          );
+        })
+        .catch(() => {
+          Alert.alert(
+            'Payment Saved Locally',
+            'Payment was successful, but could not be saved to the server. Please check your connection.'
+          );
+        });
       } else if (data.cancelled) {
         setShowPayment(false);
         Alert.alert('Payment Cancelled', 'You can try again when ready.');
@@ -471,6 +504,11 @@ const MPGSDonationScreen: React.FC = () => {
         <Text style={styles.subtitle}>
           {t('donation_subtitle', 'Support disaster relief efforts')}
         </Text>
+        <Image
+          source={require('../assets/VisaMastercardUnionPayLogos.jpg')}
+          style={{ width: 260, height: 60, resizeMode: 'contain', marginTop: 16 }}
+          accessibilityLabel="Accepted payment methods: Visa, Mastercard, UnionPay, Commercial Bank"
+        />
       </View>
 
       <View style={styles.form}>

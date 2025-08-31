@@ -503,7 +503,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
         navigation.navigate('ConsentManagement');
         break;
       case 'donation':
-        navigation.navigate('Donation');
+        navigation.navigate('MPGSDonation');
         break;
       default:
         break;

@@ -10,7 +10,7 @@ import ReportScreen from './screens/ReportScreen';
 import ChatScreen from './screens/ChatScreen';
 import RiskMapScreen from './screens/RiskMapScreen';
 import ConsentManagementScreen from './screens/ConsentManagementScreen';
-import DonationScreen from './screens/DonationScreen';
+// import DonationScreen from './screens/DonationScreen';
 import MPGSDonationScreen from './screens/MPGSDonationScreen';
 import DonationHistoryScreen from './screens/DonationHistoryScreen';
 import DonationStatsScreen from './screens/DonationStatsScreen';
@@ -90,18 +90,10 @@ const App: React.FC = () => {
               headerTintColor: 'white'
             }}
           />
-          <Stack.Screen 
-            name="Donation" 
-            component={DonationScreen}
-            options={{ 
-              title: 'Donations',
-              headerStyle: { backgroundColor: '#27ae60' },
-              headerTintColor: 'white'
-            }}
-          />
+
           <Stack.Screen 
             name="MPGSDonation" 
-            component={MPGSDonationScreen}
+            component={(props) => <MPGSDonationScreen {...props} />}
             options={{ 
               title: 'Make Donation',
               headerStyle: { backgroundColor: '#27ae60' },
