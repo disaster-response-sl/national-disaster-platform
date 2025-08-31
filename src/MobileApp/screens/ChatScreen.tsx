@@ -18,6 +18,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useLanguage } from '../services/LanguageService';
+import { API_BASE_URL } from '../config/api';
 import { getTextStyle } from '../services/FontService';
 
 const { width } = Dimensions.get('window');
@@ -85,7 +86,7 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
   const fetchChatHistory = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-  const response = await axios.get('http://192.168.1.8:5000/api/mobile/chat-logs', {
+  const response = await axios.get(`${API_BASE_URL}/mobile/chat-logs`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -111,7 +112,7 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
   const processMessageWithGemini = async (userMessage: string) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-  const response = await axios.post('http://192.168.1.8:5000/api/mobile/chat/gemini', {
+  const response = await axios.post(`${API_BASE_URL}/mobile/chat/gemini`, {
         query: userMessage,
         context: 'AI Safety Assistant for emergency preparedness and crisis response'
       }, {
@@ -429,7 +430,7 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
               </TouchableOpacity>
             </View>
             <Text style={styles.inputHelper}>
-              Get instant emergency guidance and safety recommendations
+              {t('chat.inputHelper')}
             </Text>
           </View>
         </KeyboardAvoidingView>

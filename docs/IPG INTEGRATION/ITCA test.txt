@@ -1,0 +1,14 @@
+1.  Merchant  - LKR
+
+	
+	Merchant ID            	: TESTITCALANKALKR	
+
+
+
+	For API use: 
+                       
+	Merchant ID  - TESTITCALANKALKR
+	API Username - merchant.TESTITCALANKALKR
+	Api Password - 0144a33905ebfc5a6d39dd074ce5d40d
+
+

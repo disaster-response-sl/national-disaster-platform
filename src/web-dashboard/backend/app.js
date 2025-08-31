@@ -19,6 +19,10 @@ const mapRoutes = require('./routes/map.routes');
 const resourceRoutes = require('./routes/resources.routes');
 const ndxRoutes = require('./routes/ndx.routes');
 
+// Import donation routes
+const paymentRoutes = require('./routes/payment.routes');
+const donationRoutes = require('./routes/donation.routes');
+
 // Import admin routes
 const adminSosRoutes = require('./routes/admin/sos.routes');
 const adminDisastersRoutes = require('./routes/admin/disasters.routes');
@@ -45,6 +49,14 @@ app.use('/api/map', mapRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/ndx', ndxRoutes);
 
+// Use donation routes
+app.use('/api/payment', paymentRoutes);
+app.use('/api/donations', donationRoutes);
+app.use('/api/donation', donationRoutes);
+
+// Test credentials route
+app.use('/api/test-creds', require('./test-credentials'));
+
 // Use admin routes
 app.use('/api/admin/sos', adminSosRoutes);
 app.use('/api/admin/disasters', adminDisastersRoutes);            // Main CRUD
@@ -62,6 +74,23 @@ app.use('/api', donationRoutes);
 app.use('/api/test', testCrudRoutes);
 
 // Health check routes
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Backend server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Backend server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 app.get('/', (req, res) => res.send("API is running"));
 app.get('/api/mobile/test', (req, res) => {
   res.json({ message: 'API working!' });

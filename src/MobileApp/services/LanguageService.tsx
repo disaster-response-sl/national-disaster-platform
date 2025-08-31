@@ -21,7 +21,7 @@ const translations = {
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
   isLoading: boolean;
 }
 
@@ -55,7 +55,7 @@ const getDeviceLanguage = (): Language => {
 };
 
 // Translation function
-const translate = (key: string, language: Language): string => {
+const translate = (key: string, language: Language, vars?: Record<string, string | number>): string => {
   const keys = key.split('.');
   let value: any = translations[language];
   
@@ -76,7 +76,16 @@ const translate = (key: string, language: Language): string => {
     }
   }
   
-  return typeof value === 'string' ? value : key;
+  let result = typeof value === 'string' ? value : key;
+
+  // Simple token replacement for {var} in translation strings
+  if (vars && typeof result === 'string') {
+    for (const [k, v] of Object.entries(vars)) {
+      result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    }
+  }
+
+  return result;
 };
 
 // Language provider component
@@ -126,8 +135,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   };
 
   // Translation function
-  const t = (key: string): string => {
-    return translate(key, language);
+  const t = (key: string, vars?: Record<string, string | number>): string => {
+    return translate(key, language, vars);
   };
 
   const value: LanguageContextType = {

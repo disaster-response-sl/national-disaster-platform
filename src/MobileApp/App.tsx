@@ -10,6 +10,10 @@ import ReportScreen from './screens/ReportScreen';
 import ChatScreen from './screens/ChatScreen';
 import RiskMapScreen from './screens/RiskMapScreen';
 import ConsentManagementScreen from './screens/ConsentManagementScreen';
+// import DonationScreen from './screens/DonationScreen';
+import MPGSDonationScreen from './screens/MPGSDonationScreen';
+import DonationHistoryScreen from './screens/DonationHistoryScreen';
+import DonationStatsScreen from './screens/DonationStatsScreen';
 import NotificationService from './services/NotificationService';
 import { LanguageProvider } from './services/LanguageService';
 
@@ -83,6 +87,34 @@ const App: React.FC = () => {
             options={{ 
               title: 'Data Sharing Consent',
               headerStyle: { backgroundColor: '#6f42c1' },
+              headerTintColor: 'white'
+            }}
+          />
+
+          <Stack.Screen 
+            name="MPGSDonation" 
+            component={(props) => <MPGSDonationScreen {...props} />}
+            options={{ 
+              title: 'Make Donation',
+              headerStyle: { backgroundColor: '#27ae60' },
+              headerTintColor: 'white'
+            }}
+          />
+          <Stack.Screen 
+            name="DonationHistory" 
+            component={DonationHistoryScreen}
+            options={{ 
+              title: 'Donation History',
+              headerStyle: { backgroundColor: '#3498db' },
+              headerTintColor: 'white'
+            }}
+          />
+          <Stack.Screen 
+            name="DonationStats" 
+            component={DonationStatsScreen}
+            options={{ 
+              title: 'Donation Statistics',
+              headerStyle: { backgroundColor: '#9b59b6' },
               headerTintColor: 'white'
             }}
           />

@@ -1,104 +1,89 @@
-const axios = require('axios');
 
-// Test configuration
-const BASE_URL = 'http://localhost:5000/api';
+const express = require('express');
+const app = express();
 
-// Test data
-const testDonor = {
-  name: 'Test Donor',
-  email: 'test.donor@example.com',
-  phone: '+94123456789'
-};
+// Test donation API endpoints
+const testDonationAPI = async () => {
+  const baseURL = 'http://localhost:5000/api';
+  
+  console.log('🧪 Testing Donation API Endpoints...\n');
 
-const testDonation = {
-  ...testDonor,
-  amount: 100.00,
-  orderId: 'TEST_ORDER_001',
-  transactionId: 'TEST_TXN_001',
-  sessionId: 'TEST_SESSION_001',
-  status: 'SUCCESS'
-};
-
-async function testPaymentSession() {
   try {
-    console.log('Testing payment session creation...');
-    const response = await axios.post(`${BASE_URL}/payment/session`, {
-      order: {
-        currency: 'LKR',
-        amount: '100.00'
-      }
+    // Test 1: Create Payment Session
+    console.log('1. Testing Payment Session Creation...');
+    const sessionResponse = await fetch(`${baseURL}/payment/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order: {
+          currency: 'LKR',
+          amount: 1000,
+          description: 'Test Donation'
+        },
+        billing: {
+          address: {
+            city: 'Colombo',
+            country: 'LK'
+          }
+        }
+      })
     });
+    
+    const sessionResult = await sessionResponse.json();
+    console.log('✅ Payment Session:', sessionResult);
 
-    console.log('✅ Payment session created:', response.data);
-    return response.data.sessionId;
+    if (sessionResult.success) {
+      // Test 2: Confirm Donation
+      console.log('\n2. Testing Donation Confirmation...');
+      const confirmResponse = await fetch(`${baseURL}/donation/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          phone: '+94123456789',
+          amount: 1000,
+          orderId: sessionResult.orderId || 'ORDER' + Date.now(),
+          transactionId: 'TXN' + Date.now(),
+          sessionId: sessionResult.session?.id || 'SESSION' + Date.now(),
+          status: 'SUCCESS'
+        })
+      });
+      
+      const confirmResult = await confirmResponse.json();
+      console.log('✅ Donation Confirmation:', confirmResult);
+    }
+
+    // Test 3: Get Donation Statistics
+    console.log('\n3. Testing Donation Statistics...');
+    const statsResponse = await fetch(`${baseURL}/donations/stats`);
+    const statsResult = await statsResponse.json();
+    console.log('✅ Donation Stats:', statsResult);
+
+    // Test 4: Get All Donations
+    console.log('\n4. Testing Get All Donations...');
+    const donationsResponse = await fetch(`${baseURL}/donations?limit=5`);
+    const donationsResult = await donationsResponse.json();
+    console.log('✅ All Donations:', donationsResult);
+
+    // Test 5: Get Donor History
+    console.log('\n5. Testing Donor History...');
+    const historyResponse = await fetch(`${baseURL}/donations/donor/john.doe@example.com`);
+    const historyResult = await historyResponse.json();
+    console.log('✅ Donor History:', historyResult);
+
+    console.log('\n🎉 All tests completed successfully!');
+
   } catch (error) {
-    console.log('❌ Payment session creation failed:', error.response?.data || error.message);
-    return null;
+    console.error('❌ Test failed:', error.message);
   }
-}
-
-async function testDonationConfirmation() {
-  try {
-    console.log('Testing donation confirmation...');
-    const response = await axios.post(`${BASE_URL}/donation/confirm`, testDonation);
-
-    console.log('✅ Donation confirmed:', response.data);
-    return response.data;
-  } catch (error) {
-    console.log('❌ Donation confirmation failed:', error.response?.data || error.message);
-    return null;
-  }
-}
-
-async function testGetDonations() {
-  try {
-    console.log('Testing get donations...');
-    const response = await axios.get(`${BASE_URL}/donations`);
-
-    console.log('✅ Donations retrieved:', response.data);
-    return response.data;
-  } catch (error) {
-    console.log('❌ Get donations failed:', error.response?.data || error.message);
-    return null;
-  }
-}
-
-async function testGetDonationStats() {
-  try {
-    console.log('Testing donation statistics...');
-    const response = await axios.get(`${BASE_URL}/donations/stats`);
-
-    console.log('✅ Donation stats retrieved:', response.data);
-    return response.data;
-  } catch (error) {
-    console.log('❌ Get donation stats failed:', error.response?.data || error.message);
-    return null;
-  }
-}
-
-async function runTests() {
-  console.log('🚀 Starting Donation API Tests...\n');
-
-  // Note: Payment session test will fail without proper MPGS credentials
-  // Comment out if you don't have test credentials configured
-  // await testPaymentSession();
-
-  await testDonationConfirmation();
-  await testGetDonations();
-  await testGetDonationStats();
-
-  console.log('\n✨ Tests completed!');
-}
-
-// Run tests if this file is executed directly
-if (require.main === module) {
-  runTests();
-}
-
-module.exports = {
-  testPaymentSession,
-  testDonationConfirmation,
-  testGetDonations,
-  testGetDonationStats,
-  runTests
 };
+
+// Wait for server to be ready then run tests
+setTimeout(() => {
+  console.log('Starting API tests in 3 seconds...');
+  setTimeout(testDonationAPI, 3000);
+}, 1000);
+
+module.exports = testDonationAPI;
+

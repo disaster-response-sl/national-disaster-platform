@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 import { useLanguage } from '../services/LanguageService';
+import { API_BASE_URL } from '../config/api';
 import { getTextStyle } from '../services/FontService';
 
 const { width, height } = Dimensions.get('window');
@@ -85,7 +86,7 @@ const SosScreen = ({ navigation }: any) => {
         try {
           const token = await AsyncStorage.getItem('authToken');
           const userId = await AsyncStorage.getItem('userId');
-          const response = await axios.post('http://192.168.1.8:5000/api/mobile/sos', {
+          const response = await axios.post(`${API_BASE_URL}/mobile/sos`, {
             location: { lat: latitude, lng: longitude },
             message,
             priority
@@ -121,9 +122,9 @@ const SosScreen = ({ navigation }: any) => {
       },
       error => {
         Alert.alert(
-          "Location Access Required",
-          "We need your location to send help to you. Please enable GPS and try again.",
-          [{ text: 'Retry', onPress: () => setSending(false) }]
+          t('location.accessRequiredTitle'),
+          t('location.accessRequiredMessage'),
+          [{ text: t('common.retry'), onPress: () => setSending(false) }]
         );
         setSending(false);
       },

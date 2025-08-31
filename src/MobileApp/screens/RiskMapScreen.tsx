@@ -182,20 +182,20 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         if (cacheAge < maxCacheAge) {
           setDisasters(parsedDisasters);
           setOfflineMode(true);
-          Alert.alert('Offline Mode', 'Showing cached disaster data. Some data may be outdated.');
+          Alert.alert(t('riskMap.offlineTitle'), t('riskMap.offlineMessage'));
         } else {
           console.log('❌ Cache expired, clearing...');
           await AsyncStorage.removeItem('cachedDisasters');
           await AsyncStorage.removeItem('disastersCacheTime');
-          Alert.alert('Cache Expired', 'Cached data is too old. Please check your internet connection.');
+          Alert.alert(t('riskMap.cacheExpiredTitle'), t('riskMap.cacheExpiredMessage'));
         }
       } else {
-        console.log('❌ No cached data found');
-        Alert.alert('No Cached Data', 'No offline data available. Please check your internet connection.');
+  console.log('❌ No cached data found');
+  Alert.alert(t('riskMap.noCacheTitle'), t('riskMap.noCacheMessage'));
       }
     } catch (error) {
       console.error('Error loading cached disasters:', error);
-      Alert.alert('Cache Error', 'Unable to load cached disaster data.');
+  Alert.alert(t('riskMap.cacheErrorTitle'), t('riskMap.cacheErrorMessage'));
     }
   };
 
@@ -222,11 +222,11 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log('✅ API Test Success:', response.status, response.data);
-      Alert.alert('API Test', `Success! Found ${response.data?.data?.length || 0} disasters`);
+  console.log('✅ API Test Success:', response.status, response.data);
+  Alert.alert(t('debug.apiTestTitle'), t('debug.apiTestSuccess', { count: response.data?.data?.length || 0 }));
     } catch (error: any) {
       console.error('❌ API Test Failed:', error);
-      Alert.alert('API Test Failed', error.message || 'Unknown error');
+  Alert.alert(t('debug.apiTestFailedTitle'), error.message || t('debug.apiTestFailedMessage'));
     }
   };
 
@@ -358,22 +358,22 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
 
 
         {/* Statistics Cards */}
-        <View style={styles.statsContainer}>
+          <View style={styles.statsContainer}>
           <View style={[styles.statCard, { borderColor: '#ef4444' }]}>
             <Text style={styles.statNumber}>{stats.high}</Text>
-            <Text style={styles.statLabel}>High Risk</Text>
+            <Text style={styles.statLabel}>{t('risk.high')}</Text>
           </View>
           <View style={[styles.statCard, { borderColor: '#f59e0b' }]}>
             <Text style={styles.statNumber}>{stats.medium}</Text>
-            <Text style={styles.statLabel}>Medium Risk</Text>
+            <Text style={styles.statLabel}>{t('risk.medium')}</Text>
           </View>
           <View style={[styles.statCard, { borderColor: '#10b981' }]}>
             <Text style={styles.statNumber}>{stats.low}</Text>
-            <Text style={styles.statLabel}>Low Risk</Text>
+            <Text style={styles.statLabel}>{t('risk.low')}</Text>
           </View>
           <View style={[styles.statCard, { borderColor: '#3b82f6' }]}>
             <Text style={styles.statNumber}>{stats.active}</Text>
-            <Text style={styles.statLabel}>Active</Text>
+            <Text style={styles.statLabel}>{t('risk.status.active')}</Text>
           </View>
         </View>
 
@@ -381,7 +381,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         <View style={styles.controlsSection}>
           <View style={styles.controlsRow}>
             <View style={styles.toggleContainer}>
-              <Text style={styles.toggleLabel}>Show All Disasters</Text>
+              <Text style={styles.toggleLabel}>{t('controls.showAllDisasters')}</Text>
               <Switch
                 value={showAllDisasters}
                 onValueChange={setShowAllDisasters}
@@ -394,11 +394,11 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
             {/* Debug Controls */}
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity style={styles.debugButton} onPress={clearCache}>
-                <Text style={styles.debugButtonText}>🧹 Clear Cache</Text>
+                <Text style={styles.debugButtonText}>{t('debug.clearCache')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.debugButton} onPress={testAPIConnection}>
-                <Text style={styles.debugButtonText}>🔍 Test API</Text>
+                <Text style={styles.debugButtonText}>{t('debug.testApi')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -409,25 +409,25 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
               style={[styles.filterButton, selectedFilter === 'all' && styles.filterButtonActive]}
               onPress={() => setSelectedFilter('all')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>All Levels</Text>
+              <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>{t('riskMap.all')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'high' && styles.filterButtonActive, { borderColor: '#ef4444' }]}
               onPress={() => setSelectedFilter('high')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'high' && styles.filterTextActive]}>🔴 High Risk</Text>
+              <Text style={[styles.filterText, selectedFilter === 'high' && styles.filterTextActive]}>🔴 {t('risk.high')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'medium' && styles.filterButtonActive, { borderColor: '#f59e0b' }]}
               onPress={() => setSelectedFilter('medium')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'medium' && styles.filterTextActive]}>🟡 Medium Risk</Text>
+              <Text style={[styles.filterText, selectedFilter === 'medium' && styles.filterTextActive]}>🟡 {t('risk.medium')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterButton, selectedFilter === 'low' && styles.filterButtonActive, { borderColor: '#10b981' }]}
               onPress={() => setSelectedFilter('low')}
             >
-              <Text style={[styles.filterText, selectedFilter === 'low' && styles.filterTextActive]}>🟢 Low Risk</Text>
+              <Text style={[styles.filterText, selectedFilter === 'low' && styles.filterTextActive]}>🟢 {t('risk.low')}</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -479,7 +479,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
         {/* Disaster List */}
         <View style={styles.listContainer}>
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>{showAllDisasters ? 'All Disasters' : 'Active Disasters'}</Text>
+            <Text style={styles.listTitle}>{showAllDisasters ? t('list.allDisasters') : t('list.activeDisasters')}</Text>
             <View style={styles.countBadge}>
               <Text style={styles.countText}>{filteredDisasters.length}</Text>
             </View>
@@ -510,7 +510,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                       </View>
                       <View style={styles.disasterInfo}>
                         <Text style={styles.disasterType}>
-                          {disaster.type.charAt(0).toUpperCase() + disaster.type.slice(1)} Alert
+                          {t(`alerts.${disaster.type}`)}
                         </Text>
                         <Text style={styles.disasterDescription} numberOfLines={2}>
                           {disaster.description}
@@ -519,7 +519,7 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.disasterRight}>
                       <View style={[styles.severityBadge, { backgroundColor: getRiskColor(disaster.severity) }]}>
-                        <Text style={styles.severityText}>{disaster.severity.toUpperCase()}</Text>
+                        <Text style={styles.severityText}>{t(`risk.${disaster.severity}`)}</Text>
                       </View>
                       <Text style={styles.timeText}>{getTimeAgo(disaster.timestamp)}</Text>
                     </View>
@@ -534,14 +534,14 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailIcon}>🔄</Text>
-                      <Text
-                        style={[
-                          styles.statusText,
-                          { color: disaster.status === 'active' ? '#ef4444' : '#10b981' },
-                        ]}
-                      >
-                        {disaster.status.charAt(0).toUpperCase() + disaster.status.slice(1)}
-                      </Text>
+                        <Text
+                          style={[
+                            styles.statusText,
+                            { color: disaster.status === 'active' ? '#ef4444' : '#10b981' },
+                          ]}
+                        >
+                          {t(`risk.status.${disaster.status}`)}
+                        </Text>
                     </View>
                   </View>
                 </View>
@@ -549,12 +549,12 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
             ) : (
               <View style={styles.noDataContainer}>
                 <Text style={styles.noDataIcon}>🗺️</Text>
-                <Text style={styles.noDataText}>No disasters found</Text>
+                <Text style={styles.noDataText}>{t('riskMap.noDisasters')}</Text>
                 <Text style={styles.noDataSubtext}>
-                  {showAllDisasters ? 'No disasters match your current filters' : 'No active disasters in your area'}
+                  {showAllDisasters ? t('riskMap.noMatch') : t('riskMap.noActive')}
                 </Text>
                 <TouchableOpacity style={styles.refreshButton} onPress={fetchDisasters}>
-                  <Text style={styles.refreshButtonText}>🔄 Refresh Data</Text>
+                  <Text style={styles.refreshButtonText}>🔄 {t('riskMap.refresh')}</Text>
                 </TouchableOpacity>
               </View>
             )}

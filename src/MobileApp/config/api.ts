@@ -1,18 +1,28 @@
-//config/api.ts
 
-// For Android Emulator, use 10.0.2.2
-// For iOS Simulator, use localhost
-// For real device, use your computer's IP address
 const getBaseURL = () => {
-  // You can change this for testing different environments
-  const useLocalhost = false; // Set to true for testing with localhost
-  
-  if (useLocalhost) {
-    return 'http://localhost:5000/api';
-  }
-  
-  // Default for Android emulator
-  return 'http://192.168.1.8:5000/api';
+  // Try environment variable first (set in .env or via process.env)
+  const envUrl = process.env.REACT_NATIVE_API_BASE_URL;
+  if (envUrl) return envUrl;
+
+  // Development fallback - update this with your backend URL
+  // For local development: 'http://localhost:5000/api'
+  // For production: your production API URL
+  return 'https://shaggy-camels-fall.loca.lt/api'; // Android emulator localhost
 };
 
+// Commercial Bank PayDPI Configuration
 export const API_BASE_URL = getBaseURL();
+export const PAYMENT_GATEWAY_URL = 'https://cbcmpgs.gateway.mastercard.com';
+export const CHECKOUT_SCRIPT_URL = 'https://cbcmpgs.gateway.mastercard.com/checkout/version/100/checkout.js';
+
+// Payment configuration
+export const PAYMENT_CONFIG = {
+  currency: 'LKR',
+  merchantName: 'TESTITCALANKALKR',
+  displayControl: {
+    billingAddress: 'HIDE',
+    customerEmail: 'HIDE',
+    shipping: 'HIDE'
+  },
+  returnUrl: 'https://www.abcd.lk'
+};
