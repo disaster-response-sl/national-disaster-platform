@@ -147,7 +147,7 @@ export const deleteResource = async (token: string, id: string) => {
 // 6. Allocate Resource
 export const allocateResource = async (token: string, id: string, allocationData: {
   quantity: number;
-  disaster_id: string;
+  disaster_id: string; // Required
   location: {
     lat: number;
     lng: number;

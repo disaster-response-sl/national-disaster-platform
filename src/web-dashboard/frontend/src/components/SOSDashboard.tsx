@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   AlertTriangle,
   MapPin,
-  Clock,
   User,
   XCircle,
   AlertCircle,
@@ -84,7 +83,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
   const [filters, setFilters] = useState({
     status: 'all',
     priority: 'all',
-    timeRange: '24h'
+    timeRange: '7d'  // Changed from '24h' to '7d' to show existing signals
   });
   const [pagination, setPagination] = useState({
     page: 1,
@@ -401,9 +400,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                   <p className="text-sm font-medium text-gray-600 truncate">Total Signals</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                 </div>
-                <div className="p-2 bg-blue-100 rounded-full ml-2 flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-blue-600" />
-                </div>
               </div>
             </div>
             
@@ -412,9 +408,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-600 truncate">Pending</p>
                   <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-                </div>
-                <div className="p-2 bg-yellow-100 rounded-full ml-2 flex-shrink-0">
-                  <Clock className="w-5 h-5 text-yellow-600" />
                 </div>
               </div>
             </div>
@@ -425,9 +418,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                   <p className="text-sm font-medium text-gray-600 truncate">Responding</p>
                   <p className="text-2xl font-bold text-orange-600">{stats.responding}</p>
                 </div>
-                <div className="p-2 bg-orange-100 rounded-full ml-2 flex-shrink-0">
-                  <Activity className="w-5 h-5 text-orange-600" />
-                </div>
               </div>
             </div>
             
@@ -436,9 +426,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-600 truncate">Critical</p>
                   <p className="text-2xl font-bold text-red-600">{stats.critical || 0}</p>
-                </div>
-                <div className="p-2 bg-red-100 rounded-full ml-2 flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
                 </div>
               </div>
             </div>
@@ -936,9 +923,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                 <p className="text-sm font-medium text-gray-600">Total Signals</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <AlertTriangle className="w-6 h-6 text-blue-600" />
-              </div>
             </div>
           </div>
           
@@ -947,9 +931,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending</p>
                 <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-              </div>
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <Clock className="w-6 h-6 text-yellow-600" />
               </div>
             </div>
           </div>
@@ -960,9 +941,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                 <p className="text-sm font-medium text-gray-600">Responding</p>
                 <p className="text-2xl font-bold text-orange-600">{stats.responding}</p>
               </div>
-              <div className="p-3 bg-orange-100 rounded-full">
-                <Activity className="w-6 h-6 text-orange-600" />
-              </div>
             </div>
           </div>
           
@@ -971,9 +949,6 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Critical</p>
                 <p className="text-2xl font-bold text-red-600">{stats.critical || 0}</p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                <AlertCircle className="w-6 h-6 text-red-600" />
               </div>
             </div>
           </div>
