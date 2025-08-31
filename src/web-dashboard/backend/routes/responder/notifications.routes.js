@@ -16,7 +16,7 @@ router.use(requireResponder);
 // GET /api/responder/notifications - Get all notifications for logged-in responder
 router.get('/', async (req, res) => {
   try {
-    const responderId = req.user.userId;
+    const responderId = req.user.individualId;
     
     // Get notifications for this responder
     const notifications = getNotificationsForResponder(responderId);
@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
 router.put('/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    const responderId = req.user.userId;
+    const responderId = req.user.individualId;
     
     const success = markNotificationAsRead(responderId, id);
     
@@ -75,7 +75,7 @@ router.put('/:id/read', async (req, res) => {
 // PUT /api/responder/notifications/read-all - Mark all notifications as read
 router.put('/read-all', async (req, res) => {
   try {
-    const responderId = req.user.userId;
+    const responderId = req.user.individualId;
     
     const updatedCount = markAllNotificationsAsRead(responderId);
     
@@ -99,7 +99,7 @@ router.put('/read-all', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const responderId = req.user.userId;
+    const responderId = req.user.individualId;
     
     const deletedNotification = deleteNotification(responderId, id);
     
@@ -121,6 +121,122 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error deleting notification",
+      error: error.message
+    });
+  }
+});
+
+// GET /api/responder/assignments - Get all assigned SOS signals for logged-in responder
+router.get('/assignments', async (req, res) => {
+  try {
+    const responderId = req.user.individualId;
+    const SosSignal = require('../../models/SosSignal');
+    
+    // Get all SOS signals assigned to this responder
+    const assignedSignals = await SosSignal.find({
+      assigned_responder: responderId
+    })
+    .populate('proximity_signals', 'location priority status')
+    .sort({ updated_at: -1 })
+    .lean();
+    
+    // Calculate stats
+    const stats = {
+      totalAssigned: assignedSignals.length,
+      active: assignedSignals.filter(s => ['acknowledged', 'responding'].includes(s.status)).length,
+      resolved: assignedSignals.filter(s => s.status === 'resolved').length,
+      resolvedToday: assignedSignals.filter(s => {
+        const today = new Date().toDateString();
+        const resolvedDate = new Date(s.updated_at).toDateString();
+        return s.status === 'resolved' && resolvedDate === today;
+      }).length
+    };
+    
+    res.json({
+      success: true,
+      data: {
+        signals: assignedSignals,
+        stats: stats
+      }
+    });
+
+  } catch (error) {
+    console.error('[RESPONDER ASSIGNMENTS ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching assignments",
+      error: error.message
+    });
+  }
+});
+
+// PUT /api/responder/assignments/:id/status - Update status of assigned SOS signal
+router.put('/assignments/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    const responderId = req.user.individualId;
+    const SosSignal = require('../../models/SosSignal');
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid SOS signal ID"
+      });
+    }
+
+    if (!['acknowledged', 'responding', 'resolved', 'false_alarm'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status value"
+      });
+    }
+
+    // Find signal and verify it's assigned to this responder
+    const sosSignal = await SosSignal.findOne({
+      _id: id,
+      assigned_responder: responderId
+    });
+
+    if (!sosSignal) {
+      return res.status(404).json({
+        success: false,
+        message: "SOS signal not found or not assigned to you"
+      });
+    }
+
+    // Update status and timestamps
+    const previousStatus = sosSignal.status;
+    sosSignal.status = status;
+
+    if (status === 'responding' && !sosSignal.response_time) {
+      sosSignal.response_time = new Date();
+    }
+
+    if (status === 'resolved' && !sosSignal.resolution_time) {
+      sosSignal.resolution_time = new Date();
+    }
+
+    // Add status change note
+    sosSignal.notes.push({
+      responder_id: responderId,
+      note: `Status changed from "${previousStatus}" to "${status}" by responder. ${notes || ''}`,
+      timestamp: new Date()
+    });
+
+    await sosSignal.save();
+
+    res.json({
+      success: true,
+      message: "SOS signal status updated successfully",
+      data: sosSignal
+    });
+
+  } catch (error) {
+    console.error('[RESPONDER STATUS UPDATE ERROR]', error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating SOS signal status",
       error: error.message
     });
   }

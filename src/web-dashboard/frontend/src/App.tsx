@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import LoginPage from './components/LoginPage';
-import Dashboard from './components/Dashboard';
+import DashboardRouter from './components/DashboardRouter';
 import SOSDashboard from './components/SOSDashboard';
 import DisasterManagement from './components/DisasterManagement';
 import DisasterHeatMap from './components/DisasterHeatMap';
@@ -26,7 +26,7 @@ function App() {
                 path="/dashboard" 
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <DashboardRouter />
                   </ProtectedRoute>
                 } 
               />
