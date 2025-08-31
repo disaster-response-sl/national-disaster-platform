@@ -145,10 +145,23 @@ ResourceSchema.virtual('quantity.available').get(function() {
   return this.quantity.current - this.quantity.allocated - this.quantity.reserved;
 });
 
-// Update the updated_at field before saving
-ResourceSchema.pre('save', function(next) {
-  this.updated_at = new Date();
-  next();
+// Virtual for available_quantity (direct property for frontend compatibility)
+ResourceSchema.virtual('available_quantity').get(function() {
+  return this.quantity.current - this.quantity.allocated - this.quantity.reserved;
 });
+
+// Virtual for allocated_quantity (direct property for frontend compatibility)
+ResourceSchema.virtual('allocated_quantity').get(function() {
+  return this.quantity.allocated || 0;
+});
+
+// Virtual for reserved_quantity (direct property for frontend compatibility)
+ResourceSchema.virtual('reserved_quantity').get(function() {
+  return this.quantity.reserved || 0;
+});
+
+// Ensure virtual fields are serialized
+ResourceSchema.set('toJSON', { virtuals: true });
+ResourceSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Resource', ResourceSchema); 

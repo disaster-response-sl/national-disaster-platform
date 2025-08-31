@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Resource = require('../models/Resource');
 const AIResourceOptimizer = require('../services/ai-resource-optimizer');
 // AUTHENTICATION RESTORED FOR PRODUCTION
@@ -287,17 +288,41 @@ router.post('/:id/allocate', authenticateToken, requireResponder, async (req, re
       });
     }
 
+    // Verify disaster exists - try by ID first, then by disaster_code
+    const Disaster = require('../models/Disaster');
+    
+    let disaster;
+    
+    // First try to find by ObjectId
+    if (mongoose.Types.ObjectId.isValid(disaster_id)) {
+      disaster = await Disaster.findById(disaster_id);
+    }
+    
+    // If not found by ID, try to find by disaster_code
+    if (!disaster) {
+      disaster = await Disaster.findOne({ disaster_code: disaster_id });
+    }
+
+    if (!disaster) {
+      return res.status(404).json({
+        success: false,
+        message: 'Disaster not found. Please check the disaster ID or code.'
+      });
+    }
+
     // Update allocation
     resource.quantity.allocated += allocateQuantity;
     
     // Add to deployment history
     resource.deployment_history.push({
       deployed_to: {
-        disaster_id,
+        disaster_id: disaster._id.toString(), // Store the actual ObjectId
         location
       },
       quantity_deployed: allocateQuantity,
       deployed_by: req.user.individualId,
+      deployed_at: new Date(), // Explicitly set deployment time
+      status: 'deployed', // Set initial status
       estimated_duration
     });
 
@@ -316,7 +341,9 @@ router.post('/:id/allocate', authenticateToken, requireResponder, async (req, re
       data: {
         allocated_quantity: allocateQuantity,
         remaining_available: available - allocateQuantity,
-        deployment_id: resource.deployment_history[resource.deployment_history.length - 1]._id
+        deployment_id: resource.deployment_history[resource.deployment_history.length - 1]._id,
+        disaster_id: disaster._id.toString(), // Return the actual ObjectId
+        disaster_code: disaster.disaster_code
       }
     });
   } catch (error) {
@@ -327,9 +354,7 @@ router.post('/:id/allocate', authenticateToken, requireResponder, async (req, re
       error: error.message
     });
   }
-});
-
-// POST /api/resources/:id/reserve - Reserve resource
+});// POST /api/resources/:id/reserve - Reserve resource
 router.post('/:id/reserve', authenticateToken, requireResponder, async (req, res) => {
   try {
     const { quantity, reason, reserved_until } = req.body;
@@ -583,49 +608,127 @@ router.get('/deployment/tracking', authenticateToken, async (req, res) => {
   try {
     const { disaster_id, status, start_date, end_date } = req.query;
 
-    let query = { deployment_history: { $exists: true, $ne: [] } };
-    
-    // Build aggregation pipeline for deployment tracking
-    let pipeline = [
-      { $unwind: '$deployment_history' },
-      { $match: {} }
-    ];
+    // First get all resources with deployment history
+    let resources = await Resource.find({
+      deployment_history: { $exists: true, $ne: [] }
+    });
 
-    if (disaster_id) {
-      pipeline[1].$match['deployment_history.deployed_to.disaster_id'] = disaster_id;
-    }
-    
-    if (status) {
-      pipeline[1].$match['deployment_history.status'] = status;
-    }
+    // Filter deployments based on query parameters
+    let filteredDeployments = [];
 
-    if (start_date || end_date) {
-      pipeline[1].$match['deployment_history.deployed_at'] = {};
-      if (start_date) pipeline[1].$match['deployment_history.deployed_at'].$gte = new Date(start_date);
-      if (end_date) pipeline[1].$match['deployment_history.deployed_at'].$lte = new Date(end_date);
-    }
+    resources.forEach(resource => {
+      if (resource.deployment_history && Array.isArray(resource.deployment_history)) {
+        resource.deployment_history.forEach(deployment => {
+          let include = true;
 
-    // Add grouping and projection stages
-    pipeline.push(
-      {
-        $group: {
-          _id: '$_id',
-          resource_name: { $first: '$name' },
-          resource_type: { $first: '$type' },
-          deployments: { $push: '$deployment_history' },
-          total_deployed: { $sum: '$deployment_history.quantity_deployed' }
-        }
-      },
-      {
-        $sort: { 'deployments.deployed_at': -1 }
+          // Filter by disaster_id if provided
+          if (disaster_id && deployment.deployed_to && deployment.deployed_to.disaster_id !== disaster_id) {
+            include = false;
+          }
+
+          // Filter by status if provided
+          if (status && deployment.status !== status) {
+            include = false;
+          }
+
+          // Filter by date range if provided
+          if (start_date && deployment.deployed_at && new Date(deployment.deployed_at) < new Date(start_date)) {
+            include = false;
+          }
+          if (end_date && deployment.deployed_at && new Date(deployment.deployed_at) > new Date(end_date)) {
+            include = false;
+          }
+
+          if (include) {
+            filteredDeployments.push({
+              deployment_id: deployment._id,
+              resource_id: resource._id,
+              resource_name: resource.name,
+              resource_type: resource.type,
+              disaster_id: deployment.deployed_to ? deployment.deployed_to.disaster_id : null,
+              disaster_title: 'Unknown', // Will be populated below
+              allocated_quantity: deployment.quantity_deployed,
+              deployment_location: deployment.deployed_to ? deployment.deployed_to.location : null,
+              status: deployment.status,
+              estimated_duration: deployment.estimated_duration,
+              actual_duration: deployment.actual_duration,
+              deployed_at: deployment.deployed_at,
+              completed_at: deployment.completed_at,
+              notes: deployment.notes
+            });
+          }
+        });
       }
-    );
+    });
 
-    const deploymentTracking = await Resource.aggregate(pipeline);
+    // Get disaster details for each deployment
+    const Disaster = require('../models/Disaster');
+    const disasterIds = [...new Set(filteredDeployments.map(d => d.disaster_id).filter(id => id))];
+    
+    let disasterMap = {};
+    if (disasterIds.length > 0) {
+      try {
+        // First try to find disasters by ObjectId (valid ObjectIds only)
+        const validObjectIds = disasterIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+        const objectIds = validObjectIds.map(id => mongoose.Types.ObjectId(id));
+        
+        if (objectIds.length > 0) {
+          const disasters = await Disaster.find({ _id: { $in: objectIds } });
+          
+          disasters.forEach(disaster => {
+            disasterMap[disaster._id.toString()] = {
+              disaster_code: disaster.disaster_code,
+              type: disaster.type,
+              severity: disaster.severity,
+              location: disaster.location
+            };
+          });
+        }
+        
+        // For invalid ObjectIds, try to find by disaster_code
+        const invalidIds = disasterIds.filter(id => !mongoose.Types.ObjectId.isValid(id));
+        
+        if (invalidIds.length > 0) {
+          const disastersByCode = await Disaster.find({ disaster_code: { $in: invalidIds } });
+          
+          disastersByCode.forEach(disaster => {
+            disasterMap[disaster.disaster_code] = {
+              disaster_code: disaster.disaster_code,
+              type: disaster.type,
+              severity: disaster.severity,
+              location: disaster.location
+            };
+          });
+        }
+      } catch (disasterError) {
+        console.warn('Error fetching disaster details:', disasterError.message);
+        // Continue without disaster details if there's an error
+      }
+    }
+
+    // Enrich deployments with disaster information
+    const enrichedDeployments = filteredDeployments.map(deployment => {
+      let disasterTitle = 'Unknown';
+      
+      if (deployment.disaster_id) {
+        // First try to find by ObjectId (if it's a valid ObjectId)
+        if (mongoose.Types.ObjectId.isValid(deployment.disaster_id)) {
+          disasterTitle = disasterMap[deployment.disaster_id]?.disaster_code || 'Unknown';
+        } else {
+          // If not a valid ObjectId, try to find by disaster_code
+          disasterTitle = disasterMap[deployment.disaster_id]?.disaster_code || 'Unknown';
+        }
+      }
+      
+      return {
+        ...deployment,
+        disaster_title: disasterTitle
+      };
+    });
 
     res.json({
       success: true,
-      data: deploymentTracking,
+      data: enrichedDeployments,
       filters_applied: { disaster_id, status, start_date, end_date }
     });
   } catch (error) {
