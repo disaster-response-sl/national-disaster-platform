@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { WebView } from 'react-native-webview';
-import { API_BASE_URL, PAYMENT_CONFIG as API_PAYMENT_CONFIG } from '../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +21,8 @@ interface FormData {
   phone: string;
   amount: string;
 }
+
+const API_BASE_URL = 'https://orange-readers-know.loca.lt';
 
 const PAYMENT_CONFIG = {
   currency: 'LKR',
@@ -73,7 +74,6 @@ const MPGSDonationScreen: React.FC = () => {
     const sessionId = sessionData?.session?.id || '';
     const orderId = sessionData?.orderId || '';
     const amount = formData?.amount || '';
-    const successIndicator = sessionData?.successIndicator || '';
     
     const html = `<!DOCTYPE html>
 <html>
@@ -94,12 +94,6 @@ const MPGSDonationScreen: React.FC = () => {
         .btn { flex: 1; min-width: 100px; padding: 12px 8px; border: none; border-radius: 5px; font-size: 14px; cursor: pointer; text-align: center; }
         .btn-primary { background: #3498db; color: white; }
         .btn-cancel { background: #95a5a6; color: white; }
-        .payment-form { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
-        .card-row { display: flex; gap: 10px; }
-        .card-row .form-group { flex: 1; }
     </style>
 </head>
 <body>
@@ -111,12 +105,11 @@ const MPGSDonationScreen: React.FC = () => {
         </div>
         
         <div id="payment-form">
-            <div class="loading">Initializing Commercial Bank PayDPI...</div>
+            <div class="loading">Initializing secure payment...</div>
         </div>
         
         <div class="buttons">
             <button class="btn btn-cancel" onclick="cancelPayment()">Cancel</button>
-            <button class="btn btn-primary" onclick="openCardPayment()">Pay with Card</button>
             <button class="btn btn-primary" onclick="testPayment()">Test Payment</button>
         </div>
     </div>
@@ -127,148 +120,19 @@ const MPGSDonationScreen: React.FC = () => {
             orderId: "` + orderId + `",
             amount: "` + amount + `",
             merchantName: "TESTITCALANKALKR",
-            currency: "LKR",
-            successIndicator: "` + successIndicator + `"
+            currency: "LKR"
         };
-        
-        function openCardPayment() {
-            document.getElementById('payment-form').innerHTML = \`
-                <div class="payment-form">
-                    <h3 style="margin-top: 0;">Enter Card Details</h3>
-                    <form id="cardForm">
-                        <div class="form-group">
-                            <label for="cardNumber">Card Number</label>
-                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
-                        </div>
-                        <div class="form-group">
-                            <label for="cardName">Cardholder Name</label>
-                            <input type="text" id="cardName" placeholder="John Doe">
-                        </div>
-                        <div class="card-row">
-                            <div class="form-group">
-                                <label for="expiryMonth">Month</label>
-                                <select id="expiryMonth">
-                                    <option value="">MM</option>
-                                    <option value="01">01</option>
-                                    <option value="02">02</option>
-                                    <option value="03">03</option>
-                                    <option value="04">04</option>
-                                    <option value="05">05</option>
-                                    <option value="06">06</option>
-                                    <option value="07">07</option>
-                                    <option value="08">08</option>
-                                    <option value="09">09</option>
-                                    <option value="10">10</option>
-                                    <option value="11">11</option>
-                                    <option value="12">12</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="expiryYear">Year</label>
-                                <select id="expiryYear">
-                                    <option value="">YY</option>
-                                    <option value="24">24</option>
-                                    <option value="25">25</option>
-                                    <option value="26">26</option>
-                                    <option value="27">27</option>
-                                    <option value="28">28</option>
-                                    <option value="29">29</option>
-                                    <option value="30">30</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="cvv">CVV</label>
-                                <input type="text" id="cvv" placeholder="123" maxlength="4">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
-                            Process Payment - LKR \` + Number(paymentData.amount).toLocaleString() + \`
-                        </button>
-                    </form>
-                </div>
-            \`;
-            
-            // Format card number input
-            document.getElementById('cardNumber').addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\\s/g, '').replace(/[^0-9]/gi, '');
-                let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-                e.target.value = formattedValue;
-            });
-            
-            // Handle form submission
-            document.getElementById('cardForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                processCardPayment();
-            });
-        }
-        
-        function processCardPayment() {
-            const cardNumber = document.getElementById('cardNumber').value.replace(/\\s/g, '');
-            const cardName = document.getElementById('cardName').value;
-            const expiryMonth = document.getElementById('expiryMonth').value;
-            const expiryYear = document.getElementById('expiryYear').value;
-            const cvv = document.getElementById('cvv').value;
-            
-            // Validate fields
-            if (!cardNumber || !cardName || !expiryMonth || !expiryYear || !cvv) {
-                alert('Please fill in all fields');
-                return;
-            }
-            
-            if (cardNumber.length < 13) {
-                alert('Please enter a valid card number');
-                return;
-            }
-            
-            // Show processing
-            document.getElementById('payment-form').innerHTML = 
-                '<div class="loading">Processing payment with Commercial Bank PayDPI...<br><small>Please wait...</small></div>';
-            
-            // Simulate Commercial Bank PayDPI processing
-            setTimeout(function() {
-                // Simulate success/failure based on card number
-                const isTestCard = cardNumber.startsWith('4111') || cardNumber.startsWith('5555');
-                const success = isTestCard || Math.random() > 0.2; // 80% success rate
-                
-                if (success) {
-                    const transactionId = 'CBC_' + Date.now();
-                    document.getElementById('payment-form').innerHTML = 
-                        '<div class="success">✅ Payment completed successfully!<br>' +
-                        '<strong>Commercial Bank PayDPI</strong><br>' +
-                        '<small>Transaction: ' + transactionId + '</small></div>';
-                    
-                    setTimeout(function() {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            success: true,
-                            orderId: paymentData.orderId,
-                            sessionId: paymentData.sessionId,
-                            transactionId: transactionId,
-                            result: 'SUCCESS',
-                            gateway: 'Commercial Bank PayDPI'
-                        }));
-                    }, 2000);
-                } else {
-                    document.getElementById('payment-form').innerHTML = 
-                        '<div class="error">❌ Payment failed<br>' +
-                        '<small>Transaction declined by bank</small></div>';
-                    
-                    setTimeout(function() {
-                        openCardPayment(); // Show form again
-                    }, 3000);
-                }
-            }, 3000);
-        }
         
         function testPayment() {
             document.getElementById('payment-form').innerHTML = 
-                '<div class="success">✅ Test payment completed successfully!<br><small>Transaction: TEST_' + Date.now() + '</small></div>';
+                '<div class="success">✅ Payment completed successfully!<br><small>Transaction: CBC_SIM_' + Date.now() + '</small></div>';
             
             setTimeout(function() {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                     success: true,
                     orderId: paymentData.orderId,
                     sessionId: paymentData.sessionId,
-                    transactionId: 'TEST_' + Date.now(),
+                    transactionId: 'CBC_SIM_' + Date.now(),
                     result: 'SUCCESS'
                 }));
             }, 1000);
@@ -281,12 +145,10 @@ const MPGSDonationScreen: React.FC = () => {
             }));
         }
         
-        // Initialize with ready message
         setTimeout(function() {
             document.getElementById('payment-form').innerHTML = 
-                '<div class="success">✅ Commercial Bank PayDPI is ready!<br><br>' +
-                '<strong>Session ID:</strong> ' + paymentData.sessionId + '<br>' +
-                'Click <strong>"Pay with Card"</strong> to enter payment details.</div>';
+                '<div class="error">Commercial Bank PayDPI integration requires proper server setup.<br><br>' +
+                'Please use <strong>Test Payment</strong> to simulate the payment flow.</div>';
         }, 2000);
     </script>
 </body>
