@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLanguage } from '../services/LanguageService';
@@ -70,6 +71,34 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
 
   const createPaymentSession = async () => {
     try {
+      console.log('🔄 Creating payment session with URL:', `${API_BASE_URL}/payment/session`);
+      console.log('🔄 Request data:', JSON.stringify({
+        order: {
+          currency: PAYMENT_CONFIG.currency,
+          amount: Number(formData.amount),
+          description: 'Disaster Relief Donation',
+        },
+        interaction: {
+          operation: 'PURCHASE',
+          displayControl: PAYMENT_CONFIG.displayControl,
+          returnUrl: PAYMENT_CONFIG.returnUrl
+        },
+        billing: {
+          address: {
+            city: 'Colombo',
+            country: 'LKA',
+            postcodeZip: '10100',
+            stateProvince: 'Western'
+          },
+        },
+        customer: {
+          email: formData.email.trim(),
+          firstName: formData.name.split(' ')[0],
+          lastName: formData.name.split(' ').slice(1).join(' ') || '',
+          phone: formData.phone.trim()
+        }
+      }, null, 2));
+
       const response = await fetch(`${API_BASE_URL}/payment/session`, {
         method: 'POST',
         headers: {
@@ -78,7 +107,7 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
         body: JSON.stringify({
           order: {
             currency: PAYMENT_CONFIG.currency,
-            amount: formData.amount.toString(), // Ensure string format as per Commercial Bank guide
+            amount: Number(formData.amount), // Convert to number for backend validation
             description: 'Disaster Relief Donation',
           },
           interaction: {
@@ -103,7 +132,11 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
         }),
       });
 
+      console.log('🔄 Response status:', response.status);
+      console.log('🔄 Response headers:', response.headers);
+
       const result = await response.json();
+      console.log('🔄 Response data:', JSON.stringify(result, null, 2));
       
       if (result.success) {
         return result;
@@ -111,7 +144,10 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
         throw new Error(result.message || 'Payment session creation failed');
       }
     } catch (error) {
-      console.error('Payment session error:', error);
+      console.error('❌ Payment session error:', error);
+      if (error instanceof Error) {
+        console.error('❌ Error stack:', error.stack);
+      }
       throw error;
     }
   };
@@ -424,6 +460,10 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
         <View style={styles.header}>
           <Text style={styles.title}>{t('donations.make_donation')}</Text>
           <Text style={styles.subtitle}>{t('donations.donation_subtitle')}</Text>
+          {/* Payment provider images */}
+          <View style={styles.paymentLogosContainer}>
+            <Image source={require('../assets/payment_logos_full.jpg')} style={styles.paymentProvidersImage} resizeMode="contain" />
+          </View>
         </View>
 
         <View style={styles.form}>
@@ -434,6 +474,7 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
             <TextInput
               style={styles.input}
               placeholder={t('donations.full_name')}
+              placeholderTextColor="#888"
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
               autoCapitalize="words"
@@ -442,6 +483,7 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
             <TextInput
               style={styles.input}
               placeholder={t('donations.email_address')}
+              placeholderTextColor="#888"
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               keyboardType="email-address"
@@ -451,6 +493,7 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
             <TextInput
               style={styles.input}
               placeholder={t('donations.phone_number')}
+              placeholderTextColor="#888"
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               keyboardType="phone-pad"
@@ -486,6 +529,7 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
             <TextInput
               style={styles.input}
               placeholder={t('donations.custom_amount')}
+              placeholderTextColor="#888"
               value={formData.amount}
               onChangeText={(text) => setFormData({ ...formData, amount: text })}
               keyboardType="numeric"
@@ -543,6 +587,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  paymentLogosContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  paymentProvidersImage: {
+    width: 300,
+    height: 60,
+  },
   scrollContainer: {
     flexGrow: 1,
     padding: 20,
@@ -593,6 +647,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     backgroundColor: '#f9f9f9',
+    color: '#2c3e50',
   },
   amountButtons: {
     flexDirection: 'row',

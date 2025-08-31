@@ -161,6 +161,7 @@ const DonationScreen: React.FC<DonationScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder={t('full_name')}
+              placeholderTextColor="#888"
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
               autoCapitalize="words"
@@ -169,6 +170,7 @@ const DonationScreen: React.FC<DonationScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder={t('email_address')}
+              placeholderTextColor="#888"
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               keyboardType="email-address"
@@ -178,6 +180,7 @@ const DonationScreen: React.FC<DonationScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder={t('phone_number')}
+              placeholderTextColor="#888"
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               keyboardType="phone-pad"
@@ -213,6 +216,7 @@ const DonationScreen: React.FC<DonationScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder={t('custom_amount')}
+              placeholderTextColor="#888"
               value={formData.amount}
               onChangeText={(text) => setFormData({ ...formData, amount: text })}
               keyboardType="numeric"
@@ -287,6 +291,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     backgroundColor: '#f9f9f9',
+    color: 'black', // Make input text black
   },
   amountButtons: {
     flexDirection: 'row',

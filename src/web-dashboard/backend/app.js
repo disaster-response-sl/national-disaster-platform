@@ -68,6 +68,23 @@ app.use('/api/responder/notifications', responderNotificationsRoutes);
 app.use('/api/test', testCrudRoutes);
 
 // Health check routes
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Backend server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Backend server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 app.get('/', (req, res) => res.send("API is running"));
 app.get('/api/mobile/test', (req, res) => {
   res.json({ message: 'API working!' });
