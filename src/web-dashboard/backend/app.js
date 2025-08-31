@@ -33,8 +33,7 @@ const adminImportExportRoutes = require('./routes/admin/import-export.routes');
 // Import responder routes
 const responderNotificationsRoutes = require('./routes/responder/notifications.routes');
 
-// Import donation routes
-const donationRoutes = require('./routes/donation.routes');
+
 
 // Import test routes (NO AUTH - for Postman testing)
 const testCrudRoutes = require('./routes/test-crud.routes');
