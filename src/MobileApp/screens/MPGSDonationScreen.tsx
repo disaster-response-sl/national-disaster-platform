@@ -94,7 +94,7 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
         customer: {
           email: formData.email.trim(),
           firstName: formData.name.split(' ')[0],
-          lastName: formData.name.split(' ').slice(1).join(' ') || '',
+          lastName: formData.name.split(' ').slice(1).join(' ') || 'Donor',
           phone: formData.phone.trim()
         }
       }, null, 2));
@@ -138,15 +138,31 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
       const result = await response.json();
       console.log('🔄 Response data:', JSON.stringify(result, null, 2));
       
-      if (result.success) {
+      // Handle Commercial Bank PayDPI response format
+      if (response.ok && result.success) {
+        console.log('✅ Payment session created successfully');
+        console.log('✅ Session ID:', result.session?.id);
+        console.log('✅ Order ID:', result.orderId);
         return result;
       } else {
-        throw new Error(result.message || 'Payment session creation failed');
+        const errorMessage = result.message || result.error || 'Payment session creation failed';
+        console.error('❌ Payment session creation failed:', errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('❌ Payment session error:', error);
       if (error instanceof Error) {
         console.error('❌ Error stack:', error.stack);
+        console.error('❌ Error message:', error.message);
+        
+        // Add specific error handling for network issues
+        if (error.message.includes('Network request failed')) {
+          console.error('❌ Network Error Details:');
+          console.error('- API URL:', `${API_BASE_URL}/payment/session`);
+          console.error('- This usually means the backend server is not accessible');
+          console.error('- Check if localtunnel is running: lt --port 5000');
+          console.error('- Verify the localtunnel URL is correct in api.ts');
+        }
       }
       throw error;
     }
@@ -212,16 +228,19 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
             }
             .buttons {
                 display: flex;
-                gap: 10px;
+                gap: 8px;
                 margin-top: 20px;
+                flex-wrap: wrap;
             }
             .btn {
                 flex: 1;
-                padding: 12px;
+                min-width: 100px;
+                padding: 12px 8px;
                 border: none;
                 border-radius: 5px;
-                font-size: 16px;
+                font-size: 14px;
                 cursor: pointer;
+                text-align: center;
             }
             .btn-primary {
                 background: #3498db;
@@ -247,7 +266,9 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
             
             <div class="buttons">
                 <button class="btn btn-cancel" onclick="cancelPayment()">Cancel</button>
-                <button class="btn btn-primary" onclick="simulatePayment()">Simulate Payment</button>
+                <button class="btn btn-primary" onclick="openHostedCheckout()">Load in Frame</button>
+                <button class="btn btn-primary" onclick="redirectToPayment()">Full Checkout</button>
+                <button class="btn btn-primary" onclick="simulatePayment()">Test Payment</button>
             </div>
         </div>
 
@@ -255,54 +276,168 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
         <script>
             let paymentResult = null;
             
+            function handlePaymentCallback(data) {
+                console.log('Commercial Bank PayDPI callback:', data);
+                
+                let result;
+                
+                if (data.status === 'success' || data.result === 'SUCCESS') {
+                    result = {
+                        success: true,
+                        orderId: data.order?.id || '${sessionData.orderId}',
+                        sessionId: '${sessionData.session.id}',
+                        transactionId: data.transaction?.id || data.transactionId || 'CBC_TXN' + Date.now(),
+                        result: 'SUCCESS',
+                        paymentData: data
+                    };
+                    
+                    document.getElementById('payment-form').innerHTML = 
+                        '<div class="success">✅ Payment completed successfully!<br><small>Transaction: ' + result.transactionId + '</small></div>';
+                } else if (data.status === 'cancel' || data.result === 'CANCELLED') {
+                    result = {
+                        success: false,
+                        cancelled: true,
+                        orderId: '${sessionData.orderId}',
+                        sessionId: '${sessionData.session.id}',
+                        result: 'CANCELLED'
+                    };
+                    
+                    document.getElementById('payment-form').innerHTML = 
+                        '<div class="error">Payment was cancelled</div>';
+                } else {
+                    result = {
+                        success: false,
+                        error: data.error?.explanation || data.error || 'Payment failed',
+                        result: data.result || 'FAILED',
+                        orderId: '${sessionData.orderId}',
+                        sessionId: '${sessionData.session.id}'
+                    };
+                    
+                    document.getElementById('payment-form').innerHTML = 
+                        '<div class="error">Payment failed: ' + (data.error?.explanation || data.error || 'Unknown error') + '</div>';
+                }
+                
+                // Send result back to React Native
+                setTimeout(() => {
+                    window.ReactNativeWebView?.postMessage(JSON.stringify(result));
+                }, 1000);
+            }
+            
             function initializePayment() {
                 try {
-                    Checkout.configure({
-                        merchant: '${sessionData.session.id}',
+                    console.log('Initializing Commercial Bank PayDPI hosted checkout...');
+                    console.log('Session ID:', '${sessionData.session.id}');
+                    console.log('Order ID:', '${sessionData.orderId}');
+                    
+                    // Check if Checkout object is available
+                    if (typeof Checkout === 'undefined') {
+                        throw new Error('Checkout library not loaded from: ${CHECKOUT_SCRIPT_URL}');
+                    }
+                    
+                    console.log('Available Checkout methods:', Object.keys(Checkout));
+                    
+                    // Configure Commercial Bank PayDPI hosted checkout
+                    const checkoutConfig = {
+                        merchant: '${PAYMENT_CONFIG.merchantName}',
                         order: {
                             id: '${sessionData.orderId}',
                             amount: '${formData.amount}',
                             currency: '${PAYMENT_CONFIG.currency}',
                             description: 'Disaster Relief Donation'
                         },
-                        interaction: {
-                            merchant: {
-                                name: '${PAYMENT_CONFIG.merchantName}' // Use Commercial Bank test merchant
-                            }
-                        },
                         session: {
                             id: '${sessionData.session.id}'
+                        },
+                        interaction: {
+                            merchant: {
+                                name: '${PAYMENT_CONFIG.merchantName}'
+                            },
+                            displayControl: {
+                                billingAddress: 'HIDE',
+                                customerEmail: 'HIDE', 
+                                shipping: 'HIDE'
+                            },
+                            returnUrl: '${PAYMENT_CONFIG.returnUrl}'
+                        },
+                        callback: function(data) {
+                            console.log('Payment callback received:', data);
+                            handlePaymentCallback(data);
                         }
-                    });
+                    };
                     
-                    document.getElementById('payment-form').innerHTML = '<div id="embedded-payment"></div>';
+                    console.log('Configuring checkout with:', checkoutConfig);
+                    Checkout.configure(checkoutConfig);
                     
-                    Checkout.showEmbeddedPage('#embedded-payment');
+                    console.log('Opening hosted payment page...');
+                    document.getElementById('payment-form').innerHTML = 
+                        '<div class="loading">Opening secure payment page...</div>';
+                    
+                    // Try different methods for opening the checkout
+                    if (typeof Checkout.showLightbox === 'function') {
+                        console.log('Using Checkout.showLightbox()');
+                        Checkout.showLightbox();
+                    } else if (typeof Checkout.showPaymentPage === 'function') {
+                        console.log('Using Checkout.showPaymentPage()');
+                        Checkout.showPaymentPage();
+                    } else if (typeof Checkout.show === 'function') {
+                        console.log('Using Checkout.show()');
+                        Checkout.show();
+                    } else {
+                        // Fallback: Use iframe with correct Commercial Bank PayDPI URL
+                        console.log('Using iframe fallback with correct URL');
+                        const hostedUrl = 'https://cbcmpgs.gateway.mastercard.com/checkout/version/100/checkout.js?session.id=' + '${sessionData.session.id}';
+                        
+                        const iframe = document.createElement('iframe');
+                        iframe.src = hostedUrl;
+                        iframe.style.width = '100%';
+                        iframe.style.height = '350px';
+                        iframe.style.border = 'none';
+                        iframe.style.borderRadius = '5px';
+                        iframe.onload = function() {
+                            console.log('Checkout iframe loaded successfully');
+                        };
+                        iframe.onerror = function() {
+                            console.error('Checkout iframe failed to load');
+                            document.getElementById('payment-form').innerHTML = 
+                                '<div class="error">Payment page failed to load.<br><br>' +
+                                '<button onclick="openHostedCheckout()" class="btn btn-primary">Try Again</button></div>';
+                        };
+                        
+                        document.getElementById('payment-form').innerHTML = '';
+                        document.getElementById('payment-form').appendChild(iframe);
+                    }
+                    
+                    console.log('Hosted payment initiated successfully');
                     
                 } catch (error) {
                     console.error('Payment initialization error:', error);
                     document.getElementById('payment-form').innerHTML = 
-                        '<div class="error">Payment initialization failed. Please try again.</div>';
+                        '<div class="error">Payment initialization failed: ' + error.message + '<br><br>' +
+                        '<button onclick="simulatePayment()" class="btn btn-primary">Use Test Payment</button></div>';
                 }
             }
             
             function simulatePayment() {
-                // For testing purposes - simulate payment success
-                paymentResult = {
-                    success: true,
-                    orderId: '${sessionData.orderId}',
-                    sessionId: '${sessionData.session.id}',
-                    transactionId: 'TXN' + Date.now(),
-                    result: 'SUCCESS'
+                console.log('Simulating Commercial Bank PayDPI payment...');
+                
+                // Simulate the callback data format from Commercial Bank PayDPI
+                const simulatedCallbackData = {
+                    status: 'success',
+                    result: 'SUCCESS',
+                    order: { 
+                        id: '${sessionData.orderId}',
+                        amount: '${formData.amount}',
+                        currency: '${PAYMENT_CONFIG.currency}'
+                    },
+                    transaction: { 
+                        id: 'CBC_SIM_' + Date.now(),
+                        amount: '${formData.amount}',
+                        currency: '${PAYMENT_CONFIG.currency}'
+                    }
                 };
                 
-                document.getElementById('payment-form').innerHTML = 
-                    '<div class="success">Payment completed successfully!</div>';
-                
-                // Send result back to React Native
-                setTimeout(() => {
-                    window.ReactNativeWebView?.postMessage(JSON.stringify(paymentResult));
-                }, 1000);
+                // Use the same callback handler
+                handlePaymentCallback(simulatedCallbackData);
             }
             
             function cancelPayment() {
@@ -312,33 +447,182 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
                 }));
             }
             
+            function redirectToPayment() {
+                try {
+                    console.log('Creating Commercial Bank PayDPI hosted checkout page...');
+                    
+                    // Create a proper HTML page with Commercial Bank PayDPI integration
+                    const checkoutPage = \`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Commercial Bank PayDPI</title>
+                        <style>
+                            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+                            .container { max-width: 400px; margin: 0 auto; }
+                            .loading { text-align: center; padding: 40px; color: #666; }
+                            .error { background: #fee; border: 1px solid #fcc; padding: 15px; border-radius: 5px; color: #c00; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <h2>Commercial Bank PayDPI</h2>
+                            <div id="payment-container">
+                                <div class="loading">Loading payment form...</div>
+                            </div>
+                        </div>
+                        
+                        <script src="https://cbcmpgs.gateway.mastercard.com/checkout/version/100/checkout.js"
+                                data-error="errorCallback"
+                                data-complete="completeCallback"
+                                data-cancel="cancelCallback"></script>
+                        <script>
+                            function errorCallback(error) {
+                                console.error('Payment error:', error);
+                                document.getElementById('payment-container').innerHTML = 
+                                    '<div class="error">Payment failed: ' + (error.explanation || error.cause || 'Unknown error') + '</div>';
+                                
+                                // Send error back to React Native
+                                if (window.ReactNativeWebView) {
+                                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                                        success: false,
+                                        error: error.explanation || error.cause || 'Payment failed'
+                                    }));
+                                }
+                            }
+                            
+                            function completeCallback(resultIndicator, sessionVersion) {
+                                console.log('Payment completed:', resultIndicator, sessionVersion);
+                                
+                                // Send success back to React Native
+                                if (window.ReactNativeWebView) {
+                                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                                        success: true,
+                                        orderId: '\${sessionData.orderId}',
+                                        sessionId: '\${sessionData.session.id}',
+                                        transactionId: 'CBC_' + Date.now(),
+                                        result: 'SUCCESS',
+                                        resultIndicator: resultIndicator,
+                                        sessionVersion: sessionVersion
+                                    }));
+                                }
+                            }
+                            
+                            function cancelCallback() {
+                                console.log('Payment cancelled');
+                                
+                                // Send cancellation back to React Native
+                                if (window.ReactNativeWebView) {
+                                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                                        success: false,
+                                        cancelled: true
+                                    }));
+                                }
+                            }
+                            
+                            // Initialize checkout after page loads
+                            window.addEventListener('load', function() {
+                                try {
+                                    console.log('Configuring Commercial Bank PayDPI checkout...');
+                                    
+                                    Checkout.configure({
+                                        merchant: '\${PAYMENT_CONFIG.merchantName}',
+                                        order: {
+                                            id: '\${sessionData.orderId}',
+                                            amount: '\${formData.amount}',
+                                            currency: '\${PAYMENT_CONFIG.currency}',
+                                            description: 'Disaster Relief Donation'
+                                        },
+                                        session: {
+                                            id: '\${sessionData.session.id}'
+                                        },
+                                        interaction: {
+                                            merchant: {
+                                                name: '\${PAYMENT_CONFIG.merchantName}'
+                                            },
+                                            displayControl: {
+                                                billingAddress: 'HIDE',
+                                                customerEmail: 'HIDE',
+                                                shipping: 'HIDE'
+                                            }
+                                        }
+                                    });
+                                    
+                                    console.log('Opening Commercial Bank PayDPI lightbox...');
+                                    Checkout.showLightbox();
+                                    
+                                } catch (error) {
+                                    console.error('Checkout initialization failed:', error);
+                                    errorCallback(error);
+                                }
+                            });
+                        </script>
+                    </body>
+                    </html>
+                    \`;
+                    
+                    // Update the WebView with the complete checkout page
+                    window.ReactNativeWebView?.postMessage(JSON.stringify({
+                        action: 'loadHTML',
+                        html: checkoutPage
+                    }));
+                    
+                } catch (error) {
+                    console.error('Redirect failed:', error);
+                    document.getElementById('payment-form').innerHTML = 
+                        '<div class="error">Failed to create payment page: ' + error.message + '</div>';
+                }
+            }
+            
+            function openHostedCheckout() {
+                try {
+                    console.log('Opening Commercial Bank PayDPI hosted checkout...');
+                    console.log('Session ID:', '${sessionData.session.id}');
+                    
+                    // Commercial Bank PayDPI hosted checkout URL format
+                    const hostedCheckoutUrl = 'https://cbcmpgs.gateway.mastercard.com/checkout/version/100/checkout.js?session.id=' + '${sessionData.session.id}';
+                    
+                    console.log('Opening URL:', hostedCheckoutUrl);
+                    
+                    // Update UI to show loading
+                    document.getElementById('payment-form').innerHTML = 
+                        '<div class="loading">Opening Commercial Bank PayDPI payment page...</div>';
+                    
+                    // For mobile WebView, we need to navigate within the same window
+                    // Create an iframe or redirect within the WebView
+                    const iframe = document.createElement('iframe');
+                    iframe.src = hostedCheckoutUrl;
+                    iframe.style.width = '100%';
+                    iframe.style.height = '400px';
+                    iframe.style.border = 'none';
+                    iframe.style.borderRadius = '5px';
+                    
+                    // Clear the form and add iframe
+                    const paymentForm = document.getElementById('payment-form');
+                    paymentForm.innerHTML = '';
+                    paymentForm.appendChild(iframe);
+                    
+                    // Add a fallback link
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.innerHTML = 
+                        '<p style="margin: 10px 0; font-size: 14px; color: #666;">Payment page loading above. If not visible:</p>' +
+                        '<a href="' + hostedCheckoutUrl + '" target="_blank" style="color: #3498db; text-decoration: underline;">Open in new tab</a>';
+                    paymentForm.appendChild(fallbackDiv);
+                    
+                    console.log('Hosted checkout iframe created successfully');
+                    
+                } catch (error) {
+                    console.error('Error opening hosted checkout:', error);
+                    document.getElementById('payment-form').innerHTML = 
+                        '<div class="error">Failed to open payment page: ' + error.message + '<br><br>' +
+                        '<button onclick="simulatePayment()" class="btn btn-primary">Use Test Payment Instead</button></div>';
+                }
+            }
+            
             // Initialize payment when page loads
             setTimeout(initializePayment, 1000);
-            
-            // Handle Checkout callback
-            Checkout.configure({
-                callback: function(data) {
-                    console.log('Checkout callback:', data);
-                    
-                    if (data.status === 'success') {
-                        paymentResult = {
-                            success: true,
-                            orderId: data.order.id,
-                            sessionId: '${sessionData.session.id}',
-                            transactionId: data.transaction?.id || 'TXN' + Date.now(),
-                            result: data.result || 'SUCCESS'
-                        };
-                    } else {
-                        paymentResult = {
-                            success: false,
-                            error: data.error || 'Payment failed',
-                            result: data.result || 'FAILED'
-                        };
-                    }
-                    
-                    window.ReactNativeWebView?.postMessage(JSON.stringify(paymentResult));
-                }
-            });
         </script>
     </body>
     </html>
@@ -407,6 +691,29 @@ const MPGSDonationScreen: React.FC<MPGSDonationScreenProps> = ({ navigation }) =
   const handlePaymentMessage = async (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
+      
+      // Handle HTML loading requests from WebView
+      if (data.action === 'loadHTML' && data.html) {
+        console.log('📱 Loading custom HTML for Commercial Bank PayDPI');
+        setPaymentHtml(data.html);
+        return;
+      }
+      
+      // Handle navigation requests from WebView
+      if (data.action === 'navigate' && data.url) {
+        console.log('📱 Navigation requested to:', data.url);
+        // You can handle navigation here - for now, we'll open in the same WebView
+        // In a real app, you might want to open this in a separate browser or handle differently
+        setPaymentHtml(`
+          <html>
+            <head><title>Commercial Bank PayDPI</title></head>
+            <body style="margin:0;padding:0;">
+              <iframe src="${data.url}" style="width:100%;height:100vh;border:none;"></iframe>
+            </body>
+          </html>
+        `);
+        return;
+      }
       
       if (data.cancelled) {
         setShowPayment(false);

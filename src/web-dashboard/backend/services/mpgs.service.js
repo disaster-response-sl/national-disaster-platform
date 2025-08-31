@@ -12,10 +12,19 @@ class MPGSService {
     this.apiVersion = '100'; // Always maintain same API version everywhere
     this.useMockMode = process.env.MPGS_MOCK_MODE === 'true';
     
+    // Debug environment variable reading
+    console.log('Environment Debug:', {
+      MPGS_MOCK_MODE_RAW: process.env.MPGS_MOCK_MODE,
+      MPGS_MOCK_MODE_TYPE: typeof process.env.MPGS_MOCK_MODE,
+      useMockMode: this.useMockMode,
+      comparison: process.env.MPGS_MOCK_MODE === 'true',
+      allEnvKeys: Object.keys(process.env).filter(key => key.includes('MPGS'))
+    });
+    
     // Debug logging for credentials (remove in production)
     console.log('Commercial Bank PayDPI Config:', {
-      merchantId: this.merchantId ? this.merchantId.substring(0, 5) + '...' : 'NOT SET',
-      apiUsername: this.apiUsername ? this.apiUsername.substring(0, 8) + '...' : 'NOT SET',
+      merchantId: this.merchantId,
+      apiUsername: this.apiUsername,
       apiPassword: this.apiPassword ? '***SET***' : 'NOT SET',
       baseUrl: this.baseUrl,
       mockMode: this.useMockMode
@@ -66,7 +75,7 @@ class MPGSService {
         apiOperation: 'INITIATE_CHECKOUT', // Use INITIATE_CHECKOUT as per Commercial Bank guide
         interaction: {
           merchant: {
-            name: 'TESTITCALANKALKR' // Use merchant ID as merchant name
+            name: this.merchantId // Use merchant ID as merchant name
           },
           operation: 'PURCHASE',
           displayControl: {
@@ -99,10 +108,10 @@ class MPGSService {
       // Add customer information if provided
       if (customer) {
         requestData.customer = {
-          email: customer.email,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          phone: customer.phone
+          email: customer.email || 'noreply@example.com',
+          firstName: customer.firstName || 'Customer',
+          lastName: customer.lastName || 'Donor',
+          phone: customer.phone || '+94701234567'
         };
       }
 
@@ -110,17 +119,24 @@ class MPGSService {
 
       const response = await this.makeRequest('POST', '/session', requestData);
       
-      return {
-        success: true,
-        session: {
-          id: response.session?.id,
-          version: response.session?.version,
-          status: 'ACTIVE'
-        },
-        orderId: orderId,
-        sessionUrl: `https://${this.gatewayHost}/checkout/version/${this.apiVersion}/checkout.js?session=${response.session?.id}`,
-        checkoutScript: `https://${this.gatewayHost}/checkout/version/${this.apiVersion}/checkout.js`
-      };
+      // Handle Commercial Bank PayDPI response format
+      if (response.result === 'SUCCESS' && response.session) {
+        return {
+          success: true,
+          session: {
+            id: response.session.id,
+            version: response.session.version,
+            status: 'ACTIVE'
+          },
+          orderId: orderId,
+          successIndicator: response.successIndicator,
+          checkoutMode: response.checkoutMode,
+          sessionUrl: `https://${this.gatewayHost}/checkout/version/${this.apiVersion}/checkout.js?session=${response.session.id}`,
+          checkoutScript: `https://${this.gatewayHost}/checkout/version/${this.apiVersion}/checkout.js`
+        };
+      } else {
+        throw new Error(`Payment session creation failed: ${response.error?.explanation || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('❌ MPGS Session Creation Error:', error.message);
       
@@ -400,7 +416,5 @@ class MPGSService {
     return amount / 100; // Convert from cents
   }
 }
-
-module.exports = new MPGSService();
 
 module.exports = new MPGSService();
