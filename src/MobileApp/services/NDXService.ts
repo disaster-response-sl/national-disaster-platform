@@ -1,6 +1,7 @@
 // NDXService.ts - Mobile app service for NDX (National Data Exchange)
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 export interface NDXProvider {
   id: string;
@@ -26,7 +27,7 @@ export interface NDXDataRequest {
 }
 
 class NDXService {
-  private baseURL = 'http://192.168.1.8:5000/api/ndx';
+  private baseURL = API_BASE_URL.replace(/\/?$/, '') + '/ndx';
 
   private async getAuthHeaders() {
     const token = await AsyncStorage.getItem('authToken');
