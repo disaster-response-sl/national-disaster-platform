@@ -502,6 +502,9 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       case 'consent':
         navigation.navigate('ConsentManagement');
         break;
+      case 'donation':
+        navigation.navigate('Donation');
+        break;
       default:
         break;
     }
@@ -702,6 +705,17 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
                     {t('actions.privacySettings')}
                   </Text>
                 </TouchableOpacity>
+
+                {/* Donation Action */}
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#27ae60' }]}
+                  onPress={() => handleQuickAction('donation')}
+                >
+                  <Text style={styles.actionIcon}>💝</Text>
+                  <Text style={[styles.actionText, getTextStyle(language, 16)]}>
+                    {t('donations.make_donation')}
+                  </Text>
+                </TouchableOpacity>
           </View>
         </View>
 
@@ -761,6 +775,24 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             >
               <Text style={[styles.debugButtonText, getTextStyle(language, 12)]}>
                 {t('testing.demoAlert')}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.debugButton, { backgroundColor: '#3498db' }]}
+              onPress={() => navigation.navigate('DonationHistory')}
+            >
+              <Text style={[styles.debugButtonText, getTextStyle(language, 12)]}>
+                {t('donations.donation_history')}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.debugButton, { backgroundColor: '#9b59b6' }]}
+              onPress={() => navigation.navigate('DonationStats')}
+            >
+              <Text style={[styles.debugButtonText, getTextStyle(language, 12)]}>
+                {t('donations.donation_statistics')}
               </Text>
             </TouchableOpacity>
           </View>

@@ -4,10 +4,25 @@ const getBaseURL = () => {
   const envUrl = process.env.REACT_NATIVE_API_BASE_URL;
   if (envUrl) return envUrl;
 
-  // Fallback: set your ngrok/public tunnel URL here
-
-  return 'https://neat-dingos-punch.loca.lt/api';
+  // Development fallback - update this with your backend URL
+  // For local development: 'http://localhost:5000/api'
+  // For production: your production API URL
+  return 'http://localhost:5000/api';
 };
 
+// Commercial Bank PayDPI Configuration
+export const API_BASE_URL = getBaseURL();
+export const PAYMENT_GATEWAY_URL = 'https://cbcmpgs.gateway.mastercard.com';
+export const CHECKOUT_SCRIPT_URL = 'https://cbcmpgs.gateway.mastercard.com/checkout/version/100/checkout.js';
 
-export const API_BASE_URL = 'https://neat-dingos-punch.loca.lt/api';
+// Payment configuration
+export const PAYMENT_CONFIG = {
+  currency: 'LKR',
+  merchantName: 'TESTITCALANKALKR',
+  displayControl: {
+    billingAddress: 'HIDE',
+    customerEmail: 'HIDE',
+    shipping: 'HIDE'
+  },
+  returnUrl: 'https://www.abcd.lk'
+};
