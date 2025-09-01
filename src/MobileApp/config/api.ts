@@ -7,7 +7,7 @@ const getBaseURL = () => {
   // Development fallback - update this with your backend URL
   // For local development: 'http://localhost:5000/api'
   // For production: your production API URL
-  return 'https://shaggy-camels-fall.loca.lt/api'; // Android emulator localhost
+  return 'https://busy-papers-brush.loca.lt/api'; // Android emulator localhost
 };
 
 // Commercial Bank PayDPI Configuration
