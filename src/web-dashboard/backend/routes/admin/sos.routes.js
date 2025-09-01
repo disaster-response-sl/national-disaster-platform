@@ -2,13 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const SosSignal = require('../../models/SosSignal');
 const Disaster = require('../../models/Disaster');
-const { authenticateToken, requireResponder } = require('../../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../../middleware/auth');
 const notificationService = require('../../services/NotificationService');
 const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);
-router.use(requireResponder);
+router.use(requireAdmin);
 
 // Utility function to calculate distance between two coordinates (in km)
 function calculateDistance(lat1, lng1, lat2, lng2) {

@@ -15,7 +15,6 @@ export const PERMISSIONS = {
   ],
   responder: [
     'dashboard:basic',
-    'sos:read', 'sos:acknowledge', 'sos:update_status',
     'analytics:basic',
     'reports:read', 'reports:create'
   ]

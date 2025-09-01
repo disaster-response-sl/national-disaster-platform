@@ -208,6 +208,7 @@ const PaymentStatistics: React.FC = () => {
             {statsData.stats && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
+                  key="total-donations"
                   title="Total Donations"
                   value={formatNumber(statsData.stats.summary.totalDonations)}
                   subtitle="All time donations"
@@ -215,6 +216,7 @@ const PaymentStatistics: React.FC = () => {
                   trend="+12% from last month"
                 />
                 <StatCard
+                  key="total-amount"
                   title="Total Amount"
                   value={formatCurrency(statsData.stats.summary.totalAmount)}
                   subtitle="Funds collected"
@@ -222,12 +224,14 @@ const PaymentStatistics: React.FC = () => {
                   trend="+8% from last month"
                 />
                 <StatCard
+                  key="average-donation"
                   title="Average Donation"
                   value={formatCurrency(statsData.stats.summary.averageDonation)}
                   subtitle="Per donation"
                   icon={<TrendingUp className="w-5 h-5" />}
                 />
                 <StatCard
+                  key="unique-donors"
                   title="Unique Donors"
                   value={formatNumber(statsData.stats.summary.uniqueDonors)}
                   subtitle="Individual contributors"
@@ -260,7 +264,7 @@ const PaymentStatistics: React.FC = () => {
                         dataKey="value"
                       >
                         {getStatusChartData().map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`pie-cell-${entry.name}-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -278,7 +282,7 @@ const PaymentStatistics: React.FC = () => {
                 {/* Legend */}
                 <div className="flex flex-wrap justify-center gap-4 mt-4">
                   {getStatusChartData().map((entry, index) => (
-                    <div key={index} className="flex items-center space-x-2">
+                    <div key={`legend-${entry.name}-${index}`} className="flex items-center space-x-2">
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: entry.color }}
@@ -396,8 +400,8 @@ const PaymentStatistics: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {statsData.donations.map((donation) => (
-                        <tr key={donation._id} className="hover:bg-gray-50">
+                      {statsData.donations.map((donation, index) => (
+                        <tr key={donation._id || `donation-${index}`} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10">

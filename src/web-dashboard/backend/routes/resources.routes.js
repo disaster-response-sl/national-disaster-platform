@@ -48,6 +48,94 @@ class AIAllocationService {
   }
 }
 
+// GET /api/resources/stats - Get resource statistics
+router.get('/stats', authenticateToken, async (req, res) => {
+  try {
+    const totalResources = await Resource.countDocuments();
+    const availableResources = await Resource.countDocuments({ status: 'available' });
+    const allocatedResources = await Resource.countDocuments({ status: { $in: ['dispatched', 'allocated'] } });
+    const reservedResources = await Resource.countDocuments({ status: 'reserved' });
+    const depletedResources = await Resource.countDocuments({ status: 'depleted' });
+
+    // Get resources by type
+    const resourcesByType = await Resource.aggregate([
+      { $group: { _id: '$type', count: { $sum: 1 }, total_quantity: { $sum: '$quantity.current' } } },
+      { $project: { type: '$_id', count: 1, total_quantity: 1, _id: 0 } }
+    ]);
+
+    // Get resources by category
+    const resourcesByCategory = await Resource.aggregate([
+      { $group: { _id: '$category', count: { $sum: 1 }, total_quantity: { $sum: '$quantity.current' } } },
+      { $project: { category: '$_id', count: 1, total_quantity: 1, _id: 0 } }
+    ]);
+
+    // Get resources by status
+    const resourcesByStatus = await Resource.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 }, total_quantity: { $sum: '$quantity.current' } } },
+      { $project: { status: '$_id', count: 1, total_quantity: 1, _id: 0 } }
+    ]);
+
+    // Calculate utilization rate
+    const utilizationData = await Resource.aggregate([
+      {
+        $group: {
+          _id: null,
+          total_current: { $sum: '$quantity.current' },
+          total_allocated: { $sum: '$quantity.allocated' },
+          total_reserved: { $sum: '$quantity.reserved' }
+        }
+      }
+    ]);
+
+    const utilization = utilizationData[0] || { total_current: 0, total_allocated: 0, total_reserved: 0 };
+    const utilizationRate = utilization.total_current > 0
+      ? ((utilization.total_allocated + utilization.total_reserved) / utilization.total_current) * 100
+      : 0;
+
+    // Get recent deployments (last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recentDeployments = await Resource.aggregate([
+      { $unwind: '$deployment_history' },
+      { $match: { 'deployment_history.deployed_at': { $gte: thirtyDaysAgo } } },
+      { $count: 'total_deployments' }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          total_resources: totalResources,
+          available_resources: availableResources,
+          allocated_resources: allocatedResources,
+          reserved_resources: reservedResources,
+          depleted_resources: depletedResources,
+          utilization_rate: utilizationRate,
+          recent_deployments: recentDeployments[0]?.total_deployments || 0
+        },
+        breakdown: {
+          by_type: resourcesByType,
+          by_category: resourcesByCategory,
+          by_status: resourcesByStatus
+        },
+        utilization: {
+          total_current_quantity: utilization.total_current,
+          total_allocated_quantity: utilization.total_allocated,
+          total_reserved_quantity: utilization.total_reserved,
+          available_quantity: utilization.total_current - utilization.total_allocated - utilization.total_reserved
+        },
+        generated_at: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching resource statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching resource statistics',
+      error: error.message
+    });
+  }
+});
+
 // GET /api/resources - Get all resources with filtering and pagination
 router.get('/', authenticateToken, async (req, res) => {
   try {
