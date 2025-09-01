@@ -271,7 +271,7 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
   };
 
   const renderQuickQuestions = () => (
-    <View style={styles.quickQuestionsContainer}>
+    <View style={styles.quickQuestionsContainer }>
       <View style={styles.quickQuestionsHeader}>
         <Text style={[styles.quickQuestionsTitle, getTextStyle(language)]}>
           {t('chat.quickQuestions')}
