@@ -501,14 +501,14 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
               <p>No SOS signals found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto max-w-full">
+              <table className="w-full divide-y divide-gray-200 table-fixed">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                       Signal Info
                     </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-0 flex-1">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                       Message
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 hidden sm:table-cell">
@@ -545,7 +545,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-4 min-w-0">
-                        <div className="text-xs sm:text-sm text-gray-900 max-w-xs truncate">
+                        <div className="text-xs sm:text-sm text-gray-900 max-w-full truncate">
                           {signal.message}
                         </div>
                         {signal.emergency_type && (
@@ -557,7 +557,7 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                       <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                         <div className="flex items-center text-xs sm:text-sm text-gray-900">
                           <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1 flex-shrink-0" />
-                          <div className="truncate">
+                          <div className="truncate max-w-32">
                             <div className="truncate">{signal.location.lat.toFixed(4)}, {signal.location.lng.toFixed(4)}</div>
                             {signal.location.address && (
                               <div className="text-xs text-gray-500 truncate">{signal.location.address}</div>
@@ -1024,29 +1024,29 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
             <p>No SOS signals found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto max-w-full">
+            <table className="w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                     Signal Info
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                     Message
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                     Location
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                     Priority
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                     Time
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                     Actions
                   </th>
                 </tr>
@@ -1067,12 +1067,12 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                    <td className="px-6 py-4 min-w-0">
+                      <div className="text-sm text-gray-900 max-w-full truncate">
                         {signal.message}
                       </div>
                       {signal.emergency_type && (
-                        <div className="text-xs text-gray-500 capitalize">
+                        <div className="text-xs text-gray-500 capitalize truncate">
                           {signal.emergency_type.replace('_', ' ')}
                         </div>
                       )}
@@ -1080,10 +1080,10 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
                         <MapPin className="w-4 h-4 text-gray-400 mr-1" />
-                        <div>
-                          <div>{signal.location.lat.toFixed(6)}, {signal.location.lng.toFixed(6)}</div>
+                        <div className="max-w-32 truncate">
+                          <div className="truncate">{signal.location.lat.toFixed(6)}, {signal.location.lng.toFixed(6)}</div>
                           {signal.location.address && (
-                            <div className="text-xs text-gray-500">{signal.location.address}</div>
+                            <div className="text-xs text-gray-500 truncate">{signal.location.address}</div>
                           )}
                         </div>
                       </div>
@@ -1099,8 +1099,8 @@ const SOSDashboard: React.FC<SOSDashboardProps> = ({ standalone = true }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>{getTimeAgo(signal.created_at)}</div>
-                      <div className="text-xs text-gray-500">{formatTime(signal.created_at)}</div>
+                      <div className="truncate">{getTimeAgo(signal.created_at)}</div>
+                      <div className="text-xs text-gray-500 truncate">{formatTime(signal.created_at)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
