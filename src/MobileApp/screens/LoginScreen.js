@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthService from '../services/AuthService';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
-
+import SLUDIESignetButton from '../components/SLUDIESignetButton';
 const { width, height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
@@ -81,6 +81,65 @@ const LoginScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle eSignet authentication success
+  const handleAuthSuccess = async ({ code, state }) => {
+    console.log('✅ eSignet authentication successful:', { code, state });
+    setLoading(true);
+    
+    try {
+      // Here you would typically exchange the code for user information
+      // via your backend service or SLUDI backend
+      
+      // For now, let's simulate a successful login
+      // In a real implementation, you'd call your backend to exchange the code
+      // const userInfo = await exchangeCodeForUserInfo(code, state);
+      
+      // Simulate successful authentication
+      await AsyncStorage.setItem('authToken', 'esignet_token_' + Date.now());
+      await AsyncStorage.setItem('userId', 'esignet_user_' + Date.now());
+      await AsyncStorage.setItem('role', 'citizen');
+      
+      Alert.alert(
+        'eSignet Login Successful',
+        'Welcome! You have been authenticated via eSignet.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Dashboard')
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Failed to process eSignet authentication:', error);
+      Alert.alert(
+        'Authentication Error',
+        'Failed to complete eSignet authentication. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle eSignet authentication error
+  const handleAuthError = ({ error, errorDescription }) => {
+    console.error('❌ eSignet authentication error:', { error, errorDescription });
+    
+    let userMessage = 'Authentication failed. Please try again.';
+    
+    if (error === 'cancelled') {
+      userMessage = 'Authentication was cancelled.';
+    } else if (errorDescription) {
+      userMessage = errorDescription;
+    }
+    
+    Alert.alert(
+      'eSignet Authentication Failed',
+      userMessage,
+      [{ text: 'OK' }]
+    );
   };
 
   return (
@@ -187,73 +246,10 @@ const LoginScreen = ({ navigation }) => {
 
               {/* SLUDI eSignet Button */}
               <View style={styles.esignetContainer}>
-                <TouchableOpacity 
-                  style={styles.esignetButton}
-                  onPress={() => {
-                    // Generate state and nonce exactly like SLUDI App
-                    const state = "eree2311"; // Using same state as SLUDI App
-                    const generateRandomString = (strLength = 16) => {
-                      let result = '';
-                      const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-                      for (let i = 0; i < strLength; i++) {
-                        const randomInd = Math.floor(Math.random() * characters.length);
-                        result += characters.charAt(randomInd);
-                      }
-                      return result;
-                    };
-                    const nonce = generateRandomString();
-                    
-                    // Use exact SLUDI App configuration
-                    const oidcConfig = {
-                      authorizeUri: "https://sludiauth.icta.gov.lk/authorize",
-                      redirect_uri: "ndp://dashboard", // Mobile app redirect
-                      client_id: "IIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgMEyx",
-                      scope: "openid%20profile%20resident-service", // URL encoded
-                      nonce: nonce,
-                      state: state,
-                      acr_values: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:static-code",
-                      claims_locales: "en",
-                      display: "page",
-                      prompt: "consent",
-                      max_age: 21,
-                      ui_locales: "en",
-                      claims: "%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D"
-                    };
-                    
-                    // Build authorization URL exactly like SLUDI App
-                    const authParams = new URLSearchParams({
-                      response_type: "code",
-                      client_id: oidcConfig.client_id,
-                      redirect_uri: oidcConfig.redirect_uri,
-                      scope: oidcConfig.scope,
-                      state: oidcConfig.state,
-                      nonce: oidcConfig.nonce,
-                      acr_values: oidcConfig.acr_values,
-                      claims_locales: oidcConfig.claims_locales,
-                      display: oidcConfig.display,
-                      prompt: oidcConfig.prompt,
-                      max_age: oidcConfig.max_age,
-                      ui_locales: oidcConfig.ui_locales,
-                      claims: oidcConfig.claims
-                    });
-                    
-                    const authUrl = `${oidcConfig.authorizeUri}?${authParams.toString()}`;
-                    
-                    console.log('🔐 Opening SLUDI eSignet authentication:', authUrl);
-                    
-                    // Open external browser
-                    Linking.openURL(authUrl).catch(error => {
-                      console.error('Failed to open URL:', error);
-                      Alert.alert('Error', 'Unable to open authentication page');
-                    });
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.esignetButtonContent}>
-                    <Text style={styles.esignetIcon}>🏛️</Text>
-                    <Text style={styles.esignetButtonText}>Sign in with eSignet</Text>
-                  </View>
-                </TouchableOpacity>
+                <SLUDIESignetButton 
+                  onSuccess={handleAuthSuccess}
+                  onError={handleAuthError}
+                />
                 <Text style={[styles.esignetDescription, getTextStyle(language)]}>
                   {t('login.esignetDescription') || 'Sign in with your Government Digital Identity'}
                 </Text>
