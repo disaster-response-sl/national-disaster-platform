@@ -3,10 +3,43 @@ import { View, TouchableOpacity, Text, StyleSheet, Alert, Linking } from 'react-
 import InAppBrowser from 'react-native-inappbrowser-reborn';
 
 const SLUDIESignetButton = ({ style }) => {
+  // Generate random nonce for security
+  const generateRandomString = (strLength = 16) => {
+    let result = '';
+    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < strLength; i++) {
+      const randomInd = Math.floor(Math.random() * characters.length);
+      result += characters.charAt(randomInd);
+    }
+    return result;
+  };
+
   const handleLogin = async () => {
     try {
-      // Simple authorization URL construction
-      const authUrl = `https://sludiauth.icta.gov.lk/login?response_type=code&client_id=IIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgMEyx&redirect_uri=ndp://dashboard&scope=openid%20profile%20resident-service&acr_values=mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:static-code&display=page&prompt=consent&max_age=21&ui_locales=en&claims=%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D`;
+      const nonce = generateRandomString();
+      const state = 'eree2311'; // Fixed state like SLUDI app
+
+      // URL encode parameters properly
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: 'IIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgMEyx', // Your specific client ID
+        redirect_uri: 'ndp://dashboard', // Your app's deep link
+        scope: 'openid profile resident-service',
+        nonce: nonce,
+        state: state,
+        acr_values: 'mosip:idp:acr:generated-code mosip:idp:acr:biometrics mosip:idp:acr:static-code',
+        claims_locales: 'en',
+        display: 'page',
+        prompt: 'consent',
+        max_age: '21',
+        ui_locales: 'en',
+        claims: '{"userinfo":{"given_name":{"essential":true},"phone_number":{"essential":false},"email":{"essential":true},"picture":{"essential":false},"gender":{"essential":false},"birthdate":{"essential":false},"address":{"essential":false}},"id_token":{}}'
+      });
+
+      // Use correct base URL
+      const authUrl = `https://sludiauth.icta.gov.lk/authorize?${params.toString()}`;
+
+      console.log('🔐 Generated SLUDI URL:', authUrl);
 
       // Open in webview
       if (await InAppBrowser.isAvailable()) {
@@ -42,6 +75,7 @@ const SLUDIESignetButton = ({ style }) => {
         }
       }
     } catch (error) {
+      console.error('❌ Error:', error);
       Alert.alert('Error', 'Failed to open authentication page');
     }
   };
