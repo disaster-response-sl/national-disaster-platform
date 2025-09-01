@@ -3,7 +3,7 @@ window._env_ = {
   MOCK_RELYING_PARTY_SERVER_URL: "http://localhost:8888",
   REDIRECT_URI_USER_PROFILE: "http://localhost:5000/userprofile",
   REDIRECT_URI_REGISTRATION: "http://localhost:5000/registration",
-  REDIRECT_URI: "http://localhost:5000/userprofile",
+  REDIRECT_URI: "ndp://dashboard",
   CLIENT_ID: "IIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgMEyx",
   ACRS: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:static-code",
   SCOPE_USER_PROFILE: "openid%20profile%20resident-service",

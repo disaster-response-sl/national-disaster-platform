@@ -5,9 +5,9 @@ export const ESIGNET_ENV_CONFIG = {
   ESIGNET_UI_BASE_URL: "https://sludiauth.icta.gov.lk",
   MOCK_RELYING_PARTY_SERVER_URL: "http://localhost:8888",
   REDIRECT_URI_USER_PROFILE: "ndp://dashboard",
-  REDIRECT_URI_REGISTRATION: "ndp://dashboard", 
+  REDIRECT_URI_REGISTRATION: "ndp://dashboard",
   REDIRECT_URI: "ndp://dashboard",
-  CLIENT_ID: "IIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxp12l",
+  CLIENT_ID: "IIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgMEyx", // Fixed: Correct CLIENT_ID from SLUDI app
   ACRS: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:static-code",
   SCOPE_USER_PROFILE: "openid%20profile%20resident-service",
   SCOPE_REGISTRATION: "openid%20profile",
@@ -22,9 +22,9 @@ export const ESIGNET_ENV_CONFIG = {
   DEFAULT_LANG: "en",
   FALLBACK_LANG: "%7B%22label%22%3A%22English%22%2C%22value%22%3A%22en%22%7D",
   // Additional required URLs
-  authorizeUri: "https://sludiauth.icta.gov.lk/v1/esignet/oauth/v2/authorize",
-  tokenUri: "https://sludiauth.icta.gov.lk/v1/esignet/oauth/v2/token",
-  userInfoUri: "https://sludiauth.icta.gov.lk/v1/esignet/oidc/userinfo"
+  authorizeUri: "https://sludiauth.icta.gov.lk/authorize",
+  tokenUri: "https://sludiauth.icta.gov.lk/service/oauth/v2/token",
+  userInfoUri: "https://sludiauth.icta.gov.lk/service/oidc/userinfo"
 };
 
 // Helper function to check non-empty and non-null values
