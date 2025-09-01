@@ -2,6 +2,25 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService, type User } from '../services/authService';
 import toast from 'react-hot-toast';
 
+// Permission definitions
+export const PERMISSIONS = {
+  admin: [
+    'dashboard:full',
+    'sos:read', 'sos:write', 'sos:delete', 'sos:manage',
+    'resources:read', 'resources:write', 'resources:delete', 'resources:manage',
+    'analytics:full', 'analytics:export',
+    'disasters:read', 'disasters:write', 'disasters:delete', 'disasters:manage',
+    'users:read', 'users:write', 'users:manage',
+    'reports:read', 'reports:write', 'reports:manage'
+  ],
+  responder: [
+    'dashboard:basic',
+    'sos:read', 'sos:acknowledge', 'sos:update_status',
+    'analytics:basic',
+    'reports:read', 'reports:create'
+  ]
+};
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -10,6 +29,9 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   refreshProfile: () => Promise<void>;
+  hasPermission: (permission: string) => boolean;
+  hasRole: (role: string) => boolean;
+  userPermissions: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,9 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.error(errorMessage);
         return false;
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login failed:', error);
-      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed. Please try again.';
       toast.error(errorMessage);
       return false;
     } finally {
@@ -128,14 +150,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const value = {
+  const isAuthenticated = !!user && !!token;
+
+  // Get permissions for current user
+  const userPermissions = user ? PERMISSIONS[user.role as keyof typeof PERMISSIONS] || [] : [];
+
+  // Check if user has a specific permission
+  const hasPermission = (permission: string): boolean => {
+    return userPermissions.includes(permission);
+  };
+
+  // Check if user has a specific role
+  const hasRole = (role: string): boolean => {
+    return user?.role === role;
+  };
+
+  const value: AuthContextType = {
     user,
     token,
     login,
     logout,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated,
     refreshProfile,
+    hasPermission,
+    hasRole,
+    userPermissions
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

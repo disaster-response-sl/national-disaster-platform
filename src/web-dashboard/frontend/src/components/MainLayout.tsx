@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { LogOut, Shield, Users, AlertTriangle, Activity, MapPin, Home, Map, Package, Settings as SettingsIcon, Layers, BarChart3 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
@@ -10,6 +11,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { hasPermission, canRead, isAdmin } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -102,51 +104,68 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <Home className="w-5 h-5 mr-3" />
                 Overview
               </Link>
-              <Link
-                to="/analytics"
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/analytics'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <BarChart3 className="w-5 h-5 mr-3" />
-                Analytics
-              </Link>
-              <Link
-                to="/sos"
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/sos'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <AlertTriangle className="w-5 h-5 mr-3" />
-                SOS Monitor
-              </Link>
-              <Link
-                to="/disasters"
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/disasters'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <MapPin className="w-5 h-5 mr-3" />
-                Disaster Management
-              </Link>
-              <Link
-                to="/map"
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/map' || location.pathname === '/map/disaster' || location.pathname === '/map/sos'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <Map className="w-5 h-5 mr-3" />
-                Maps
-              </Link>
-              {location.pathname.startsWith('/map') && (
+
+              {/* Analytics - Admin only */}
+              {hasPermission('analytics:full') && (
+                <Link
+                  to="/analytics"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === '/analytics'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <BarChart3 className="w-5 h-5 mr-3" />
+                  Analytics
+                </Link>
+              )}
+
+              {/* SOS Monitor - Both admin and responder */}
+              {canRead('sos') && (
+                <Link
+                  to="/sos"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === '/sos'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <AlertTriangle className="w-5 h-5 mr-3" />
+                  SOS Monitor
+                </Link>
+              )}
+
+              {/* Disaster Management - Both admin and responder */}
+              {canRead('disasters') && (
+                <Link
+                  to="/disasters"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === '/disasters'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <MapPin className="w-5 h-5 mr-3" />
+                  Disaster Management
+                </Link>
+              )}
+
+              {/* Maps - Both admin and responder */}
+              {canRead('disasters') && (
+                <Link
+                  to="/map"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === '/map' || location.pathname === '/map/disaster' || location.pathname === '/map/sos'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <Map className="w-5 h-5 mr-3" />
+                  Maps
+                </Link>
+              )}
+
+              {location.pathname.startsWith('/map') && canRead('disasters') && (
                 <div className="ml-6 space-y-1">
                   <Link
                     to="/map/disaster"
@@ -172,39 +191,51 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   </Link>
                 </div>
               )}
-              <Link
-                to="/resources"
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/resources'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <Package className="w-5 h-5 mr-3" />
-                Resource Management
-              </Link>
-              <Link
-                to="/ndx"
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/ndx'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <Layers className="w-5 h-5 mr-3" />
-                NDX
-              </Link>
-              <Link
-                to="/settings"
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/settings'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <SettingsIcon className="w-5 h-5 mr-3" />
-                Settings
-              </Link>
+
+              {/* Resource Management - Both admin and responder */}
+              {canRead('resources') && (
+                <Link
+                  to="/resources"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === '/resources'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <Package className="w-5 h-5 mr-3" />
+                  Resource Management
+                </Link>
+              )}
+
+              {/* NDX - Admin only */}
+              {isAdmin() && (
+                <Link
+                  to="/ndx"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === '/ndx'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <Layers className="w-5 h-5 mr-3" />
+                  NDX
+                </Link>
+              )}
+
+              {/* Settings - Admin only */}
+              {isAdmin() && (
+                <Link
+                  to="/settings"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === '/settings'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <SettingsIcon className="w-5 h-5 mr-3" />
+                  Settings
+                </Link>
+              )}
             </div>
           </nav>
         </div>
