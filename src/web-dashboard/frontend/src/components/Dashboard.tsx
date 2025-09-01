@@ -12,6 +12,7 @@ import {
 import { Link } from 'react-router-dom';
 import MainLayout from './MainLayout';
 import { getDonationStats } from '../services/donationService';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 interface DashboardStats {
@@ -51,6 +52,7 @@ interface RecentActivity {
 }
 
 const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     disasters: { total: 0, active: 0, resolved: 0, critical: 0 },
     sos: { total: 0, pending: 0, acknowledged: 0, responding: 0, resolved: 0 },
@@ -551,16 +553,18 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
-              <Link
-                to="/sos"
-                className="flex items-center gap-3 p-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900">SOS Monitor</p>
-                  <p className="text-xs text-gray-500">View emergency signals</p>
-                </div>
-              </Link>
+              {user?.role === 'admin' && (
+                <Link
+                  to="/sos"
+                  className="flex items-center gap-3 p-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                >
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-gray-900">SOS Monitor</p>
+                    <p className="text-xs text-gray-500">View emergency signals</p>
+                  </div>
+                </Link>
+              )}
 
               <Link
                 to="/map/disaster"
@@ -750,12 +754,18 @@ const Dashboard: React.FC = () => {
                 </span>
               </div>
             </div>
-            <Link
-              to="/sos"
-              className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium inline-block text-center"
-            >
-              View SOS Monitor
-            </Link>
+            {user?.role === 'admin' ? (
+              <Link
+                to="/sos"
+                className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium inline-block text-center"
+              >
+                View SOS Monitor
+              </Link>
+            ) : (
+              <div className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium text-center cursor-not-allowed">
+                SOS Monitor (Admin Only)
+              </div>
+            )}
           </div>
 
           {/* Payment Analytics */}

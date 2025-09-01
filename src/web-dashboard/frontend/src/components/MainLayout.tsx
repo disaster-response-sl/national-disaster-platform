@@ -135,8 +135,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </Link>
               )}
 
-              {/* SOS Monitor - Both admin and responder */}
-              {canRead('sos') && (
+              {/* SOS Monitor - Admin only */}
+              {isAdmin() && canRead('sos') && (
                 <Link
                   to="/sos"
                   className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
@@ -193,17 +193,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     <MapPin className="w-4 h-4 mr-2" />
                     Disaster Heat Map
                   </Link>
-                  <Link
-                    to="/map/sos"
-                    className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      location.pathname === '/map/sos'
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                    }`}
-                  >
-                    <AlertTriangle className="w-4 h-4 mr-2" />
-                    SOS Heat Map
-                  </Link>
+                  {isAdmin() && (
+                    <Link
+                      to="/map/sos"
+                      className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        location.pathname === '/map/sos'
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                      }`}
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      SOS Heat Map
+                    </Link>
+                  )}
                 </div>
               )}
 
