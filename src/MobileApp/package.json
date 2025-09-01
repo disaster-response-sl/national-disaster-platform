@@ -21,6 +21,7 @@
     "@react-navigation/native-stack": "^7.3.24",
     "axios": "^1.11.0",
     "i18next": "^25.4.2",
+    "jsonwebtoken": "^9.0.2",
     "react": "19.1.0",
     "react-i18next": "^15.7.3",
     "react-native": "0.80.2",
