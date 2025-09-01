@@ -1,8 +1,17 @@
+<<<<<<< HEAD
 import React, { useEffect, useRef } from 'react';
 import { StatusBar, useColorScheme, Linking, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NavigationContainerRef } from '@react-navigation/native';
+=======
+// App.tsx
+import React, { useEffect, useRef } from 'react';
+import { StatusBar, useColorScheme, Linking } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+>>>>>>> 4f541381aed3b2d9e12bb22dd96742a8b6325bcc
 import LoginScreen from './screens/LoginScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import SosScreen from './screens/SosScreen';
@@ -23,17 +32,26 @@ import { API_BASE_URL } from './config/api';
 
 const Stack = createNativeStackNavigator();
 
+<<<<<<< HEAD
 // Simple mock JWT token generator for fallback
 const generateMockJWT = () => {
   // Since we can't do HMAC signing in React Native without crypto libraries,
   // let's create a simpler solution: generate a token that mimics the backend's format
   // Note: In production, this would be replaced with real SLUDI authentication
   
+=======
+// Create navigation reference for programmatic navigation
+const navigationRef = useRef(null);
+
+// Simple JWT creation function for mock tokens
+const createMockJWT = (payload: any): string => {
+>>>>>>> 4f541381aed3b2d9e12bb22dd96742a8b6325bcc
   const header = {
     alg: 'HS256',
     typ: 'JWT'
   };
   
+<<<<<<< HEAD
   const payload = {
     _id: 'mock-sludi-user-123',
     individualId: 'sludi-demo-user',
@@ -64,6 +82,14 @@ const generateMockJWT = () => {
   const signature = btoa('mock-sludi-signature-for-testing');
   
   return `${headerB64}.${payloadB64}.${signature}`;
+=======
+  // Simple base64 encoding (not secure, just for mock purposes)
+  const encodedHeader = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const encodedPayload = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const signature = 'mock_signature_' + Date.now();
+  
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+>>>>>>> 4f541381aed3b2d9e12bb22dd96742a8b6325bcc
 };
 
 const App: React.FC = () => {
@@ -87,6 +113,7 @@ const App: React.FC = () => {
           
           if (error) {
             console.error('❌ eSignet authentication error:', error);
+<<<<<<< HEAD
             // Use mock JWT as fallback
             await useMockAuth();
             return;
@@ -136,10 +163,43 @@ const App: React.FC = () => {
           console.error('❌ Error parsing deep link:', error);
           // Fallback to mock JWT
           await useMockAuth();
+=======
+            // Create mock token for fallback
+            await createMockTokenAndNavigate();
+            return;
+          }
+          
+          if (code && state) {
+            console.log('✅ eSignet authentication successful, processing...');
+            // Process the authentication code with SLUDI backend
+            try {
+              const userInfo = await sludiESignetService.exchangeCodeForUserInfo({ code, state });
+              console.log('✅ User info received:', userInfo);
+              
+              // Store user info and navigate to dashboard
+              await AsyncStorage.setItem('authToken', 'sludi_' + Date.now());
+              await AsyncStorage.setItem('userId', userInfo.sub || 'sludi_user_' + Date.now());
+              await AsyncStorage.setItem('role', 'citizen');
+              
+              // Navigate to dashboard
+              navigationRef.current?.navigate('Dashboard');
+            } catch (backendError) {
+              console.error('❌ SLUDI backend error, creating mock token:', backendError);
+              await createMockTokenAndNavigate();
+            }
+          } else {
+            console.error('❌ No code or state in redirect URL');
+            await createMockTokenAndNavigate();
+          }
+        } catch (parseError) {
+          console.error('❌ Error parsing deep link:', parseError);
+          await createMockTokenAndNavigate();
+>>>>>>> 4f541381aed3b2d9e12bb22dd96742a8b6325bcc
         }
       }
     };
 
+<<<<<<< HEAD
     // Simple mock authentication fallback
     const useMockAuth = async () => {
       console.log('🔧 Using mock authentication via backend login...');
@@ -208,6 +268,35 @@ const App: React.FC = () => {
           navigationRef.current.navigate('Dashboard' as never);
         }
       }, 1000); // Small delay to ensure navigation is ready
+=======
+    // Helper function to create mock token and navigate
+    const createMockTokenAndNavigate = async () => {
+      try {
+        console.log('🔧 Creating mock JWT token for fallback authentication');
+        
+        // Create a simple mock JWT token
+        const mockToken = createMockJWT({
+          sub: 'mock_user_' + Date.now(),
+          name: 'SLUDI User',
+          role: 'citizen',
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+        });
+        
+        await AsyncStorage.setItem('authToken', mockToken);
+        await AsyncStorage.setItem('userId', 'mock_user_' + Date.now());
+        await AsyncStorage.setItem('role', 'citizen');
+        
+        console.log('✅ Mock token created and stored');
+        
+        // Navigate to dashboard
+        navigationRef.current?.navigate('Dashboard');
+      } catch (error) {
+        console.error('❌ Error creating mock token:', error);
+        // Still navigate to dashboard even if token creation fails
+        navigationRef.current?.navigate('Dashboard');
+      }
+>>>>>>> 4f541381aed3b2d9e12bb22dd96742a8b6325bcc
     };
 
     // Get the initial URL if app was opened with a deep link
