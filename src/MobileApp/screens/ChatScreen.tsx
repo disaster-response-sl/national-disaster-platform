@@ -21,8 +21,7 @@ import axios from 'axios';
 import { useLanguage } from '../services/LanguageService';
 import { API_BASE_URL } from '../config/api';
 import { getTextStyle } from '../services/FontService';
-// @ts-ignore
-const franc: any = require('franc-min');
+
 
 const { width } = Dimensions.get('window');
 
@@ -112,12 +111,14 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
     }
   };
 
-  // Detect language: returns 'si' for Sinhala, 'ta' for Tamil, 'en' for English, or 'en' as fallback
+  // Simple language detection for Sinhala, Tamil, and English
+  // Returns 'si' for Sinhala, 'ta' for Tamil, 'en' for English, or 'en' as fallback
   const detectLanguage = (text: string): string => {
-    const lang = franc(text, { minLength: 2 });
-    if (lang === 'sin') return 'si';
-    if (lang === 'tam') return 'ta';
-    if (lang === 'eng') return 'en';
+    // Sinhala Unicode range: \u0D80-\u0DFF
+    // Tamil Unicode range: \u0B80-\u0BFF
+    if (/[\u0D80-\u0DFF]/.test(text)) return 'si';
+    if (/[\u0B80-\u0BFF]/.test(text)) return 'ta';
+    // Default to English
     return 'en';
   };
 
