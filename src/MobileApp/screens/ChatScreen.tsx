@@ -15,11 +15,14 @@ import {
   Dimensions,
   Animated
 } from 'react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useLanguage } from '../services/LanguageService';
 import { API_BASE_URL } from '../config/api';
 import { getTextStyle } from '../services/FontService';
+// @ts-ignore
+const franc: any = require('franc-min');
 
 const { width } = Dimensions.get('window');
 
@@ -109,18 +112,28 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
     }
   };
 
+  // Detect language: returns 'si' for Sinhala, 'ta' for Tamil, 'en' for English, or 'en' as fallback
+  const detectLanguage = (text: string): string => {
+    const lang = franc(text, { minLength: 2 });
+    if (lang === 'sin') return 'si';
+    if (lang === 'tam') return 'ta';
+    if (lang === 'eng') return 'en';
+    return 'en';
+  };
+
   const processMessageWithGemini = async (userMessage: string) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-  const response = await axios.post(`${API_BASE_URL}/mobile/chat/gemini`, {
+      const detectedLang = detectLanguage(userMessage);
+      const response = await axios.post(`${API_BASE_URL}/mobile/chat/gemini`, {
         query: userMessage,
-        context: 'AI Safety Assistant for emergency preparedness and crisis response'
+        context: 'AI Safety Assistant for emergency preparedness and crisis response',
+        language: detectedLang
       }, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-
       return response.data;
     } catch (error) {
       console.error('Error processing with Gemini:', error);
