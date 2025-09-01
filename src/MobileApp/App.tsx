@@ -1,6 +1,6 @@
 // App.tsx
 import React, { useEffect } from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar, useColorScheme, Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './screens/LoginScreen';
@@ -16,6 +16,7 @@ import DonationHistoryScreen from './screens/DonationHistoryScreen';
 import DonationStatsScreen from './screens/DonationStatsScreen';
 import NotificationService from './services/NotificationService';
 import { LanguageProvider } from './services/LanguageService';
+import { sludiESignetService } from './services/SLUDIESignetService';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,57 @@ const App: React.FC = () => {
   useEffect(() => {
     // Initialize notification service when app starts
     console.log('🚀 Initializing notification service...');
+    
+    // Handle deep linking for eSignet authentication
+    const handleDeepLink = (url: string) => {
+      console.log('🔗 Deep link received:', url);
+      
+      // Check if this is an eSignet redirect
+      if (url.includes('ndp://dashboard')) {
+        try {
+          const urlObj = new URL(url);
+          const code = urlObj.searchParams.get('code');
+          const state = urlObj.searchParams.get('state');
+          const error = urlObj.searchParams.get('error');
+          
+          if (error) {
+            console.error('❌ eSignet authentication error:', error);
+            return;
+          }
+          
+          if (code && state) {
+            console.log('✅ eSignet authentication successful, processing...');
+            // Process the authentication code with SLUDI backend
+            sludiESignetService.exchangeCodeForUserInfo({ code, state })
+              .then((userInfo: any) => {
+                console.log('✅ User info received:', userInfo);
+                // Navigate to dashboard or handle user session
+              })
+              .catch((error: any) => {
+                console.error('❌ Error processing eSignet response:', error);
+              });
+          }
+        } catch (error) {
+          console.error('❌ Error parsing deep link:', error);
+        }
+      }
+    };
+
+    // Get the initial URL if app was opened with a deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink(url);
+      }
+    });
+
+    // Listen for deep links while app is running
+    const linkingListener = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+
+    return () => {
+      linkingListener.remove();
+    };
   }, []);
 
   return (

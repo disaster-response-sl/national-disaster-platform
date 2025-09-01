@@ -10,7 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Linking
 } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
@@ -174,6 +175,89 @@ const LoginScreen = ({ navigation }) => {
                   {loading ? t('login.signingIn') : t('login.signIn')}
                 </Text>
               </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={[styles.dividerText, getTextStyle(language)]}>
+                  {t('login.or') || 'OR'}
+                </Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* SLUDI eSignet Button */}
+              <View style={styles.esignetContainer}>
+                <TouchableOpacity 
+                  style={styles.esignetButton}
+                  onPress={() => {
+                    // Generate state and nonce exactly like SLUDI App
+                    const state = "eree2311"; // Using same state as SLUDI App
+                    const generateRandomString = (strLength = 16) => {
+                      let result = '';
+                      const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                      for (let i = 0; i < strLength; i++) {
+                        const randomInd = Math.floor(Math.random() * characters.length);
+                        result += characters.charAt(randomInd);
+                      }
+                      return result;
+                    };
+                    const nonce = generateRandomString();
+                    
+                    // Use exact SLUDI App configuration
+                    const oidcConfig = {
+                      authorizeUri: "https://sludiauth.icta.gov.lk/authorize",
+                      redirect_uri: "ndp://dashboard", // Mobile app redirect
+                      client_id: "IIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgMEyx",
+                      scope: "openid%20profile%20resident-service", // URL encoded
+                      nonce: nonce,
+                      state: state,
+                      acr_values: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:static-code",
+                      claims_locales: "en",
+                      display: "page",
+                      prompt: "consent",
+                      max_age: 21,
+                      ui_locales: "en",
+                      claims: "%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D"
+                    };
+                    
+                    // Build authorization URL exactly like SLUDI App
+                    const authParams = new URLSearchParams({
+                      response_type: "code",
+                      client_id: oidcConfig.client_id,
+                      redirect_uri: oidcConfig.redirect_uri,
+                      scope: oidcConfig.scope,
+                      state: oidcConfig.state,
+                      nonce: oidcConfig.nonce,
+                      acr_values: oidcConfig.acr_values,
+                      claims_locales: oidcConfig.claims_locales,
+                      display: oidcConfig.display,
+                      prompt: oidcConfig.prompt,
+                      max_age: oidcConfig.max_age,
+                      ui_locales: oidcConfig.ui_locales,
+                      claims: oidcConfig.claims
+                    });
+                    
+                    const authUrl = `${oidcConfig.authorizeUri}?${authParams.toString()}`;
+                    
+                    console.log('🔐 Opening SLUDI eSignet authentication:', authUrl);
+                    
+                    // Open external browser
+                    Linking.openURL(authUrl).catch(error => {
+                      console.error('Failed to open URL:', error);
+                      Alert.alert('Error', 'Unable to open authentication page');
+                    });
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.esignetButtonContent}>
+                    <Text style={styles.esignetIcon}>🏛️</Text>
+                    <Text style={styles.esignetButtonText}>Sign in with eSignet</Text>
+                  </View>
+                </TouchableOpacity>
+                <Text style={[styles.esignetDescription, getTextStyle(language)]}>
+                  {t('login.esignetDescription') || 'Sign in with your Government Digital Identity'}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -398,6 +482,69 @@ const styles = {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 6,
+  },
+  // SLUDI eSignet Button Styles
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    paddingHorizontal: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  esignetContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  esignetButton: {
+    backgroundColor: '#1e40af',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  esignetButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  esignetIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  esignetButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  esignetDescription: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    marginHorizontal: 20,
+    lineHeight: 16,
   },
 };
 
