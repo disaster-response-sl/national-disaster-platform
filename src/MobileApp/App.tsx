@@ -1,6 +1,6 @@
 // App.tsx
 import React, { useEffect } from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar, useColorScheme, Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './screens/LoginScreen';
@@ -14,6 +14,7 @@ import ConsentManagementScreen from './screens/ConsentManagementScreen';
 import MPGSDonationScreen from './screens/MPGSDonationScreen';
 import DonationHistoryScreen from './screens/DonationHistoryScreen';
 import DonationStatsScreen from './screens/DonationStatsScreen';
+import SLUDIAuthScreen from './screens/SLUDIAuthScreen';
 import NotificationService from './services/NotificationService';
 import { LanguageProvider } from './services/LanguageService';
 
@@ -27,15 +28,33 @@ const App: React.FC = () => {
     console.log('🚀 Initializing notification service...');
   }, []);
 
+  // Deep link configuration
+  const linking = {
+    prefixes: ['ndp://'],
+    config: {
+      screens: {
+        Dashboard: 'dashboard',
+      },
+    },
+  };
+
   return (
     <LanguageProvider>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <Stack.Navigator initialRouteName="Login">
           <Stack.Screen 
             name="Login" 
             component={LoginScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="SLUDIAuth" 
+            component={SLUDIAuthScreen}
+            options={{ 
+              title: 'SLUDI Authentication',
+              headerShown: false 
+            }}
           />
           <Stack.Screen 
             name="Dashboard" 

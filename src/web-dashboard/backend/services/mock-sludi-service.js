@@ -111,6 +111,19 @@ class MockSLUDIService {
   generateMockToken(user) {
     return `mock_token_${user.individualId}_${Date.now()}`;
   }
+
+  // Health check for mock service
+  async healthCheck() {
+    return {
+      success: true,
+      status: 'healthy',
+      data: {
+        service: 'mock-sludi',
+        users: this.mockUsers.length,
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
 }
 
 module.exports = MockSLUDIService;

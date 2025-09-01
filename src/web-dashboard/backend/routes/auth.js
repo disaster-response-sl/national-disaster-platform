@@ -2,7 +2,7 @@
 const express = require('express');
 // TODO: When real eSignet (SLUDI) endpoints are available, replace MockSLUDIService with actual integration
 const MockSLUDIService = require('../services/mock-sludi-service');
-// Example: const RealSLUDIService = require('../services/real-sludi-service');
+const RealSLUDIService = require('../services/real-sludi-service');
 
 // Config flag to switch between mock and real SLUDI/eSignet integration
 const USE_MOCK_SLUDI = process.env.USE_MOCK_SLUDI === 'true';
@@ -13,7 +13,7 @@ const router = express.Router();
 // Use mock or real SLUDI/eSignet service based on config
 const sludiService = USE_MOCK_SLUDI
   ? new MockSLUDIService()
-  : null; // TODO: Replace null with new RealSLUDIService() when available
+  : new RealSLUDIService();
 
 // Login endpoint (no auth required)
 // TODO: Update this endpoint to use real eSignet API when available

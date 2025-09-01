@@ -4,10 +4,30 @@ const getBaseURL = () => {
   const envUrl = process.env.REACT_NATIVE_API_BASE_URL;
   if (envUrl) return envUrl;
 
-  // Development fallback - update this with your backend URL
-  // For local development: 'http://localhost:5000/api'
-  // For production: your production API URL
-  return 'https://busy-papers-brush.loca.lt/api'; // Android emulator localhost
+  // LocalTunnel for SLUDI Integration - WITH BYPASS HEADERS (NO PASSWORD!)
+  // Headers automatically bypass tunnel reminder page
+  return 'https://tough-parents-sip.loca.lt/api';
+};
+
+// Default headers for all API requests to bypass tunnel
+export const DEFAULT_HEADERS = {
+  'Content-Type': 'application/json',
+  'bypass-tunnel-reminder': 'mobile-app',
+  'User-Agent': 'MobileApp-SLUDI/1.0.0'
+};
+
+// Helper function for API requests with bypass headers
+export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${getBaseURL()}${endpoint}`;
+  const headers = {
+    ...DEFAULT_HEADERS,
+    ...options.headers
+  };
+  
+  return fetch(url, {
+    ...options,
+    headers
+  });
 };
 
 // Commercial Bank PayDPI Configuration

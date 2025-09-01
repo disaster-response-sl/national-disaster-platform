@@ -12,6 +12,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from public directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 // Import user & mobile routes
 const authRoutes = require('./routes/auth');
 const mobileAuthRoutes = require('./routes/mobileAuth.routes');
@@ -33,13 +36,31 @@ const adminImportExportRoutes = require('./routes/admin/import-export.routes');
 // Import responder routes
 const responderNotificationsRoutes = require('./routes/responder/notifications.routes');
 
-
+// Import eSignet callback routes
+const esignetCallbackRoutes = require('./routes/esignetCallback');
 
 // Import test routes (NO AUTH - for Postman testing)
 const testCrudRoutes = require('./routes/test-crud.routes');
 
 // Import services
 const SosEscalationService = require('./services/sos-escalation.service');
+
+// eSignet Integration (as per Integration Guide)
+const { post_GetToken, get_GetUserInfo } = require("./services/esignetService");
+
+// eSignet fetchUserInfo endpoint (Integration Guide requirement)
+app.post("/fetchUserInfo", async (req, res) => {
+  try {
+    console.log('📥 eSignet fetchUserInfo request:', req.body);
+    const tokenResponse = await post_GetToken(req.body);
+    const userInfo = await get_GetUserInfo(tokenResponse.access_token);
+    console.log('✅ eSignet fetchUserInfo success:', userInfo);
+    res.send(userInfo);
+  } catch (error) {
+    console.error('❌ eSignet fetchUserInfo error:', error);
+    res.status(500).send(error);
+  }
+});
 
 // Use user & mobile routes
 app.use('/api/auth', authRoutes);
@@ -65,6 +86,9 @@ app.use('/api/admin/import-export', adminImportExportRoutes);     // Import/Expo
 
 // Use responder routes
 app.use('/api/responder/notifications', responderNotificationsRoutes);
+
+// Use eSignet callback routes
+app.use('/esignet', esignetCallbackRoutes);
 
 // Use donation routes
 app.use('/api', donationRoutes);

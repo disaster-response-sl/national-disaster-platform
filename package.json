@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "franc-min": "^6.2.0"
+    "franc-min": "^6.2.0",
+    "react-native-webview": "^13.16.0"
   }
 }

@@ -11,7 +11,8 @@ import {
   Dimensions,
   Image,
   Platform,
-  PermissionsAndroid
+  PermissionsAndroid,
+  Linking
 } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +23,7 @@ import { API_BASE_URL } from '../config/api';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { getCurrentLocationWithFallback, showLocationErrorAlert } from '../services/LocationService';
 
 const { width } = Dimensions.get('window');
 
@@ -47,9 +49,15 @@ interface AlertItem {
 
 interface NavigationProps {
   navigation: any;
+  route?: {
+    params?: {
+      auth_code?: string;
+      state?: string;
+    };
+  };
 }
 
-const DashboardScreen = ({ navigation }: NavigationProps) => {
+const DashboardScreen = ({ navigation, route }: NavigationProps) => {
   const { t, language } = useLanguage();
   const [location, setLocation] = useState<Location | null>(null);
   const [locationName, setLocationName] = useState<string>('Unknown');
@@ -61,6 +69,11 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const [userName, setUserName] = useState<string>('User');
   const [availableResources, setAvailableResources] = useState<any[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<boolean>(false);
+  
+  // eSignet authentication states
+  const [authCode, setAuthCode] = useState<string | null>(null);
+  const [esignetUserInfo, setEsignetUserInfo] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(false);
 
   // Request notification permissions
   const requestNotificationPermission = async () => {
@@ -144,6 +157,118 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
     fetchAvailableResources();
   }, []);
 
+  // Handle eSignet authentication callback
+  useEffect(() => {
+    const handleESignetAuth = () => {
+      // Check for authentication code from route params (navigation)
+      if (route?.params?.auth_code) {
+        console.log('📱 eSignet auth code received from navigation:', route.params.auth_code);
+        setAuthCode(route.params.auth_code);
+        exchangeESignetTokens(route.params.auth_code);
+        return;
+      }
+
+      // Check for deep link URL
+      const handleDeepLink = (url: string) => {
+        console.log('📱 Deep link received:', url);
+        
+        if (url.includes('auth_code=')) {
+          const urlParams = new URLSearchParams(url.split('?')[1]);
+          const code = urlParams.get('auth_code');
+          const state = urlParams.get('state');
+          
+          if (code) {
+            console.log('📱 eSignet auth code extracted from deep link:', code);
+            setAuthCode(code);
+            exchangeESignetTokens(code);
+          }
+        }
+      };
+
+      // Listen for deep link events
+      const linkingListener = Linking.addEventListener('url', ({ url }) => {
+        handleDeepLink(url);
+      });
+
+      // Check initial URL (app opened from deep link)
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          handleDeepLink(url);
+        }
+      });
+
+      return () => {
+        linkingListener?.remove();
+      };
+    };
+
+    handleESignetAuth();
+  }, [route]);
+
+  // Exchange eSignet authorization code for user info
+  const exchangeESignetTokens = async (code: string) => {
+    setAuthLoading(true);
+
+    try {
+      console.log('🔄 Exchanging eSignet authorization code for tokens...');
+      
+      // Call our backend to exchange tokens with eSignet
+      const response = await fetch(`${API_BASE_URL}/fetchUserInfo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: code,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`eSignet token exchange failed: ${response.status}`);
+      }
+
+      const userData = await response.json();
+      console.log('✅ eSignet user info received:', userData);
+      
+      setEsignetUserInfo(userData);
+      
+      // Update user name from eSignet data
+      if (userData.given_name) {
+        setUserName(userData.given_name);
+        await AsyncStorage.setItem('esignetUserName', userData.given_name);
+      }
+      
+      // Store eSignet user info
+      await AsyncStorage.setItem('esignetUserInfo', JSON.stringify(userData));
+      await AsyncStorage.setItem('isESignetAuthenticated', 'true');
+      
+      // Show success message
+      Alert.alert(
+        t('eSignet Authentication Successful! 🎉') || 'eSignet Authentication Successful! 🎉',
+        t('You have been successfully authenticated with eSignet.') || 'You have been successfully authenticated with eSignet.',
+        [{ text: 'OK' }]
+      );
+
+      // Send notification about successful authentication
+      await sendLocalNotification(
+        'eSignet Authentication Successful',
+        'You are now authenticated with Sri Lanka Digital Identity',
+        'medium'
+      );
+
+    } catch (error) {
+      console.error('❌ eSignet token exchange error:', error);
+      
+      Alert.alert(
+        t('Authentication Error') || 'Authentication Error',
+        t('Failed to complete eSignet authentication. Please try again.') || 'Failed to complete eSignet authentication. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const getUserInfo = async () => {
     try {
       const role = await AsyncStorage.getItem('role');
@@ -179,56 +304,49 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
     );
   };
 
-  const getCurrentLocation = () => {
-    // Sri Lanka location presets for testing/fallback
-    const SRI_LANKA_LOCATIONS = {
-      malabe: { lat: 6.9056, lng: 79.958, name: 'Malabe' },
-      colombo: { lat: 6.9271, lng: 79.8612, name: 'Colombo' },
-      negombo: { lat: 7.2008, lng: 79.8737, name: 'Negombo' },
-      ratnapura: { lat: 6.6847, lng: 80.4025, name: 'Ratnapura' },
-      kandy: { lat: 7.2906, lng: 80.6337, name: 'Kandy' },
-      galle: { lat: 6.0535, lng: 80.2210, name: 'Galle' },
-      jaffna: { lat: 9.6615, lng: 80.0255, name: 'Jaffna' },
-      trincomalee: { lat: 8.5874, lng: 81.2152, name: 'Trincomalee' }
-    };
-
-    Geolocation.getCurrentPosition(
-      position => {
-        const { latitude, longitude } = position.coords;
-        console.log('📍 GPS Location detected:', latitude, longitude);
+  const getCurrentLocation = async () => {
+    console.log('🎯 Getting location with improved error handling...');
+    
+    try {
+      const result = await getCurrentLocationWithFallback();
+      
+      if (result.success && result.location) {
+        console.log('✅ Location obtained:', result.location, result.name);
+        setLocation(result.location);
+        setLocationName(result.name || 'Unknown Location');
         
-        // Check if we're in Sri Lanka (lat: 5.9-9.9, lng: 79.5-81.9)
-        const isInSriLanka = (latitude >= 5.9 && latitude <= 9.9) && 
-                            (longitude >= 79.5 && longitude <= 81.9);
+        // Fetch weather and risk data
+        fetchWeatherData(result.location.lat, result.location.lng);
+        fetchRiskStatus(result.location.lat, result.location.lng);
         
-        if (!isInSriLanka) {
-          console.warn('⚠️ GPS shows location outside Sri Lanka');
-          setLocation({ lat: latitude, lng: longitude });
-          setLocationName(`Lat: ${latitude.toFixed(3)}, Lng: ${longitude.toFixed(3)}`);
-          // Optionally, you can call fetchWeatherData/fetchRiskStatus here if you want to show info for out-of-SL locations
-        } else {
-          // Valid Sri Lankan location
-          console.log('✅ Valid Sri Lankan location detected');
-          setLocation({ lat: latitude, lng: longitude });
-          setLocationName('Sri Lanka');
-          fetchWeatherData(latitude, longitude);
-          fetchRiskStatus(latitude, longitude);
+        // Show alert if there was an error but we used fallback
+        if (result.error) {
+          showLocationErrorAlert(result.error);
         }
-      },
-      error => {
-        console.error('Location error:', error);
-        console.log('🧪 GPS failed, showing location selection');
+      } else {
+        console.error('❌ Failed to get any location');
+        // Ultimate fallback
+        const colombo = { lat: 6.9271, lng: 79.8612 };
+        setLocation(colombo);
+        setLocationName('Colombo (Fallback)');
+        fetchWeatherData(colombo.lat, colombo.lng);
+        fetchRiskStatus(colombo.lat, colombo.lng);
         
         Alert.alert(
-          t('location.error'),
-          t('location.errorMessage'),
-          [
-            { text: t('notifications.ok'), onPress: () => {} }
-          ]
+          'Location Error',
+          'Unable to determine location. Using Colombo as default.',
+          [{ text: 'OK' }]
         );
-      },
-  { enableHighAccuracy: true, timeout: 40000, maximumAge: 10000 }
-    );
+      }
+    } catch (error) {
+      console.error('❌ Unexpected location error:', error);
+      // Ultimate fallback
+      const colombo = { lat: 6.9271, lng: 79.8612 };
+      setLocation(colombo);
+      setLocationName('Colombo (Error Fallback)');
+      fetchWeatherData(colombo.lat, colombo.lng);
+      fetchRiskStatus(colombo.lat, colombo.lng);
+    }
   };
 
   const useTestLocation = (locationData: any) => {

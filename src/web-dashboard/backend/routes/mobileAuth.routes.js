@@ -8,6 +8,10 @@ const ChatLog = require('../models/ChatLog');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const MockSLUDIService = require('../services/mock-sludi-service');
+const RealSLUDIService = require('../services/real-sludi-service');
+
+// Config flag to switch between mock and real SLUDI/eSignet integration
+const USE_MOCK_SLUDI = process.env.USE_MOCK_SLUDI === 'true';
 
 // Gemini AI integration
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -35,7 +39,7 @@ RESPONSE FORMAT:
 - End with follow-up resources or contacts`;
 
 const router = express.Router();
-const sludiService = new MockSLUDIService();
+const sludiService = USE_MOCK_SLUDI ? new MockSLUDIService() : new RealSLUDIService();
 const { authenticateToken } = require('../middleware/auth');
 
 // Utility function to validate NIC (simplified)
@@ -69,16 +73,44 @@ router.post('/login', async (req, res) => {
     console.log('SLUDI response:', authResponse);
     
     if (authResponse.response.authStatus) {
-      // Simulate user DB lookup
-      const userData = sludiService.mockUsers.find(u => u.individualId === individualId);
-      console.log('Found user data:', userData);
+      let userData = null;
       
-      // Generate a mock _id for user
+      if (USE_MOCK_SLUDI) {
+        // Use mock data for testing
+        userData = sludiService.mockUsers.find(u => u.individualId === individualId);
+      } else {
+        // Fetch real user data from SLUDI
+        try {
+          const profileResponse = await sludiService.getUserProfile(individualId, authResponse.response.authToken);
+          if (profileResponse.success) {
+            userData = {
+              individualId: individualId,
+              name: profileResponse.userData.name || 'Unknown',
+              email: profileResponse.userData.email,
+              phone: profileResponse.userData.phone,
+              role: profileResponse.userData.role || 'citizen',
+              location: profileResponse.userData.location
+            };
+          }
+        } catch (error) {
+          console.warn('Failed to fetch user profile from SLUDI, using basic data:', error);
+          userData = {
+            individualId: individualId,
+            name: 'Unknown',
+            role: 'citizen'
+          };
+        }
+      }
+      
+      // Generate a user object for JWT
       const user = {
         _id: userData ? userData.individualId : individualId,
         individualId: userData ? userData.individualId : individualId,
         name: userData ? userData.name : 'Unknown',
-        role: userData ? userData.role : 'Citizen'
+        role: userData ? userData.role : 'citizen',
+        email: userData ? userData.email : null,
+        phone: userData ? userData.phone : null,
+        location: userData ? userData.location : null
       };
       
       const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
@@ -112,6 +144,184 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// GET /api/mobile/sludi/health - Health check for SLUDI service
+router.get('/sludi/health', async (req, res) => {
+  try {
+    const healthResult = await sludiService.healthCheck();
+    res.json({
+      success: true,
+      sludiService: {
+        type: USE_MOCK_SLUDI ? 'mock' : 'real',
+        status: healthResult.status,
+        healthy: healthResult.success
+      },
+      data: healthResult.data
+    });
+  } catch (error) {
+    console.error('SLUDI health check error:', error);
+    res.status(500).json({
+      success: false,
+      sludiService: {
+        type: USE_MOCK_SLUDI ? 'mock' : 'real',
+        status: 'unhealthy',
+        healthy: false
+      },
+      error: error.message
+    });
+  }
+});
+
+// POST /api/mobile/sludi/auth-url - Get SLUDI authorization URL for mobile
+router.post('/sludi/auth-url', async (req, res) => {
+  try {
+    const { individualId } = req.body;
+    
+    if (!USE_MOCK_SLUDI) {
+      // Use real SLUDI service
+      const authResult = await sludiService.mobileAuthenticate(individualId);
+      
+      if (authResult.success) {
+        res.json({
+          success: true,
+          authorizationUrl: authResult.authorizationUrl,
+          state: authResult.state,
+          message: authResult.message
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: authResult.error || 'Failed to generate SLUDI authorization URL'
+        });
+      }
+    } else {
+      // For mock service, return a tunnel-accessible mock authentication URL
+      const mockState = `mock_${individualId}_${Date.now()}`;
+      // Use the same host that the request came from (works with any tunnel URL)
+      const tunnelHost = req.get('host');
+      const protocol = req.secure ? 'https' : 'http';
+      const mockAuthUrl = `${protocol}://${tunnelHost}/api/mobile/mock-sludi-auth?state=${mockState}&individual_id=${individualId}`;
+      
+      console.log('🌐 Generated mock SLUDI URL:', mockAuthUrl);
+      
+      res.json({
+        success: true,
+        authorizationUrl: mockAuthUrl,
+        state: mockState,
+        message: 'Mock SLUDI authorization URL generated (tunnel-aware)'
+      });
+    }
+  } catch (error) {
+    console.error('SLUDI auth URL error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate authorization URL'
+    });
+  }
+});
+
+// POST /api/mobile/sludi/token - Exchange authorization code for token
+router.post('/sludi/token', async (req, res) => {
+  try {
+    const { code, state } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Authorization code is required'
+      });
+    }
+    
+    if (!USE_MOCK_SLUDI) {
+      // Use real SLUDI service
+      const tokenResult = await sludiService.exchangeCodeForToken(code);
+      
+      if (tokenResult.success) {
+        // Get user profile
+        const profileResult = await sludiService.getUserProfile(tokenResult.accessToken);
+        
+        let userData = {
+          individualId: 'unknown',
+          name: 'Unknown User',
+          role: 'citizen'
+        };
+        
+        if (profileResult.success) {
+          userData = {
+            individualId: profileResult.userData.sub || 'unknown',
+            name: profileResult.userData.given_name || profileResult.userData.name || 'Unknown User',
+            email: profileResult.userData.email,
+            phone: profileResult.userData.phone_number,
+            role: 'citizen' // Default role for SLUDI users
+          };
+        }
+        
+        // Generate JWT token for the app
+        const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
+        const appToken = jwt.sign(
+          {
+            _id: userData.individualId,
+            individualId: userData.individualId,
+            role: userData.role,
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            sludiToken: tokenResult.accessToken
+          },
+          jwtSecret,
+          { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+        );
+        
+        res.json({
+          success: true,
+          token: appToken,
+          user: userData,
+          message: 'SLUDI authentication successful'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: tokenResult.error || 'Failed to exchange authorization code'
+        });
+      }
+    } else {
+      // Mock response for testing
+      const mockUser = {
+        individualId: 'mock_citizen_001',
+        name: 'Mock SLUDI User',
+        role: 'citizen',
+        email: 'mock@example.com'
+      };
+      
+      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
+      const appToken = jwt.sign(
+        {
+          _id: mockUser.individualId,
+          individualId: mockUser.individualId,
+          role: mockUser.role,
+          name: mockUser.name,
+          email: mockUser.email,
+          sludiToken: 'mock_sludi_token'
+        },
+        jwtSecret,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      );
+      
+      res.json({
+        success: true,
+        token: appToken,
+        user: mockUser,
+        message: 'Mock SLUDI authentication successful'
+      });
+    }
+  } catch (error) {
+    console.error('SLUDI token exchange error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process authorization code'
+    });
   }
 });
 
@@ -580,6 +790,162 @@ router.get('/test-gemini', async (req, res) => {
       details: error.stack
     });
   }
+});
+
+// GET /api/mobile/mock-sludi-auth - Mock SLUDI authentication page
+router.get('/mock-sludi-auth', (req, res) => {
+  const { state, individual_id } = req.query;
+  
+  const mockAuthPage = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SLUDI Mock Authentication</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .auth-container {
+                background: white;
+                border-radius: 12px;
+                padding: 30px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                max-width: 400px;
+                width: 100%;
+            }
+            .logo {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .logo h1 {
+                color: #2d3748;
+                margin: 10px 0 5px 0;
+                font-size: 24px;
+            }
+            .logo p {
+                color: #718096;
+                margin: 0;
+                font-size: 14px;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            label {
+                display: block;
+                margin-bottom: 8px;
+                color: #2d3748;
+                font-weight: 500;
+            }
+            input[type="text"], input[type="password"] {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 16px;
+                transition: border-color 0.3s;
+                box-sizing: border-box;
+            }
+            input[type="text"]:focus, input[type="password"]:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+            .auth-btn {
+                width: 100%;
+                padding: 12px;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            .auth-btn:hover {
+                background: #5a6fd8;
+            }
+            .info-box {
+                background: #f7fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                font-size: 14px;
+                color: #4a5568;
+            }
+            .info-box strong {
+                color: #2d3748;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="auth-container">
+            <div class="logo">
+                <div style="font-size: 48px;">🏛️</div>
+                <h1>SLUDI Authentication</h1>
+                <p>Sri Lankan Digital Identity</p>
+            </div>
+            
+            <div class="info-box">
+                <strong>Mock Authentication</strong><br>
+                This is a test environment. Use any of these credentials:<br>
+                • ID: <strong>citizen001</strong>, OTP: <strong>123456</strong><br>
+                • ID: <strong>responder001</strong>, OTP: <strong>123456</strong><br>
+                • ID: <strong>admin001</strong>, OTP: <strong>123456</strong>
+            </div>
+
+            <form id="mockAuthForm">
+                <div class="form-group">
+                    <label for="individualId">Individual ID / NIC</label>
+                    <input type="text" id="individualId" name="individualId" value="${individual_id || ''}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="otp">OTP Code</label>
+                    <input type="password" id="otp" name="otp" placeholder="Enter 6-digit OTP" required>
+                </div>
+                
+                <button type="submit" class="auth-btn">Authenticate</button>
+            </form>
+        </div>
+
+        <script>
+            document.getElementById('mockAuthForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const individualId = document.getElementById('individualId').value;
+                const otp = document.getElementById('otp').value;
+                
+                // Simulate authentication delay
+                const button = document.querySelector('.auth-btn');
+                button.textContent = 'Authenticating...';
+                button.disabled = true;
+                
+                setTimeout(() => {
+                    // Generate mock authorization code
+                    const authCode = 'mock_auth_code_' + Date.now();
+                    
+                    // Create a callback URL that the WebView can detect
+                    const callbackUrl = 'https://auth.callback.local/auth/callback?code=' + authCode + '&state=${state}&individual_id=' + individualId;
+                    
+                    window.location.href = callbackUrl;
+                }, 1500);
+            });
+        </script>
+    </body>
+    </html>
+  `;
+  
+  res.send(mockAuthPage);
 });
 
 module.exports = router;

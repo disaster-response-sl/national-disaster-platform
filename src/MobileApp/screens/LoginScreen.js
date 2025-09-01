@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthService from '../services/AuthService';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
+import ESignetButton from '../components/ESignetButton';
 
 const { width, height } = Dimensions.get('window');
 
@@ -174,6 +175,22 @@ const LoginScreen = ({ navigation }) => {
                   {loading ? t('login.signingIn') : t('login.signIn')}
                 </Text>
               </TouchableOpacity>
+
+              {/* Separator */}
+              <View style={styles.separatorContainer}>
+                <View style={styles.separatorLine} />
+                <Text style={[styles.separatorText, getTextStyle(language)]}>
+                  OR
+                </Text>
+                <View style={styles.separatorLine} />
+              </View>
+
+              {/* eSignet Authentication Button (Integration Guide Compliant) */}
+              <ESignetButton 
+                navigation={navigation}
+                disabled={loading}
+                style={styles.esignetButtonContainer}
+              />
             </View>
           </View>
 
@@ -332,6 +349,25 @@ const styles = {
     textAlign: 'center',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  separatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  separatorText: {
+    color: '#64748b',
+    fontSize: 14,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+  },
+  esignetButtonContainer: {
+    marginTop: 4,
   },
   demoSection: {
     paddingHorizontal: 20,
