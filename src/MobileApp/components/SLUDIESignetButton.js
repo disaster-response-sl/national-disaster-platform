@@ -41,8 +41,8 @@ const SLUDIESignetButton = ({ style, onPress, onSuccess, onError }) => {
         max_age: '21'
       });
 
-      const authUrl = `https://sludiauth.icta.gov.lk/login?${authParams.toString()}`;
-      
+    //   const authUrl = `https://sludiauth.icta.gov.lk/login?${authParams.toString()}`;
+      const authUrl=`https://sludiauth.icta.gov.lk/v1/esignet/oauth/v2/authorize?${authParams.toString()}`;
       
       console.log('🔐 Opening eSignet authentication URL:', authUrl);
 
