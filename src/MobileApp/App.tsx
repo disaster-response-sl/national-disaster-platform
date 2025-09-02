@@ -80,74 +80,28 @@ const App: React.FC = () => {
       
       // Check if this is an eSignet redirect
       if (url.includes('ndp://dashboard')) {
-        try {
-          const urlObj = new URL(url);
-          const code = urlObj.searchParams.get('code');
-          const error = urlObj.searchParams.get('error');
-          
-          if (error) {
-            console.error('❌ eSignet authentication error:', error);
-            // Use mock JWT as fallback
-            await useMockAuth();
-            return;
+        console.log('✅ SLUDI redirect received - logging in with citizen001...');
+        
+        // Simple: Any SLUDI redirect = automatic login with citizen001
+        await useMockAuth();
+        
+        // Navigate to dashboard
+        setTimeout(() => {
+          if (navigationRef.current) {
+            console.log('🏠 Navigating to dashboard...');
+            navigationRef.current.navigate('Dashboard' as never);
           }
-          
-          if (code) {
-            console.log('✅ eSignet code received:', code.substring(0, 10) + '...');
-            console.log('🔧 Using mock authentication (SLUDI backend integration disabled)');
-            // For now, always use mock auth to ensure the app works
-            // TODO: Enable real SLUDI backend once network issues are resolved
-            await useMockAuth();
-            
-            /* Commented out real SLUDI integration for now
-            try {
-              // Call SLUDI backend to exchange code for access token
-              const userInfo = await sludiESignetService.exchangeCodeForUserInfo({ code });
-              console.log('✅ User authenticated:', userInfo);
-              
-              // Store authentication token (assuming userInfo contains a token)
-              const token = userInfo.access_token || userInfo.token || generateMockJWT();
-              await AsyncStorage.setItem('authToken', token);
-              await AsyncStorage.setItem('userInfo', JSON.stringify(userInfo));
-              
-              console.log('🏠 SLUDI authentication successful');
-              
-              // Navigate to dashboard after successful authentication
-              setTimeout(() => {
-                if (navigationRef.current) {
-                  console.log('🏠 Navigating to dashboard...');
-                  navigationRef.current.navigate('Dashboard' as never);
-                }
-              }, 1000);
-              
-            } catch (error) {
-              console.error('❌ Failed to exchange code:', error);
-              console.log('🔧 Network issue with SLUDI backend, using mock authentication...');
-              // Fallback to mock JWT
-              await useMockAuth();
-            }
-            */
-          } else {
-            console.warn('⚠️ No code found in redirect URL, using mock auth');
-            // Fallback to mock JWT
-            await useMockAuth();
-          }
-        } catch (error) {
-          console.error('❌ Error parsing deep link:', error);
-          // Fallback to mock JWT
-          await useMockAuth();
-        }
+        }, 500);
       }
     };
 
-    // Simple mock authentication fallback
+    // Authentication fallback - try backend login first, then offline mock
     const useMockAuth = async () => {
-      console.log('🔧 Using mock authentication via backend login...');
-      console.log('📝 This will get a real JWT token from the backend');
+      console.log('🔧 Trying backend login with demo credentials...');
       
       try {
-        // Call the backend login endpoint to get a proper JWT token
-        const apiUrl = `${API_BASE_URL.replace('/api', '')}/api/mobile/login`;
+        // First try: Real backend login with correct demo credentials
+        const apiUrl = `${API_BASE_URL}/mobile/login`;
         console.log('📡 Calling backend login at:', apiUrl);
         
         const loginResponse = await fetch(apiUrl, {
@@ -156,49 +110,61 @@ const App: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            individualId: 'demo-user-123',
+            individualId: 'citizen001',
             otp: '123456'
           })
         });
         
-        console.log('📡 Backend response status:', loginResponse.status);
         const loginData = await loginResponse.json();
-        console.log('📡 Backend response data:', loginData);
         
         if (loginData.success && loginData.token) {
-          console.log('✅ Backend login successful, received real JWT token');
+          console.log('✅ Backend login successful with citizen001 credentials');
           
-          // Store the real token and user info
           await AsyncStorage.setItem('authToken', loginData.token);
           await AsyncStorage.setItem('userInfo', JSON.stringify(loginData.user || {
-            name: 'SLUDI Demo User',
-            email: 'sludi.demo@gov.lk',
+            name: 'Citizen User',
+            email: 'citizen001@gov.lk',
             role: 'Citizen'
           }));
+          await AsyncStorage.setItem('userId', loginData.user?._id || 'citizen001');
           
-          console.log('👤 Authenticated user:', loginData.user?.name || 'SLUDI Demo User');
-          
-        } else {
-          throw new Error(`Backend login failed: ${loginData.message || 'Unknown error'}`);
+          console.log('👤 Authenticated with real JWT token from backend');
+          return; // Success - exit function
         }
+        
+        throw new Error('Backend login failed');
+        
       } catch (error) {
         console.error('❌ Backend login failed:', error);
-        console.log('🔧 Using hardcoded test token as final fallback...');
+        console.log('🔧 Using offline mock token as fallback...');
         
-        // Use a fresh, valid test token generated with the backend's JWT secret
-        const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJzbHVkaS1kZW1vLXVzZXItMTIzIiwiaW5kaXZpZHVhbElkIjoic2x1ZGktZGVtby11c2VyLTEyMyIsInJvbGUiOiJDaXRpemVuIiwibmFtZSI6IlNMVURJIERlbW8gVXNlciIsImlhdCI6MTc1Njc2OTE2OCwiZXhwIjoxNzU5MzYxMTY4fQ.wh-dDvF78z_g1LDeqLHgw3etDD3Gw3yfrrKz59pqY0Y';
-        
-        const mockUserInfo = {
-          _id: 'sludi-demo-user-123',
-          name: 'SLUDI Demo User',
-          email: 'sludi.demo@gov.lk',
+        // Fallback: Generate offline mock token
+        const currentTime = Math.floor(Date.now() / 1000);
+        const tokenPayload = {
+          _id: 'offline-user-' + Date.now(),
+          individualId: 'offline-user-' + Date.now(),
           role: 'Citizen',
-          authMethod: 'VALID_TEST_TOKEN'
+          name: 'Offline Demo User',
+          email: 'offline.demo@gov.lk',
+          iat: currentTime,
+          exp: currentTime + (24 * 60 * 60)
         };
         
-        await AsyncStorage.setItem('authToken', testToken);
-        await AsyncStorage.setItem('userInfo', JSON.stringify(mockUserInfo));
-        console.log('✅ Test token stored successfully');
+        const tokenHeader = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+        const tokenBody = btoa(JSON.stringify(tokenPayload));
+        const mockToken = `${tokenHeader}.${tokenBody}.offline_signature_${Date.now()}`;
+        
+        await AsyncStorage.setItem('authToken', mockToken);
+        await AsyncStorage.setItem('userInfo', JSON.stringify({
+          _id: tokenPayload._id,
+          name: tokenPayload.name,
+          email: tokenPayload.email,
+          role: tokenPayload.role,
+          authMethod: 'OFFLINE_FALLBACK'
+        }));
+        await AsyncStorage.setItem('userId', tokenPayload._id);
+        
+        console.log('✅ Offline fallback token created');
       }
       
       // Navigate to dashboard after successful authentication
@@ -293,7 +259,7 @@ const App: React.FC = () => {
 
           <Stack.Screen 
             name="MPGSDonation" 
-            component={(props) => <MPGSDonationScreen {...props} />}
+            component={(props: any) => <MPGSDonationScreen {...props} />}
             options={{ 
               title: 'Make Donation',
               headerStyle: { backgroundColor: '#27ae60' },

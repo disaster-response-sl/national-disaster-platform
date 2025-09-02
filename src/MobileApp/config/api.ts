@@ -7,7 +7,7 @@ const getBaseURL = () => {
   // Development fallback - update this with your backend URL
   // For local development: 'http://localhost:5000/api'
   // For production: your production API URL
-  return 'https://deep-eels-cover.loca.lt/api'; 
+  return 'https://five-moose-drive.loca.lt/api'; 
 };
 
 // Commercial Bank PayDPI Configuration
