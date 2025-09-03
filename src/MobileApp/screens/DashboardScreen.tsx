@@ -427,7 +427,8 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       }
     } catch (error) {
       console.error('❌ Risk assessment error:', error);
-      setRiskStatus('Low');
+      console.log('📱 Using default risk status (backend unavailable)');
+      setRiskStatus('Medium'); // Default to medium risk when backend is unavailable
     }
   };
 

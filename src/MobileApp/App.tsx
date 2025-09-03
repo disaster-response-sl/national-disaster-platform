@@ -115,7 +115,19 @@ const App: React.FC = () => {
           })
         });
         
-        const loginData = await loginResponse.json();
+        console.log('📡 Backend response status:', loginResponse.status);
+        
+        // Check if response is valid JSON
+        const responseText = await loginResponse.text();
+        console.log('📡 Raw response:', responseText.substring(0, 200));
+        
+        let loginData;
+        try {
+          loginData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('❌ JSON Parse error:', parseError);
+          throw new Error(`Invalid JSON response from backend: ${responseText.substring(0, 100)}`);
+        }
         
         if (loginData.success && loginData.token) {
           console.log('✅ Backend login successful with citizen001 credentials');
@@ -259,7 +271,7 @@ const App: React.FC = () => {
 
           <Stack.Screen 
             name="MPGSDonation" 
-            component={(props: any) => <MPGSDonationScreen {...props} />}
+            component={MPGSDonationScreen}
             options={{ 
               title: 'Make Donation',
               headerStyle: { backgroundColor: '#27ae60' },

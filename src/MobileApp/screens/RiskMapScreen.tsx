@@ -1,5 +1,5 @@
 // components/RiskMapScreen.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -82,79 +82,61 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   const fetchDisasters = async () => {
     try {
       let token = await AsyncStorage.getItem('authToken');
-      console.log('Auth token:', token ? 'Present' : 'Missing');
-      console.log('Auth token value:', token);
 
       // TEMPORARY FIX: Use test token if no token is stored
       if (!token) {
         console.warn('No auth token found, using test token for debugging');
         token =
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJ0ZXN0LXVzZXItMTIzIiwiaW5kaXZpZHVhbElkIjoidGVzdC11c2VyLTEyMyIsInJvbGUiOiJDaXRpemVuIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTc1NTk0NzExNSwiZXhwIjoxNzU2MDMzNTE1fQ.KvJrjN-i0lDKIHf8GnQLMMRWb1cFjxpVfcnkdI8lXPI';
-        // Store the test token for future use
         await AsyncStorage.setItem('authToken', token);
       }
 
-      let userLocationForNDX = null;
-      if (userLocation) {
-        userLocationForNDX = { lat: userLocation.latitude, lng: userLocation.longitude };
-      } else {
-        userLocationForNDX = { lat: 6.9271, lng: 79.8612 };
-      }
-
-      // TEMPORARILY DISABLE NDX SERVICE TO USE REAL DATABASE DATA
-      // Try NDX service first
-      const useNDX = false; // Set to false to use real database data
+      // NDX service disabled for performance
+      const useNDX = false;
       if (useNDX) {
         try {
-          console.log('🔍 Trying NDX service...');
+          const userLocationForNDX = userLocation 
+            ? { lat: userLocation.latitude, lng: userLocation.longitude }
+            : { lat: 6.9271, lng: 79.8612 };
+          
           const ndxResult = await NDXService.getDisasterInfo(userLocationForNDX);
           if (ndxResult.success && ndxResult.data) {
-            console.log('✅ NDX disaster data retrieved:', ndxResult.data.length, 'disasters');
-            console.log('NDX data:', JSON.stringify(ndxResult.data, null, 2));
             setDisasters(ndxResult.data);
             setOfflineMode(false);
             return;
-          } else {
-            console.log('❌ NDX returned no data or failed');
           }
         } catch (ndxError) {
-          console.log('❌ NDX not available, falling back to direct API:', ndxError);
+          console.log('NDX not available, falling back to direct API');
         }
-      } else {
-        console.log('🔧 NDX service disabled, using direct API');
       }
 
-      // Fallback to direct API
-      console.log('🌐 Making API call to:', `${API_BASE_URL}/mobile/disasters`);
+      // Direct API call with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
       const response = await axios.get(`${API_BASE_URL}/mobile/disasters`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal
       });
 
-      console.log('✅ API Response status:', response.status);
-      console.log('📄 API Response data:', JSON.stringify(response.data, null, 2));
+      clearTimeout(timeoutId);
 
       const fetchedDisasters = response.data?.data || [];
-      console.log('📊 Parsed disasters:', fetchedDisasters.length, 'disasters found');
-      console.log('🔍 Disaster details:', JSON.stringify(fetchedDisasters, null, 2));
-
       setDisasters(fetchedDisasters);
 
+      // Cache disasters for offline use
       await AsyncStorage.setItem('cachedDisasters', JSON.stringify(fetchedDisasters));
       await AsyncStorage.setItem('disastersCacheTime', new Date().toISOString());
 
       setOfflineMode(false);
     } catch (error: any) {
       console.error('Error fetching disasters:', error);
-      console.error('Error response:', error?.response?.data);
-      console.error('Error status:', error?.response?.status);
 
       if (error?.response?.status === 401) {
         Alert.alert('Authentication Error', 'Please log in again');
       } else {
-        Alert.alert('Network Error', 'Failed to fetch disaster data. Please check your connection.');
+        await loadCachedDisasters();
       }
-
-      await loadCachedDisasters();
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -166,36 +148,26 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
       const cachedData = await AsyncStorage.getItem('cachedDisasters');
       const cacheTime = await AsyncStorage.getItem('disastersCacheTime');
 
-      console.log('🗂️ Checking cached data...');
-      console.log('Cached data exists:', !!cachedData);
-      console.log('Cache time exists:', !!cacheTime);
-
       if (cachedData && cacheTime) {
         const parsedDisasters = JSON.parse(cachedData);
         const cacheAge = new Date().getTime() - new Date(cacheTime).getTime();
         const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
-
-        console.log('📦 Cached disasters count:', parsedDisasters.length);
-        console.log('⏰ Cache age (hours):', Math.round(cacheAge / (1000 * 60 * 60)));
-        console.log('🔍 Cached data:', JSON.stringify(parsedDisasters, null, 2));
 
         if (cacheAge < maxCacheAge) {
           setDisasters(parsedDisasters);
           setOfflineMode(true);
           Alert.alert(t('riskMap.offlineTitle'), t('riskMap.offlineMessage'));
         } else {
-          console.log('❌ Cache expired, clearing...');
           await AsyncStorage.removeItem('cachedDisasters');
           await AsyncStorage.removeItem('disastersCacheTime');
           Alert.alert(t('riskMap.cacheExpiredTitle'), t('riskMap.cacheExpiredMessage'));
         }
       } else {
-  console.log('❌ No cached data found');
-  Alert.alert(t('riskMap.noCacheTitle'), t('riskMap.noCacheMessage'));
+        Alert.alert(t('riskMap.noCacheTitle'), t('riskMap.noCacheMessage'));
       }
     } catch (error) {
       console.error('Error loading cached disasters:', error);
-  Alert.alert(t('riskMap.cacheErrorTitle'), t('riskMap.cacheErrorMessage'));
+      Alert.alert(t('riskMap.cacheErrorTitle'), t('riskMap.cacheErrorMessage'));
     }
   };
 
@@ -214,19 +186,16 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
   // Function to test API connection
   const testAPIConnection = async () => {
     try {
-      console.log('🔍 Testing API connection...');
       const token = await AsyncStorage.getItem('authToken');
-      console.log('Using token:', token);
-
       const response = await axios.get(`${API_BASE_URL}/mobile/disasters`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 5000 // Add timeout for faster feedback
       });
 
-  console.log('✅ API Test Success:', response.status, response.data);
-  Alert.alert(t('debug.apiTestTitle'), t('debug.apiTestSuccess', { count: response.data?.data?.length || 0 }));
+      Alert.alert(t('debug.apiTestTitle'), t('debug.apiTestSuccess', { count: response.data?.data?.length || 0 }));
     } catch (error: any) {
-      console.error('❌ API Test Failed:', error);
-  Alert.alert(t('debug.apiTestFailedTitle'), error.message || t('debug.apiTestFailedMessage'));
+      console.error('API Test Failed:', error);
+      Alert.alert(t('debug.apiTestFailedTitle'), error.message || t('debug.apiTestFailedMessage'));
     }
   };
 
@@ -256,24 +225,6 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     }
   };
 
-  const getFilteredDisasters = () => {
-    let filtered = disasters;
-    console.log('Total disasters before filtering:', disasters.length);
-
-    if (!showAllDisasters) {
-      filtered = filtered.filter((disaster) => disaster.status === 'active');
-      console.log('After status filter (active only):', filtered.length);
-    }
-
-    if (selectedFilter !== 'all') {
-      filtered = filtered.filter((disaster) => disaster.severity === selectedFilter);
-      console.log('After severity filter (' + selectedFilter + '):', filtered.length);
-    }
-
-    console.log('Final filtered disasters:', filtered.length);
-    return filtered;
-  };
-
   const getTimeAgo = (timestamp: string) => {
     const now = new Date();
     const time = new Date(timestamp);
@@ -291,35 +242,52 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     }
   };
 
-  const getDisasterStats = () => {
-    const active = disasters.filter((d) => d.status === 'active').length;
-    const high = disasters.filter((d) => d.severity === 'high').length;
-    const medium = disasters.filter((d) => d.severity === 'medium').length;
-    const low = disasters.filter((d) => d.severity === 'low').length;
-
-    return { active, high, medium, low, total: disasters.length };
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchDisasters();
   };
 
   useEffect(() => {
+    // Start with cached data immediately to show something fast
+    const loadCachedFirst = async () => {
+      const cachedData = await AsyncStorage.getItem('cachedDisasters');
+      if (cachedData) {
+        try {
+          const parsedDisasters = JSON.parse(cachedData);
+          setDisasters(parsedDisasters);
+          setLoading(false); // Show cached data while fetching fresh data
+        } catch (error) {
+          console.error('Error parsing cached data:', error);
+        }
+      }
+    };
+
+    loadCachedFirst();
+    
+    // Fetch fresh data in the background
     fetchDisasters();
+
+    // Get location with shorter timeout for better performance
     (async () => {
       const hasPermission = await requestLocationPermission();
       if (hasPermission) {
         Geolocation.getCurrentPosition(
           (pos) => {
             const { latitude, longitude } = pos.coords;
+            console.log('📍 GPS location found for risk map:', latitude, longitude);
             setUserLocation({ latitude, longitude });
           },
           (err) => {
             console.warn('Geolocation error:', err?.message || err);
+            // Use default Colombo location when GPS fails
+            const defaultLocation = { latitude: 6.9271, longitude: 79.8612 };
+            setUserLocation(defaultLocation);
           },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // Reduced timeout to 5s, cache for 5 minutes
         );
+      } else {
+        // If no permission, use default location
+        setUserLocation({ latitude: 6.9271, longitude: 79.8612 });
       }
     })();
   }, []);
@@ -328,8 +296,30 @@ const RiskMapScreen: React.FC<RiskMapScreenProps> = ({ navigation }) => {
     setRefreshFlag((flag) => flag + 1);
   };
 
-  const filteredDisasters = getFilteredDisasters();
-  const stats = getDisasterStats();
+  // Memoize filtered disasters to prevent unnecessary recalculations
+  const filteredDisasters = useMemo(() => {
+    let filtered = disasters;
+
+    if (!showAllDisasters) {
+      filtered = filtered.filter((disaster) => disaster.status === 'active');
+    }
+
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter((disaster) => disaster.severity === selectedFilter);
+    }
+
+    return filtered;
+  }, [disasters, showAllDisasters, selectedFilter]);
+
+  // Memoize disaster stats calculation
+  const stats = useMemo(() => {
+    const active = disasters.filter((d) => d.status === 'active').length;
+    const high = disasters.filter((d) => d.severity === 'high').length;
+    const medium = disasters.filter((d) => d.severity === 'medium').length;
+    const low = disasters.filter((d) => d.severity === 'low').length;
+
+    return { active, high, medium, low, total: disasters.length };
+  }, [disasters]);
 
   if (loading) {
     return (
