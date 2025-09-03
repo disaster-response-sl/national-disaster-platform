@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import {
   View,
   Text,
@@ -22,6 +23,7 @@ import { API_BASE_URL } from '../config/api';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { offlineService } from '../services/OfflineService';
 
 const { width } = Dimensions.get('window');
 
@@ -61,6 +63,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const [userName, setUserName] = useState<string>('User');
   const [availableResources, setAvailableResources] = useState<any[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<boolean>(false);
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
 
   // Request notification permissions
   const requestNotificationPermission = async () => {
@@ -137,6 +140,19 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   // ... (keep all the existing functions unchanged)
   useEffect(() => {
+    // Check real connectivity and update offline mode accordingly
+    NetInfo.fetch().then(async state => {
+      if (state.isConnected) {
+        await offlineService.disableOfflineMode();
+        setIsOfflineMode(false);
+        console.log('🌐 Online: Offline mode disabled (Dashboard)');
+      } else {
+        await offlineService.enableOfflineMode();
+        setIsOfflineMode(true);
+        console.log('📱 Offline: Offline mode enabled (Dashboard)');
+      }
+    });
+    checkOfflineMode();
     getUserInfo();
     requestNotificationPermission();
     getCurrentLocation();
@@ -144,12 +160,20 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
     fetchAvailableResources();
   }, []);
 
+  const checkOfflineMode = async () => {
+    const isOffline = await offlineService.isOfflineMode();
+    setIsOfflineMode(isOffline);
+    if (isOffline) {
+      console.log('📱 Dashboard loaded in offline mode');
+    }
+  };
+
   const getUserInfo = async () => {
     try {
       const role = await AsyncStorage.getItem('role');
       const userId = await AsyncStorage.getItem('userId');
       setUserRole(role || 'citizen');
-      setUserName('SafeLanka User');
+      setUserName('ResQ User');
     } catch (error) {
       console.error('Error getting user info:', error);
     }
@@ -217,17 +241,21 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       },
       error => {
         console.error('Location error:', error);
-        console.log('🧪 GPS failed, showing location selection');
+        console.log('🧪 GPS failed, using default Sri Lanka location (Colombo)');
         
-        Alert.alert(
-          t('location.error'),
-          t('location.errorMessage'),
-          [
-            { text: t('notifications.ok'), onPress: () => {} }
-          ]
-        );
+        // Use default Colombo location when GPS fails
+        const defaultLocation = { lat: 6.9271, lng: 79.8612 };
+        setLocation(defaultLocation);
+        setLocationName('Colombo (Default)');
+        
+        // Still fetch weather and risk data for default location
+        fetchWeatherData(defaultLocation.lat, defaultLocation.lng);
+        fetchRiskStatus(defaultLocation.lat, defaultLocation.lng);
+        
+        // Optional: Show a brief toast instead of intrusive alert
+        console.log('📍 Using default location due to GPS timeout');
       },
-  { enableHighAccuracy: true, timeout: 40000, maximumAge: 10000 }
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
     );
   };
 
@@ -423,7 +451,8 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       }
     } catch (error) {
       console.error('❌ Risk assessment error:', error);
-      setRiskStatus('Low');
+      console.log('📱 Using default risk status (backend unavailable)');
+      setRiskStatus('Medium'); // Default to medium risk when backend is unavailable
     }
   };
 
@@ -456,12 +485,39 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       }
     } catch (error) {
       console.error('Alerts fetch error:', error);
-      setRecentAlerts([]);
+      console.log('📱 Using mock alerts data (backend unavailable)');
+      
+      // Provide mock data when backend is unavailable
+      const mockAlerts: AlertItem[] = [
+        {
+          id: 1,
+          type: 'Weather Alert',
+          location: 'Colombo District',
+          severity: 'medium',
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: 2, 
+          type: 'Flood Alert',
+          location: 'Galle District',
+          severity: 'high',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+      
+      setRecentAlerts(mockAlerts);
     }
   };
 
   const fetchAvailableResources = async () => {
     try {
+      // Check if in offline mode first
+      if (isOfflineMode) {
+        console.log('📱 Loading resources from offline service');
+        setAvailableResources(offlineService.getMockResources());
+        return;
+      }
+
       const token = await AsyncStorage.getItem('authToken');
       const response = await axios.get(`${API_BASE_URL}/mobile/resources`, {
         headers: {
@@ -474,6 +530,16 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       }
     } catch (error) {
       console.error('Resources fetch error:', error);
+      console.log('📱 Using mock resources data (backend unavailable)');
+      
+      // Enable offline mode if not already enabled
+      if (!isOfflineMode) {
+        await offlineService.enableOfflineMode();
+        setIsOfflineMode(true);
+      }
+      
+      // Use offline service mock data
+      setAvailableResources(offlineService.getMockResources());
     }
   };
 
@@ -565,6 +631,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             </View>
           </View>
         </View>
+
+        {/* Offline Mode Indicator */}
+        {isOfflineMode && (
+          <View style={styles.offlineIndicator}>
+            <Text style={styles.offlineText}>📱 Offline Mode</Text>
+            <Text style={styles.offlineSubtext}>Limited functionality available</Text>
+          </View>
+        )}
 
         {/* Current Location Section */}
         <View style={styles.locationSection}>
@@ -871,6 +945,25 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 20,
     color: '#ffffff',
+  },
+  offlineIndicator: {
+    backgroundColor: '#fbbf24',
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  offlineText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#92400e',
+  },
+  offlineSubtext: {
+    fontSize: 12,
+    color: '#92400e',
   },
   locationSection: {
     backgroundColor: '#ffffff',

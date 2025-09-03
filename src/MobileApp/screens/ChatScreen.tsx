@@ -21,6 +21,7 @@ import axios from 'axios';
 import { useLanguage } from '../services/LanguageService';
 import { API_BASE_URL } from '../config/api';
 import { getTextStyle } from '../services/FontService';
+import { offlineService } from '../services/OfflineService';
 
 
 const { width } = Dimensions.get('window');
@@ -108,6 +109,18 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
       }
     } catch (error) {
       console.error('Error fetching chat history:', error);
+      // Add a fallback message if chat history fails to load
+      if (messages.length === 0) {
+        setMessages([{
+          id: 'welcome-fallback',
+          query: '',
+          response: 'Welcome to the Emergency Chat Assistant. I can help you with safety information and emergency guidance.',
+          timestamp: new Date().toISOString(),
+          type: 'assistant',
+          safetyLevel: 'low',
+          recommendations: ['Stay calm and follow safety protocols', 'Contact emergency services if needed']
+        }]);
+      }
     }
   };
 
@@ -122,8 +135,62 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
     return 'en';
   };
 
+  const getFallbackResponse = (userMessage: string) => {
+    const lowerMessage = userMessage.toLowerCase();
+    
+    // Emergency keywords
+    if (lowerMessage.includes('emergency') || lowerMessage.includes('help') || lowerMessage.includes('urgent')) {
+      return {
+        message: "In case of emergency, immediately call:\n🚨 119 - Fire & Rescue\n🚑 1990 - Ambulance\n👮 118/119 - Police\n\nStay calm and provide your exact location when calling.",
+        safetyLevel: 'high',
+        recommendations: ['Call emergency services immediately', 'Stay calm and speak clearly', 'Provide your exact location']
+      };
+    }
+    
+    // Safety-related queries
+    if (lowerMessage.includes('safety') || lowerMessage.includes('safe') || lowerMessage.includes('prepare')) {
+      return {
+        message: "Safety preparedness is crucial. Always keep emergency supplies ready: water, food, flashlight, first aid kit, and important documents. Stay informed about local weather and emergency alerts.",
+        safetyLevel: 'medium',
+        recommendations: ['Prepare an emergency kit', 'Stay informed about local alerts', 'Know evacuation routes']
+      };
+    }
+    
+    // Weather/disaster related
+    if (lowerMessage.includes('flood') || lowerMessage.includes('rain') || lowerMessage.includes('storm')) {
+      return {
+        message: "During floods: Move to higher ground immediately. Avoid walking/driving through flood water. Stay indoors until authorities say it's safe. Follow local evacuation orders.",
+        safetyLevel: 'high',
+        recommendations: ['Move to higher ground', 'Avoid flood water', 'Follow evacuation orders']
+      };
+    }
+    
+    // Default response
+    return {
+      message: "I'm here to help with emergency preparedness and safety information. You can ask me about emergency procedures, safety tips, or disaster preparedness. If you're in immediate danger, please call emergency services.",
+      safetyLevel: 'low',
+      recommendations: ['Ask about specific safety concerns', 'Keep emergency numbers handy', 'Stay prepared']
+    };
+  };
+
   const processMessageWithGemini = async (userMessage: string) => {
     try {
+      // Check if in offline mode first
+      const isOffline = await offlineService.isOfflineMode();
+      if (isOffline) {
+        console.log('📱 Chat: Using offline mode response');
+        const offlineResponse = offlineService.getMockChatResponse(userMessage);
+        return {
+          success: true,
+          data: {
+            response: offlineResponse.response,
+            timestamp: offlineResponse.timestamp,
+            safetyLevel: offlineResponse.safetyLevel,
+            recommendations: offlineResponse.recommendations
+          }
+        };
+      }
+
       const token = await AsyncStorage.getItem('authToken');
       const detectedLang = detectLanguage(userMessage);
       const response = await axios.post(`${API_BASE_URL}/mobile/chat/gemini`, {
@@ -138,7 +205,21 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
       return response.data;
     } catch (error) {
       console.error('Error processing with Gemini:', error);
-      throw error;
+      
+      // Enable offline mode if not already enabled
+      await offlineService.enableOfflineMode();
+      
+      // Provide fallback responses when backend is unavailable
+      const fallbackResponse = getFallbackResponse(userMessage);
+      return {
+        success: true,
+        data: {
+          response: fallbackResponse.message,
+          timestamp: new Date().toISOString(),
+          safetyLevel: fallbackResponse.safetyLevel,
+          recommendations: fallbackResponse.recommendations
+        }
+      };
     }
   };
 
@@ -178,7 +259,19 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      Alert.alert('Connection Error', 'Unable to get AI response. Please check your connection and try again.');
+      
+      // Add a fallback assistant response even when there's an error
+      const fallbackResponse = getFallbackResponse(userMessage);
+      const assistantMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        query: '',
+        response: `${fallbackResponse.message}\n\n(Note: Currently operating in offline mode)`,
+        timestamp: new Date().toISOString(),
+        type: 'assistant',
+        safetyLevel: fallbackResponse.safetyLevel as 'low' | 'medium' | 'high',
+        recommendations: fallbackResponse.recommendations
+      };
+      setMessages(prev => [...prev, assistantMsg]);
     } finally {
       setLoading(false);
       setIsTyping(false);
@@ -218,7 +311,19 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
       }
     } catch (error) {
       console.error('Error processing quick question:', error);
-      Alert.alert('Connection Error', 'Unable to get AI response. Please check your connection and try again.');
+      
+      // Add a fallback assistant response for quick questions too
+      const fallbackResponse = getFallbackResponse(question.text);
+      const assistantMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        query: '',
+        response: `${fallbackResponse.message}\n\n(Note: Currently operating in offline mode)`,
+        timestamp: new Date().toISOString(),
+        type: 'assistant',
+        safetyLevel: fallbackResponse.safetyLevel as 'low' | 'medium' | 'high',
+        recommendations: fallbackResponse.recommendations
+      };
+      setMessages(prev => [...prev, assistantMsg]);
     } finally {
       setLoading(false);
       setIsTyping(false);
@@ -271,7 +376,7 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
   };
 
   const renderQuickQuestions = () => (
-    <View style={styles.quickQuestionsContainer}>
+    <View style={styles.quickQuestionsContainer }>
       <View style={styles.quickQuestionsHeader}>
         <Text style={[styles.quickQuestionsTitle, getTextStyle(language)]}>
           {t('chat.quickQuestions')}

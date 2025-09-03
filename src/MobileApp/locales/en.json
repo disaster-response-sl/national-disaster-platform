@@ -236,7 +236,7 @@
     "testMessage": "This is a test notification to ensure the system is working properly."
   },
   "login": {
-    "title": "SafeLanka",
+    "title": "ResQ",
     "subtitle": "National Disaster Management Platform",
     "signIn": "Sign In",
     "signInSubtitle": "Access emergency services and disaster information",
@@ -253,7 +253,9 @@
     "loginSuccess": "Login Successful",
     "welcomeUser": "Welcome, {name}!",
     "invalidCredentials": "Invalid credentials",
-    "networkError": "Network error. Please check your connection."
+    "networkError": "Network error. Please check your connection.",
+    "or": "OR",
+    "esignetDescription": "Sign in with your Government Digital Identity"
   },
   "report": {
     "title": "📝 Report Incident",
