@@ -10,7 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Linking
 } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
@@ -18,13 +19,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthService from '../services/AuthService';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
-
+import SLUDIESignetButton from '../components/SLUDIESignetButton';
 const { width, height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
   const { t, language } = useLanguage();
-  const [individualId, setIndividualId] = useState('');
-  const [otp, setOtp] = useState('');
+  const [individualId, setIndividualId] = useState('citizen001'); // Pre-fill with test credentials
+  const [otp, setOtp] = useState('123456'); // Pre-fill with test OTP
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
 
@@ -80,6 +81,65 @@ const LoginScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle eSignet authentication success
+  const handleAuthSuccess = async ({ code, state }) => {
+    console.log('✅ eSignet authentication successful:', { code, state });
+    setLoading(true);
+    
+    try {
+      // Here you would typically exchange the code for user information
+      // via your backend service or SLUDI backend
+      
+      // For now, let's simulate a successful login
+      // In a real implementation, you'd call your backend to exchange the code
+      // const userInfo = await exchangeCodeForUserInfo(code, state);
+      
+      // Simulate successful authentication
+      await AsyncStorage.setItem('authToken', 'esignet_token_' + Date.now());
+      await AsyncStorage.setItem('userId', 'esignet_user_' + Date.now());
+      await AsyncStorage.setItem('role', 'citizen');
+      
+      Alert.alert(
+        'eSignet Login Successful',
+        'Welcome! You have been authenticated via eSignet.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Dashboard')
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Failed to process eSignet authentication:', error);
+      Alert.alert(
+        'Authentication Error',
+        'Failed to complete eSignet authentication. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle eSignet authentication error
+  const handleAuthError = ({ error, errorDescription }) => {
+    console.error('❌ eSignet authentication error:', { error, errorDescription });
+    
+    let userMessage = 'Authentication failed. Please try again.';
+    
+    if (error === 'cancelled') {
+      userMessage = 'Authentication was cancelled.';
+    } else if (errorDescription) {
+      userMessage = errorDescription;
+    }
+    
+    Alert.alert(
+      'eSignet Authentication Failed',
+      userMessage,
+      [{ text: 'OK' }]
+    );
   };
 
   return (
@@ -174,6 +234,26 @@ const LoginScreen = ({ navigation }) => {
                   {loading ? t('login.signingIn') : t('login.signIn')}
                 </Text>
               </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={[styles.dividerText, getTextStyle(language)]}>
+                  {t('login.or') || 'OR'}
+                </Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* SLUDI eSignet Button */}
+              <View style={styles.esignetContainer}>
+                <SLUDIESignetButton 
+                  onSuccess={handleAuthSuccess}
+                  onError={handleAuthError}
+                />
+                <Text style={[styles.esignetDescription, getTextStyle(language)]}>
+                  {t('login.esignetDescription') || 'Sign in with your Government Digital Identity'}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -398,6 +478,69 @@ const styles = {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 6,
+  },
+  // SLUDI eSignet Button Styles
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    paddingHorizontal: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  esignetContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  esignetButton: {
+    backgroundColor: '#1e40af',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  esignetButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  esignetIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  esignetButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  esignetDescription: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    marginHorizontal: 20,
+    lineHeight: 16,
   },
 };
 
