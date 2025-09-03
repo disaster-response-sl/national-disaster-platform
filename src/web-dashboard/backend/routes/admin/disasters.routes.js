@@ -62,6 +62,102 @@ const validateZoneOverlap = (zones) => {
   return { warnings };
 };
 
+// GET /api/admin/disasters/stats - Get disaster statistics
+router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const totalDisasters = await Disaster.countDocuments();
+    const activeDisasters = await Disaster.countDocuments({ status: 'active' });
+    const resolvedDisasters = await Disaster.countDocuments({ status: 'resolved' });
+    const criticalDisasters = await Disaster.countDocuments({ severity: 'critical' });
+
+    // Get disasters by type
+    const disastersByType = await Disaster.aggregate([
+      { $group: { _id: '$type', count: { $sum: 1 } } },
+      { $project: { type: '$_id', count: 1, _id: 0 } }
+    ]);
+
+    // Get disasters by severity
+    const disastersBySeverity = await Disaster.aggregate([
+      { $group: { _id: '$severity', count: { $sum: 1 } } },
+      { $project: { severity: '$_id', count: 1, _id: 0 } }
+    ]);
+
+    // Get recent disasters (last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recentDisasters = await Disaster.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo }
+    });
+
+    // Get monthly trend (last 12 months)
+    const monthlyTrend = await Disaster.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      },
+      {
+        $project: {
+          month: {
+            $concat: [
+              { $toString: '$_id.year' },
+              '-',
+              {
+                $cond: {
+                  if: { $lt: ['$_id.month', 10] },
+                  then: { $concat: ['0', { $toString: '$_id.month' }] },
+                  else: { $toString: '$_id.month' }
+                }
+              }
+            ]
+          },
+          count: 1,
+          _id: 0
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          total_disasters: totalDisasters,
+          active_disasters: activeDisasters,
+          resolved_disasters: resolvedDisasters,
+          critical_disasters: criticalDisasters,
+          recent_disasters: recentDisasters
+        },
+        breakdown: {
+          by_type: disastersByType,
+          by_severity: disastersBySeverity
+        },
+        trends: {
+          monthly: monthlyTrend
+        },
+        generated_at: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching disaster statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching disaster statistics',
+      error: error.message
+    });
+  }
+});
+
 // POST /api/admin/disasters - Create new disaster
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {

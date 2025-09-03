@@ -4,14 +4,6 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration",
-    "test:manual": "node test-endpoints.js",
-    "test-donation": "node test-donation-api.js",
-    "test:all": "node run-tests.js",
     "start": "node app.js",
     "dev": "nodemon app.js",
     "seed": "node seed-data.js"
@@ -32,9 +24,5 @@
     "nodemailer": "^7.0.5",
     "nodemon": "^3.1.10"
   },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "mongodb-memory-server": "^9.1.1",
-    "supertest": "^6.3.3"
-  }
+  "devDependencies": {}
 }
