@@ -35,9 +35,6 @@ const responderNotificationsRoutes = require('./routes/responder/notifications.r
 
 
 
-// Import test routes (NO AUTH - for Postman testing)
-const testCrudRoutes = require('./routes/test-crud.routes');
-
 // Import services
 const SosEscalationService = require('./services/sos-escalation.service');
 
@@ -53,9 +50,6 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/donation', donationRoutes);
 
-// Test credentials route
-app.use('/api/test-creds', require('./test-credentials'));
-
 // Use admin routes
 app.use('/api/admin/sos', adminSosRoutes);
 app.use('/api/admin/disasters', adminDisastersRoutes);            // Main CRUD
@@ -68,9 +62,6 @@ app.use('/api/responder/notifications', responderNotificationsRoutes);
 
 // Use donation routes
 app.use('/api', donationRoutes);
-
-// Use test routes (NO AUTH - for Postman testing)
-app.use('/api/test', testCrudRoutes);
 
 // Health check routes
 app.get('/api/health', (req, res) => {
