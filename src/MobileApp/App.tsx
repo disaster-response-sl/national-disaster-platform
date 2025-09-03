@@ -1,8 +1,10 @@
+
 import React, { useEffect, useRef } from 'react';
 import { StatusBar, useColorScheme, Linking, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NavigationContainerRef } from '@react-navigation/native';
+
 import LoginScreen from './screens/LoginScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import SosScreen from './screens/SosScreen';
@@ -23,17 +25,20 @@ import { API_BASE_URL } from './config/api';
 
 const Stack = createNativeStackNavigator();
 
+
 // Simple mock JWT token generator for fallback
 const generateMockJWT = () => {
   // Since we can't do HMAC signing in React Native without crypto libraries,
   // let's create a simpler solution: generate a token that mimics the backend's format
   // Note: In production, this would be replaced with real SLUDI authentication
   
+
   const header = {
     alg: 'HS256',
     typ: 'JWT'
   };
   
+
   const payload = {
     _id: 'mock-sludi-user-123',
     individualId: 'sludi-demo-user',
@@ -64,7 +69,7 @@ const generateMockJWT = () => {
   const signature = btoa('mock-sludi-signature-for-testing');
   
   return `${headerB64}.${payloadB64}.${signature}`;
-};
+
 
 const App: React.FC = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -80,22 +85,53 @@ const App: React.FC = () => {
       
       // Check if this is an eSignet redirect
       if (url.includes('ndp://dashboard')) {
-        console.log('✅ SLUDI redirect received - logging in with citizen001...');
-        
-        // Simple: Any SLUDI redirect = automatic login with citizen001
-        await useMockAuth();
-        
-        // Navigate to dashboard
-        setTimeout(() => {
-          if (navigationRef.current) {
-            console.log('🏠 Navigating to dashboard...');
-            navigationRef.current.navigate('Dashboard' as never);
+        try {
+          const urlObj = new URL(url);
+          const code = urlObj.searchParams.get('code');
+          const error = urlObj.searchParams.get('error');
+          
+          if (error) {
+            console.error('❌ eSignet authentication error:', error);
+            // Use mock JWT as fallback
+            await useMockAuth();
+            return;
           }
-        }, 500);
+          
+          if (code) {
+            console.log('✅ eSignet code received:', code.substring(0, 10) + '...');
+            console.log('🔧 Using mock authentication (SLUDI backend integration disabled)');
+            // For now, always use mock auth to ensure the app works
+            // TODO: Enable real SLUDI backend once network issues are resolved
+            await useMockAuth();
+            
+            /* Commented out real SLUDI integration for now
+            try {
+              // Call SLUDI backend to exchange code for access token
+              const userInfo = await sludiESignetService.exchangeCodeForUserInfo({ code });
+              console.log('✅ User authenticated:', userInfo);
+              
+              // Store authentication token (assuming userInfo contains a token)
+              const token = userInfo.access_token || userInfo.token || generateMockJWT();
+              await AsyncStorage.setItem('authToken', token);
+              await AsyncStorage.setItem('userInfo', JSON.stringify(userInfo));
+              
+              console.log('🏠 SLUDI authentication successful');
+              
+             
+          } else {
+            console.warn('⚠️ No code found in redirect URL, using mock auth');
+            // Fallback to mock JWT
+            await useMockAuth();
+          }
+        } catch (error) {
+          console.error('❌ Error parsing deep link:', error);
+          // Fallback to mock JWT
+          await useMockAuth();
+        }
       }
     };
 
-    // Authentication fallback - try backend login first, then offline mock
+    // Simple mock authentication fallback
     const useMockAuth = async () => {
       console.log('🔧 Trying backend login with demo credentials...');
       
@@ -186,6 +222,7 @@ const App: React.FC = () => {
           navigationRef.current.navigate('Dashboard' as never);
         }
       }, 1000); // Small delay to ensure navigation is ready
+
     };
 
     // Get the initial URL if app was opened with a deep link
