@@ -5,6 +5,9 @@ import { ESIGNET_ENV_CONFIG } from '../config/esignetConfig';
 // Based on the SLUDI app's backend implementation
 
 class SLUDIAuthService {
+  private baseUrl: string;
+  private tokenEndpoint: string;
+
   constructor() {
     this.baseUrl = ESIGNET_ENV_CONFIG.MOCK_RELYING_PARTY_SERVER_URL;
     this.tokenEndpoint = '/fetchUserInfo';
@@ -18,7 +21,7 @@ class SLUDIAuthService {
    * @param {string} grantType - Grant type (authorization_code)
    * @returns {Promise<Object>} User information
    */
-  async exchangeCodeForUserInfo(code, clientId, redirectUri, grantType = 'authorization_code') {
+  async exchangeCodeForUserInfo(code: string, clientId: string, redirectUri: string, grantType: string = 'authorization_code'): Promise<any> {
     try {
       const requestData = {
         code,
@@ -41,7 +44,7 @@ class SLUDIAuthService {
 
       console.log('✅ User info received:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to exchange code for user info:', error);
 
       if (error.response) {
@@ -62,7 +65,7 @@ class SLUDIAuthService {
    * @param {Object} authResponse - Response from SLUDI authentication
    * @returns {boolean} Whether the response is valid
    */
-  validateAuthResponse(authResponse) {
+  validateAuthResponse(authResponse: any): boolean {
     if (!authResponse) {
       throw new Error('No authentication response received');
     }
@@ -87,7 +90,7 @@ class SLUDIAuthService {
    * @param {string} callbackUrl - The callback URL with authorization code
    * @returns {Object} Extracted parameters
    */
-  extractAuthParams(callbackUrl) {
+  extractAuthParams(callbackUrl: string): any {
     try {
       const url = new URL(callbackUrl);
       const code = url.searchParams.get('code');
@@ -111,7 +114,7 @@ class SLUDIAuthService {
    * @param {Object} authResponse - Response from SLUDI authentication
    * @returns {Promise<Object>} User information
    */
-  async handleAuthentication(authResponse) {
+  async handleAuthentication(authResponse: any): Promise<any> {
     try {
       // Validate the response
       this.validateAuthResponse(authResponse);
@@ -141,7 +144,7 @@ class SLUDIAuthService {
         authParams
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Authentication flow failed:', error);
       return {
         success: false,
@@ -153,5 +156,4 @@ class SLUDIAuthService {
 }
 
 // Export singleton instance
-export default new SLUDIAuthService();</content>
-<filePath>c:\Users\gaind\OneDrive\Desktop\CodeFest\national-disaster-platform\src\MobileApp\services\SLUDIAuthService.ts
+export default new SLUDIAuthService();

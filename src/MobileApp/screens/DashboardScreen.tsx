@@ -22,6 +22,7 @@ import { API_BASE_URL } from '../config/api';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { offlineService } from '../services/OfflineService';
 
 const { width } = Dimensions.get('window');
 
@@ -61,6 +62,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
   const [userName, setUserName] = useState<string>('User');
   const [availableResources, setAvailableResources] = useState<any[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<boolean>(false);
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
 
   // Request notification permissions
   const requestNotificationPermission = async () => {
@@ -137,12 +139,21 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   // ... (keep all the existing functions unchanged)
   useEffect(() => {
+    checkOfflineMode();
     getUserInfo();
     requestNotificationPermission();
     getCurrentLocation();
     fetchRecentAlerts();
     fetchAvailableResources();
   }, []);
+
+  const checkOfflineMode = async () => {
+    const isOffline = await offlineService.isOfflineMode();
+    setIsOfflineMode(isOffline);
+    if (isOffline) {
+      console.log('📱 Dashboard loaded in offline mode');
+    }
+  };
 
   const getUserInfo = async () => {
     try {
@@ -487,6 +498,13 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   const fetchAvailableResources = async () => {
     try {
+      // Check if in offline mode first
+      if (isOfflineMode) {
+        console.log('📱 Loading resources from offline service');
+        setAvailableResources(offlineService.getMockResources());
+        return;
+      }
+
       const token = await AsyncStorage.getItem('authToken');
       const response = await axios.get(`${API_BASE_URL}/mobile/resources`, {
         headers: {
@@ -501,38 +519,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       console.error('Resources fetch error:', error);
       console.log('📱 Using mock resources data (backend unavailable)');
       
-      // Provide mock data when backend is unavailable
-      const mockResources = [
-        {
-          id: 1,
-          name: 'Emergency Shelter - Colombo',
-          type: 'Shelter',
-          location: 'Colombo 07',
-          availability: 'Available',
-          capacity: 100,
-          contact: '+94 11 123 4567'
-        },
-        {
-          id: 2,
-          name: 'Medical Clinic - Galle',
-          type: 'Medical',
-          location: 'Galle Fort',
-          availability: 'Available',
-          capacity: 50,
-          contact: '+94 91 234 5678'
-        },
-        {
-          id: 3,
-          name: 'Food Distribution Center',
-          type: 'Food',
-          location: 'Kandy',
-          availability: 'Limited',
-          capacity: 200,
-          contact: '+94 81 345 6789'
-        }
-      ];
+      // Enable offline mode if not already enabled
+      if (!isOfflineMode) {
+        await offlineService.enableOfflineMode();
+        setIsOfflineMode(true);
+      }
       
-      setAvailableResources(mockResources);
+      // Use offline service mock data
+      setAvailableResources(offlineService.getMockResources());
     }
   };
 
@@ -624,6 +618,14 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
             </View>
           </View>
         </View>
+
+        {/* Offline Mode Indicator */}
+        {isOfflineMode && (
+          <View style={styles.offlineIndicator}>
+            <Text style={styles.offlineText}>📱 Offline Mode</Text>
+            <Text style={styles.offlineSubtext}>Limited functionality available</Text>
+          </View>
+        )}
 
         {/* Current Location Section */}
         <View style={styles.locationSection}>
@@ -930,6 +932,25 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 20,
     color: '#ffffff',
+  },
+  offlineIndicator: {
+    backgroundColor: '#fbbf24',
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  offlineText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#92400e',
+  },
+  offlineSubtext: {
+    fontSize: 12,
+    color: '#92400e',
   },
   locationSection: {
     backgroundColor: '#ffffff',

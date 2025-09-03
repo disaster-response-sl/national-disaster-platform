@@ -21,6 +21,7 @@ import axios from 'axios';
 import { useLanguage } from '../services/LanguageService';
 import { API_BASE_URL } from '../config/api';
 import { getTextStyle } from '../services/FontService';
+import { offlineService } from '../services/OfflineService';
 
 
 const { width } = Dimensions.get('window');
@@ -174,6 +175,22 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
 
   const processMessageWithGemini = async (userMessage: string) => {
     try {
+      // Check if in offline mode first
+      const isOffline = await offlineService.isOfflineMode();
+      if (isOffline) {
+        console.log('📱 Chat: Using offline mode response');
+        const offlineResponse = offlineService.getMockChatResponse(userMessage);
+        return {
+          success: true,
+          data: {
+            response: offlineResponse.response,
+            timestamp: offlineResponse.timestamp,
+            safetyLevel: offlineResponse.safetyLevel,
+            recommendations: offlineResponse.recommendations
+          }
+        };
+      }
+
       const token = await AsyncStorage.getItem('authToken');
       const detectedLang = detectLanguage(userMessage);
       const response = await axios.post(`${API_BASE_URL}/mobile/chat/gemini`, {
@@ -188,6 +205,9 @@ const ChatScreen = ({ navigation }: { navigation: any }) => {
       return response.data;
     } catch (error) {
       console.error('Error processing with Gemini:', error);
+      
+      // Enable offline mode if not already enabled
+      await offlineService.enableOfflineMode();
       
       // Provide fallback responses when backend is unavailable
       const fallbackResponse = getFallbackResponse(userMessage);

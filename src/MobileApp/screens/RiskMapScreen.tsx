@@ -25,6 +25,7 @@ import NDXService from '../services/NDXService';
 import { API_BASE_URL } from '../config/api';
 import { useLanguage } from '../services/LanguageService';
 import { getTextStyle } from '../services/FontService';
+import { offlineService } from '../services/OfflineService';
 
 const { width, height } = Dimensions.get('window');
 

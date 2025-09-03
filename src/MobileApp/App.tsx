@@ -22,6 +22,7 @@ import { sludiESignetService } from './services/SLUDIESignetService';
 import AuthService from './services/AuthService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from './config/api';
+import { offlineService } from './services/OfflineService';
 
 const Stack = createNativeStackNavigator();
 
@@ -69,7 +70,7 @@ const generateMockJWT = () => {
   const signature = btoa('mock-sludi-signature-for-testing');
   
   return `${headerB64}.${payloadB64}.${signature}`;
-
+};
 
 const App: React.FC = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -99,16 +100,12 @@ const App: React.FC = () => {
           
           if (code) {
             console.log('✅ eSignet code received:', code.substring(0, 10) + '...');
-            console.log('🔧 Using mock authentication (SLUDI backend integration disabled)');
-            // For now, always use mock auth to ensure the app works
-            // TODO: Enable real SLUDI backend once network issues are resolved
-            await useMockAuth();
+            console.log('🔧 Attempting SLUDI authentication...');
             
-            /* Commented out real SLUDI integration for now
             try {
               // Call SLUDI backend to exchange code for access token
               const userInfo = await sludiESignetService.exchangeCodeForUserInfo({ code });
-              console.log('✅ User authenticated:', userInfo);
+              console.log('✅ SLUDI User authenticated:', userInfo);
               
               // Store authentication token (assuming userInfo contains a token)
               const token = userInfo.access_token || userInfo.token || generateMockJWT();
@@ -117,6 +114,20 @@ const App: React.FC = () => {
               
               console.log('🏠 SLUDI authentication successful');
               
+              // Navigate to dashboard after successful authentication
+              setTimeout(() => {
+                if (navigationRef.current) {
+                  console.log('🏠 Navigating to dashboard from SLUDI...');
+                  navigationRef.current.navigate('Dashboard' as never);
+                }
+              }, 1000);
+              
+            } catch (error) {
+              console.error('❌ Failed to exchange SLUDI code:', error);
+              console.log('🔧 SLUDI backend issue, using citizen001 fallback authentication...');
+              // Fallback to mock JWT with citizen001 credentials
+              await useMockAuth();
+            }
              
           } else {
             console.warn('⚠️ No code found in redirect URL, using mock auth');
@@ -184,35 +195,13 @@ const App: React.FC = () => {
         
       } catch (error) {
         console.error('❌ Backend login failed:', error);
-        console.log('🔧 Using offline mock token as fallback...');
+        console.log('🔧 Backend unavailable - enabling offline mode...');
         
-        // Fallback: Generate offline mock token
-        const currentTime = Math.floor(Date.now() / 1000);
-        const tokenPayload = {
-          _id: 'offline-user-' + Date.now(),
-          individualId: 'offline-user-' + Date.now(),
-          role: 'Citizen',
-          name: 'Offline Demo User',
-          email: 'offline.demo@gov.lk',
-          iat: currentTime,
-          exp: currentTime + (24 * 60 * 60)
-        };
+        // Enable offline mode and create offline token
+        await offlineService.enableOfflineMode();
+        const offlineToken = await offlineService.createOfflineToken();
         
-        const tokenHeader = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-        const tokenBody = btoa(JSON.stringify(tokenPayload));
-        const mockToken = `${tokenHeader}.${tokenBody}.offline_signature_${Date.now()}`;
-        
-        await AsyncStorage.setItem('authToken', mockToken);
-        await AsyncStorage.setItem('userInfo', JSON.stringify({
-          _id: tokenPayload._id,
-          name: tokenPayload.name,
-          email: tokenPayload.email,
-          role: tokenPayload.role,
-          authMethod: 'OFFLINE_FALLBACK'
-        }));
-        await AsyncStorage.setItem('userId', tokenPayload._id);
-        
-        console.log('✅ Offline fallback token created');
+        console.log('✅ Offline mode enabled with demo credentials');
       }
       
       // Navigate to dashboard after successful authentication

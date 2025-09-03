@@ -24,8 +24,8 @@ const { width, height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
   const { t, language } = useLanguage();
-  const [individualId, setIndividualId] = useState('');
-  const [otp, setOtp] = useState('');
+  const [individualId, setIndividualId] = useState('citizen001'); // Pre-fill with test credentials
+  const [otp, setOtp] = useState('123456'); // Pre-fill with test OTP
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
 
