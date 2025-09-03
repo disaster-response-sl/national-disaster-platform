@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import { StatusBar, useColorScheme, Linking, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -79,6 +80,17 @@ const App: React.FC = () => {
   useEffect(() => {
     // Initialize notification service when app starts
     console.log('🚀 Initializing notification service...');
+
+    // Connectivity check: disable offline mode if online
+    NetInfo.fetch().then(state => {
+      if (state.isConnected) {
+        offlineService.disableOfflineMode();
+        console.log('🌐 Online: Offline mode disabled');
+      } else {
+        offlineService.enableOfflineMode();
+        console.log('📱 Offline: Offline mode enabled');
+      }
+    });
     
     // Handle deep linking for eSignet authentication
     const handleDeepLink = async (url: string) => {
@@ -111,9 +123,10 @@ const App: React.FC = () => {
               const token = userInfo.access_token || userInfo.token || generateMockJWT();
               await AsyncStorage.setItem('authToken', token);
               await AsyncStorage.setItem('userInfo', JSON.stringify(userInfo));
-              
-              console.log('🏠 SLUDI authentication successful');
-              
+              // Disable offline mode after successful SLUDI login
+              await offlineService.disableOfflineMode();
+              console.log('🏠 SLUDI authentication successful, offline mode disabled');
+
               // Navigate to dashboard after successful authentication
               setTimeout(() => {
                 if (navigationRef.current) {
@@ -186,8 +199,9 @@ const App: React.FC = () => {
             role: 'Citizen'
           }));
           await AsyncStorage.setItem('userId', loginData.user?._id || 'citizen001');
-          
-          console.log('👤 Authenticated with real JWT token from backend');
+          // Disable offline mode after successful backend login
+          await offlineService.disableOfflineMode();
+          console.log('👤 Authenticated with real JWT token from backend, offline mode disabled');
           return; // Success - exit function
         }
         

@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "@react-native-community/netinfo": "^11.4.1",
     "franc-min": "^6.2.0"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.0.1"
   }
 }

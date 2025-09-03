@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import {
   View,
   Text,
@@ -139,6 +140,18 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
 
   // ... (keep all the existing functions unchanged)
   useEffect(() => {
+    // Check real connectivity and update offline mode accordingly
+    NetInfo.fetch().then(async state => {
+      if (state.isConnected) {
+        await offlineService.disableOfflineMode();
+        setIsOfflineMode(false);
+        console.log('🌐 Online: Offline mode disabled (Dashboard)');
+      } else {
+        await offlineService.enableOfflineMode();
+        setIsOfflineMode(true);
+        console.log('📱 Offline: Offline mode enabled (Dashboard)');
+      }
+    });
     checkOfflineMode();
     getUserInfo();
     requestNotificationPermission();
@@ -160,7 +173,7 @@ const DashboardScreen = ({ navigation }: NavigationProps) => {
       const role = await AsyncStorage.getItem('role');
       const userId = await AsyncStorage.getItem('userId');
       setUserRole(role || 'citizen');
-      setUserName('SafeLanka User');
+      setUserName('ResQ User');
     } catch (error) {
       console.error('Error getting user info:', error);
     }
