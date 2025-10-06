@@ -1,5 +1,7 @@
 # 🚨 National AI-Optimized Disaster Platform for Sri Lanka
 
+🏆 **1st Runner-up at CodeFest Revivation Hackathon** 🏆
+
 A comprehensive disaster response platform built for the hackathon addressing Sri Lanka's critical disaster management challenges through AI-powered mobile and web applications.
 
 ## 📋 Project Overview
