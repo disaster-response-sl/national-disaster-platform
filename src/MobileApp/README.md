@@ -1,8 +1,68 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# National Disaster Platform - Mobile App
+
+🏆 **1st Runner-up at CodeFest Revivation Hackathon** 🏆
+
+This is a disaster response mobile application built with [**React Native**](https://reactnative.dev) and TypeScript. The app provides real-time disaster alerts, risk assessment, resource management, and emergency communication for users in disaster-prone areas.
+
+## Features
+
+- 🚨 Real-time disaster alerts and notifications
+- 📍 Location-based risk assessment
+- 🗺️ Interactive disaster risk maps
+- 📱 Emergency SOS functionality
+- 💬 In-app communication and chat
+- 🌐 Offline mode support
+- 🔒 Secure authentication with JWT
+- 🌍 Multi-language support
+- 📊 Resource management and tracking
+
+## Tech Stack
+
+- **React Native** with TypeScript
+- **React Navigation** for navigation
+- **Axios** for API calls
+- **AsyncStorage** for local data persistence
+- **Geolocation** for location services
+- **Push Notifications** with custom notification service
+- **Offline Support** with network detection
 
 # Getting Started
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+
+## Quick Setup for This Project
+
+1. **Install dependencies:**
+   ```sh
+   npm install
+   # or
+   yarn install
+   ```
+
+2. **Install iOS dependencies (iOS only):**
+   ```sh
+   cd ios
+   pod install
+   cd ..
+   ```
+
+3. **Set up Android emulator or connect physical device**
+
+4. **Start Metro bundler:**
+   ```sh
+   npm start
+   # or
+   yarn start
+   ```
+
+5. **Run the app:**
+   ```sh
+   # Android
+   npm run android
+   
+   # iOS
+   npm run ios
+   ```
 
 ## Step 1: Start Metro
 
@@ -84,7 +144,70 @@ You've successfully run and modified your React Native App. :partying_face:
 
 # Troubleshooting
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+## Android Build Issues
+
+### No Connected Devices Error
+
+If you encounter `No connected devices!` error, try these solutions:
+
+1. **Enable USB Debugging on your device:**
+   - Go to Settings > About Phone
+   - Tap "Build Number" 7 times to enable Developer Options
+   - Go to Settings > Developer Options
+   - Enable "USB Debugging"
+
+2. **Set up Android Emulator:**
+   ```sh
+   # Check available AVDs
+   emulator -list-avds
+   
+   # If no AVDs exist, create one using Android Studio:
+   # Open Android Studio > AVD Manager > Create Virtual Device
+   ```
+
+3. **Check ADB connection:**
+   ```sh
+   # Check connected devices
+   adb devices
+   
+   # If device not listed, restart ADB
+   adb kill-server
+   adb start-server
+   ```
+
+4. **Alternative: Use physical device with port forwarding:**
+   ```sh
+   # Connect device via USB and run
+   adb reverse tcp:8081 tcp:8081
+   npx react-native run-android
+   ```
+
+5. **Check React Native doctor:**
+   ```sh
+   npx react-native doctor
+   ```
+
+### Port 8081 Already in Use
+
+```sh
+# Kill process on port 8081
+npx kill-port 8081
+
+# Or use different port
+npx react-native start --port 8083
+```
+
+### Gradle Build Issues
+
+```sh
+# Clean and rebuild
+cd android
+./gradlew clean
+cd ..
+npx react-native run-android
+```
+
+If you're having other issues, see the [React Native Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
 
 # Learn More
 

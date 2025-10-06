@@ -25,9 +25,8 @@ const { width, height } = Dimensions.get('window');
 const SosScreen = ({ navigation }: any) => {
   const { t, language } = useLanguage();
   const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState('');
-  const [priority, setPriority] = useState('high');
-  const [focusedInput, setFocusedInput] = useState(false);
+  // Remove message input and validation, always send default message
+  const priority = 'high';
   const [pulseAnim] = useState(new Animated.Value(1));
 
   useEffect(() => {
@@ -57,23 +56,8 @@ const SosScreen = ({ navigation }: any) => {
   }, [sending]);
 
   const handleSendSOS = () => {
-    if (!message.trim()) {
-      Alert.alert(
-        t('sos.emergencyRequired'),
-        t('sos.emergencyRequiredMessage'),
-        [{ text: t('common.ok'), style: 'default' }]
-      );
-      return;
-    }
-
-    Alert.alert(
-      t('sos.sendSos'),
-      t('sos.sendSosMessage'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('sos.sendSosButton'), style: 'destructive', onPress: proceedWithSOS }
-      ]
-    );
+    // No input/validation, send immediately
+    proceedWithSOS();
   };
 
   const proceedWithSOS = () => {
@@ -104,19 +88,17 @@ const SosScreen = ({ navigation }: any) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const userId = await AsyncStorage.getItem('userId');
-      
+      const defaultMessage = 'Emergency! SOS sent from SafeLanka app.';
       console.log('🆘 Sending SOS with location:', latitude, longitude);
-      
-      const response = await axios.post(`${API_BASE_URL}/mobile/sos`, {
+      await axios.post(`${API_BASE_URL}/mobile/sos`, {
         location: { lat: latitude, lng: longitude },
-        message,
+        message: defaultMessage,
         priority
       }, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-
       console.log('✅ SOS sent successfully');
       Alert.alert(
         t('sos.sosSuccess'),
@@ -124,16 +106,12 @@ const SosScreen = ({ navigation }: any) => {
         [
           {
             text: t('common.ok'),
-            onPress: () => {
-              setMessage('');
-              navigation.goBack();
-            }
+            onPress: () => navigation.goBack()
           }
         ]
       );
     } catch (err: any) {
       console.error('❌ SOS send failed:', err);
-      
       // Even if backend fails, show success to user (SOS is critical)
       Alert.alert(
         t('sos.sosSuccess'),
@@ -141,10 +119,7 @@ const SosScreen = ({ navigation }: any) => {
         [
           {
             text: t('common.ok'),
-            onPress: () => {
-              setMessage('');
-              navigation.goBack();
-            }
+            onPress: () => navigation.goBack()
           }
         ]
       );
@@ -224,26 +199,7 @@ const SosScreen = ({ navigation }: any) => {
           </Text>
         </View>
 
-        {/* Emergency Description */}
-        <View style={styles.formSection}>
-          <Text style={[styles.sectionTitle, getTextStyle(language)]}>
-            {t('sos.describeEmergency')}
-          </Text>
-          <View style={[styles.inputContainer, focusedInput && styles.inputFocused]}>
-            <TextInput
-              style={[styles.input, getTextStyle(language)]}
-              placeholder={t('sos.describeEmergency')}
-              placeholderTextColor="#94a3b8"
-              value={message}
-              onChangeText={setMessage}
-              onFocus={() => setFocusedInput(true)}
-              onBlur={() => setFocusedInput(false)}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
-        </View>
+
 
         {/* Priority Level */}
         <View style={styles.formSection}>
@@ -264,7 +220,7 @@ const SosScreen = ({ navigation }: any) => {
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={priority}
-              onValueChange={(itemValue) => setPriority(itemValue)}
+              // Removed setPriority, priority is fixed
               style={styles.picker}
               mode="dropdown"
               dropdownIconColor="#64748b"
