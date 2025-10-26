@@ -345,9 +345,11 @@ npm run seed
 - [Deployment Guide](./docs/deployment.md)
 - [Contributing Guidelines](./CONTRIBUTING.md)
 
-## 📄 License
+## 🧾 License
 
-This project is developed for Codefest's Revive Nation hackathon and is intended for educational and demonstration purposes.
+This project is licensed under the **Apache License 2.0** — you are free to use, modify, and distribute this software, provided that proper credit is given to the original developers and a copy of this license is included.
+
+See the [LICENSE](LICENSE) file for full details.
 
 ## 🙏 Acknowledgments
 
