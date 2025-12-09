@@ -175,14 +175,14 @@ Sri Lanka faces critical gaps in disaster response:
 
 ### Development Team
 - **Shalon** - Software Architect & Lead Software engineer
-- **Gaindu** - Mobile App Development
+- **Gaindu** - Mobile App & Web Dashboard Development
 - **Lehan** - Web Dashboard Development  
 - **Pavith** - Web Dashboard Development
 
 ### Roles & Responsibilities
-- **Shalon**: Technical architecture, Mobile app development, React Native implementation
-- **Gaindu & Shalon**: Mobile app development, React Native implementation
-- **Lehan & Pavith**: Web dashboard development, React implementation
+- **Shalon**: Technical architecture, Mobile app development, React Native, Backend implementation
+- **Gaindu & Shalon**: Mobile app development, Web Dhasboard & Backend implementation
+- **Lehan & Pavith**: Web dashboard development, Backend, React implementation
 - **All Members**: Testing, documentation, and quality assurance
 
 ## 📅 Development Timeline
@@ -296,13 +296,6 @@ export const API_BASE_URL = 'http://10.0.2.2:5000'; // Android Emulator
 - Secure API endpoints
 - Environment variable protection
 
-## 📊 Performance Optimizations
-
-- Offline-first mobile design
-- Real-time WebSocket connections
-- Geospatial database indexing
-- Image compression and caching
-- Lazy loading for large datasets
 
 ## 🐛 Troubleshooting
 
