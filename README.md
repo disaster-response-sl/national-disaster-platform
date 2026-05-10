@@ -1,16 +1,16 @@
-# 🚨 National AI-Optimized Disaster Platform for Sri Lanka
+#  National AI-Optimized Disaster Platform for Sri Lanka
 
-🏆 **1st Runner-up at CodeFest Revivation Hackathon** 🏆
+🏆 **1st Runner-up at CodeFest Revivation Hackathon** 
 
 A comprehensive disaster response platform built for the hackathon addressing Sri Lanka's critical disaster management challenges through AI-powered mobile and web applications.
 
-## 📋 Project Overview
+##  Project Overview
 
 The National Disaster Response Platform is a dual-platform solution consisting of:
 - **Mobile App**: Citizen-facing React Native application for emergency reporting and real-time alerts
 - **Web Dashboard**: Government administrative interface for disaster management and resource allocation
 
-### 🎯 Problem Statement
+###  Problem Statement
 
 Sri Lanka faces critical gaps in disaster response:
 - ❌ Outdated communication systems
@@ -19,7 +19,7 @@ Sri Lanka faces critical gaps in disaster response:
 - ❌ Lack of citizen agency in reporting
 - ❌ Fragmented data across systems
 
-### ✅ Solution Features
+###  Solution Features
 
 #### Mobile App (Citizen Interface)
 - 🔐 **SLUDI Authentication**: Secure login using Sri Lanka's Digital Public Infrastructure
@@ -37,8 +37,8 @@ Sri Lanka faces critical gaps in disaster response:
 - 🗺️ **Reports Heatmap**: Geographic visualization of citizen needs
 - 📦 **Resource Management**: AI-powered supply allocation and tracking
 - ⚡ **Real-time Updates**: WebSocket connections for live data
-
-## 🛠️ Technology Stack
+  
+##  Technology Stack
 
 ### Frontend
 - **Mobile App**: React Native with offline-first design
@@ -59,7 +59,7 @@ Sri Lanka faces critical gaps in disaster response:
 - **PayDPI**: Optional payment simulation
 ```
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Node.js (v16 or higher)
@@ -137,8 +137,8 @@ Sri Lanka faces critical gaps in disaster response:
    ```bash
    npm start
    ```
-
-## 🧪 Testing
+   
+##  Testing
 
 ### Test Credentials
 - **Citizen Login**: `citizen001` / `123456`
@@ -171,7 +171,7 @@ Sri Lanka faces critical gaps in disaster response:
 - `GET /api/mobile/chat-logs` - Get chat history
 - `POST /api/mobile/chat` - Send chat message
 
-## 👥 Team
+##  Team
 
 ### Development Team
 - **Shalon** - Software Architect & Lead Software engineer
@@ -185,7 +185,7 @@ Sri Lanka faces critical gaps in disaster response:
 - **Lehan & Pavith**: Web dashboard development, Backend, React implementation
 - **All Members**: Testing, documentation, and quality assurance
 
-## 📅 Development Timeline
+##  Development Timeline
 
 ### Phase 1 (July 31 - Aug 2)
 - ✅ Repository setup and project structure
@@ -205,7 +205,7 @@ Sri Lanka faces critical gaps in disaster response:
 - 🔄 Documentation completion
 - 🔄 Demo preparation
 
-## 🎯 Expected Outcomes
+##  Expected Outcomes
 
 1. **Faster Emergency Response**: Real-time SOS and disaster alerts
 2. **Optimized Resource Allocation**: AI-powered supply distribution
@@ -228,7 +228,7 @@ export const API_BASE_URL = 'http://10.0.2.2:5000'; // Android Emulator
 - **Authentication**: Bearer token in Authorization header
 - **Content-Type**: `application/json`
 
-## 🚨 Emergency Features
+##  Emergency Features
 
 ### SOS Signal
 - One-tap emergency button
@@ -268,7 +268,7 @@ export const API_BASE_URL = 'http://10.0.2.2:5000'; // Android Emulator
 - Location confirmation
 - Status tracking
 
-## 💻 Web Dashboard Features
+##  Web Dashboard Features
 
 ### Admin Panel
 - Role-based access control
@@ -288,7 +288,7 @@ export const API_BASE_URL = 'http://10.0.2.2:5000'; // Android Emulator
 - Geographic clustering
 - Response assignment
 
-## 🔒 Security Features
+##  Security Features
 
 - JWT token authentication
 - Role-based access control
@@ -297,7 +297,7 @@ export const API_BASE_URL = 'http://10.0.2.2:5000'; // Android Emulator
 - Environment variable protection
 
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -331,20 +331,20 @@ npx react-native log-ios
 npm run seed
 ```
 
-## 📚 Documentation
+##  Documentation
 
 - [API Documentation](./docs/api.md)
 - [Database Schema](./docs/schema.md)
 - [Deployment Guide](./docs/deployment.md)
 - [Contributing Guidelines](./CONTRIBUTING.md)
 
-## 🧾 License
+##  License
 
 This project is licensed under the **Apache License 2.0** — you are free to use, modify, and distribute this software, provided that proper credit is given to the original developers and a copy of this license is included.
 
 See the [LICENSE](LICENSE) file for full details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - Sri Lanka Digital Public Infrastructure (DPI) team
 - React Native and React communities
